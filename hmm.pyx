@@ -56,6 +56,15 @@ cdef double _pbinom_convolution(int obs, int R, int E, double p_cont, double p_s
 
     return res
 
+cpdef double _pbinom_convolution2(int obs, int R, int E, double p_cont, double p_state) :
+    cdef double res = 0.
+    cdef int k  # k is number of alt alleles from contaminants
+    k_max = min(obs, R) 
+    k_min = max(obs - E, 0) #q = obs - k is number of alt from endog, q_max is min(obs, E)
+    for k in range(k_min, k_max+1):
+        res += _pbinom_single(k, R, p_cont ) * _pbinom_single(obs-k, E, p_state)
+
+    return res
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -73,21 +82,21 @@ cdef double _er_given_zoc_single_obs(
     cdef int r
     cdef double er_given_zoc = 0.
     cdef double psum = 0.
-    #cdef double po_given_rz = 0.
+    cdef double po_given_rz_local = 0.
     # array of P(R=i | N, c)
     cdef double* pr_given_c = _pbinom_all(N, c)
     cdef double po_given_zc = _pbinom_single(obs, N, (1-c) * p_state + c * p_cont)
     for r in range(N+1): 
-        #po_given_rz = _pbinom_convolution(obs, r, N -r, p_cont, p_state)
-        #er_given_zoc += r * po_given_rz * pr_given_c[r]  / po_given_zc
+        po_given_rz_local = _pbinom_convolution(obs, r, N -r, p_cont, p_state)
+        er_given_zoc += r * po_given_rz_local * pr_given_c[r]  / po_given_zc
         #er_given_zoc += r * po_given_rz[r] * pr_given_c[r]  / po_given_zc
         psum += po_given_rz[r] * pr_given_c[r]  / po_given_zc
 
     if er_given_zoc != er_given_zoc:
-        er_given_zoc = - INFINITY
+        er_given_zoc = 0#- INFINITY
         printf("\t%f\t%d\t%d\t%f\t%f\t%f\n", c, obs, N, p_cont, p_state, er_given_zoc)
     if psum - 1 > 1e-10:
-        printf("\t%f\n", psum)
+        printf("ERROR:\t%f\n", psum)
 
     free(pr_given_c)
     return er_given_zoc
