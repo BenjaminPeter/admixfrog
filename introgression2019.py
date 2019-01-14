@@ -60,8 +60,6 @@ def fwd_algorithm(alpha0, emissions, trans_mat):
         for i in range(em.shape[0]):
             e = em[i]
             alpha_i[i + 1], n_i[i + 1] = fwd_step(alpha_i[i], e, trans_mat)
-            if n_i[i+1] < 1e-10:
-                pass
 
         alpha.append(alpha_i)
         n.append(n_i)
@@ -118,10 +116,11 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
     """
 
     #init, could be made more general
-    n_states = 10#6
+    n_states = 6
     alpha0 = np.array([1/n_states] * n_states)
     trans_mat = np.zeros((n_states,n_states)) + 1e-2
-    np.fill_diagonal(trans_mat, 1 - 1e-2 * n_states + n_states)
+    np.fill_diagonal(trans_mat, 1 - 1e-2 * (n_states -1))
+    assert np.allclose(np.sum(trans_mat, 1), 1)
 
     ll = -np.inf
     new_trans_mat = np.zeros_like(trans_mat)
@@ -145,8 +144,8 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
         H2E_flat_split = split_by_lib(H2E_flat, data.lib, libs)
 
     if estimate_c and estimate_c_em:
-        N = np.array(data.ref + data.alt)
-        O = np.array(data.alt)
+        N0 = np.array(data.ref + data.alt)
+        O0 = np.array(data.alt)
 
         #set up numpy array to make stuff work with numba
         P0_cont = np.array(data.AFR)
@@ -154,18 +153,11 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
                        (data.NEA + data.AFR) / 2, 
                        (data.DEN + data.AFR)/2 , 
                        (data.DEN + data.NEA) / 2]).T
-        P0 = np.array([data.NEA, data.DEN, data.AFR, data.PAN,
-                       (data.NEA + data.AFR) / 2, 
-                       (data.DEN + data.AFR) / 2, 
-                       (data.PAN + data.AFR)/2 , 
-                       (data.DEN + data.NEA) / 2, 
-                       (data.PAN + data.NEA)/2 , 
-                       (data.DEN + data.PAN) / 2]).T
         P = P0 * (1-E0) + E0 * (1-P0)
         P_cont = np.array(P0_cont * (1-E0) + E0 * (1-P0_cont))
 
-        N = split_by_lib(N, data.lib, libs)
-        O = split_by_lib(O, data.lib, libs)
+        N = split_by_lib(N0, data.lib, libs)
+        O = split_by_lib(O0, data.lib, libs)
         P_cont = split_by_lib(P_cont, data.lib, libs)
         P = split_by_lib(P, data.lib, libs)
         P = [p.T for p in P] #P[lib][state][obs]
@@ -179,11 +171,12 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
         ER = [None for _ in libs]
 
 
-    emission_mat = get_emission_mat(data, cont, libs, error)
     if binned:
+        emission_mat = get_emission_mat(data, cont, libs, error, bad_snp_cutoff)
         emissions = get_emission_prob(emission_mat, bins, H2E_flat, bad_snp_cutoff)
     else:
-        emissions = [emission_mat]
+        emissions = get_emission_mat_p0(O0, N0, P0_cont, P0, cont, libs, error,
+                                        bad_snp_cutoff)
 
 
     for it in range(max_iter):
@@ -250,7 +243,8 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
                             emission_mat = get_emission_mat(data, cont, libs, error)
                             emissions = get_emission_prob(emission_mat, bins, H2E_flat, bad_snp_cutoff)
                         else:
-                            emissions = [get_emission_mat(data, cont, libs, error)]
+                            emissions = get_emission_mat_p0(O0, N0, P0_cont, P0, cont, 
+                                                            libs, error, bad_snp_cutoff)
                         _, n = fwd_algorithm(alpha0, emissions, trans_mat=trans_mat)
                         ll_local, prev_ll_local = np.sum([np.sum(np.log(n_)) for n_ in n]), ll_local
                         print("citer_ll: ", ll_local, ll_local - prev_ll_local)
@@ -263,7 +257,8 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
                 emission_mat = get_emission_mat(data, cont, libs, error)
                 emissions = get_emission_prob(emission_mat, bins, H2E_flat, bad_snp_cutoff)
             else:
-                emissions = [get_emission_mat(data, cont, libs, error)]
+                            emissions = get_emission_mat_p0(O0, N0, P0_cont, P0, cont, 
+                                                            libs, error, bad_snp_cutoff)
 
         # numeric brute force
         elif estimate_c and not estimate_c_em: 
@@ -358,7 +353,7 @@ def run_hmm_multinom(infile, outfile=None, out_par=None, out_tmat=None,
     t,alpha,  gamma = baum_welch(data, E0, C0, **kwargs)
     gamma_flat = np.vstack([g[1:] for g in gamma])
     
-    return t, alpha, gamma
+    return t, alpha, gamma, 0
 
     final_emission_mat = get_emission_mat(data, C0, E0)
     emissions = get_emission_prob(final_emission_mat, H2E, bad_snp_cutoff)
@@ -414,20 +409,29 @@ def run_hmm_multinom(infile, outfile=None, out_par=None, out_tmat=None,
 
     return t, alpha, gamma,  data, df
 
+#@jit(nopython=True)
+def get_probs_p0(c, E, P0, P_cont):
+    probs = P_cont[:, np.newaxis] * c + (1.-c) * P0
+    probs = (1.-E) * probs + E * (1.-probs)
 
-def get_probs(data, c, E):
+    return probs.T
+
+
+#
+def get_probs_pd(data, c, E):
     pNN = data.NEA - c * data.dN
     pDD = data.DEN - c * data.dD
     pAA = data.AFR 
-    pPP = data.PAN
+    #pPP = data.PAN
     pNA = (data.NEA + data.AFR)/2 - c * data.dN/2
     pDA = (data.DEN + data.AFR)/2 - c * data.dD/2
     pND = (data.DEN + data.NEA)/2 - c * (data.dD+data.dN)/2
-    pNP = (data.NEA + data.PAN)/2 - c * (data.dP+data.dN)/2
-    pDP = (data.DEN + data.PAN)/2 - c * (data.dD+data.dP)/2
-    pAP = (data.PAN + data.AFR)/2 - c * (data.dP)/2
+    #pNP = (data.NEA + data.PAN)/2 - c * (data.dP+data.dN)/2
+    #pDP = (data.DEN + data.PAN)/2 - c * (data.dD+data.dP)/2
+    #pAP = (data.PAN + data.AFR)/2 - c * (data.dP)/2
 
-    probs = (pNN, pDD, pAA, pPP, pNA, pDA, pAP, pND, pNP, pDP)
+    #probs = (pNN, pDD, pAA, pPP, pNA, pDA, pAP, pND, pNP, pDP)
+    probs = (pNN, pDD, pAA, pNA, pDA, pND)
     probs = [(1-E) * p + E * (1-p) for p in probs]
 
     return probs
@@ -443,6 +447,19 @@ def get_emission_mat(data, cont, libs, E=1e-2, bad_snp_cutoff=1e-16):
 
     probs = get_probs(data, c, E)
     p2 = np.array([pbinom(data.alt, data.ref+data.alt, p) for p in probs]).T
+    bad_snps = np.sum(p2, 1) < bad_snp_cutoff
+    p2[bad_snps] = bad_snp_cutoff
+    return p2
+
+#@jit(nopython=True)
+def get_emission_mat_p0(O, N, P0_cont, P0, cont, libs, E=1e-2, bad_snp_cutoff=1e-16):
+    """ get matrix[n_obs x n_states] giving the emission
+    prob for each observation given each state
+    """
+    probs = get_probs_p0(cont, E, P0, P0_cont)
+    #ignoring binom coeff cause numba doesnt like them and they're constants
+    #p2 = np.array([pbinom(O, N, p) for p in probs]).T
+    p2 = np.array([p ** O + (1-p) ** (N-O) for p in probs]).T
     bad_snps = np.sum(p2, 1) < bad_snp_cutoff
     p2[bad_snps] = bad_snp_cutoff
     return p2
