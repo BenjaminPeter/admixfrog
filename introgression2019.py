@@ -26,6 +26,7 @@ def get_po_given_zc(cont, obs, N, p_cont, p_state, bad_snp_cutoff):
 
 
 binned = False
+n_states = 6
 
 @jit(nopython=True)
 def calc_ll(alpha0, trans_mat, emissions):
@@ -49,6 +50,7 @@ def fwd_algorithm(alpha0, emissions, trans_mat):
     alpha, n = [], []
 
     for em in emissions:
+        print(em, em.shape)
         n_steps, n_states = em.shape
         alpha_i = np.empty((n_steps+1, n_states))
         n_i = np.empty((n_steps+1))
@@ -126,13 +128,6 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
     new_trans_mat = np.zeros_like(trans_mat)
     error, cont, cont_prev = E0, C0, C0
 
-    if "lib" not in data or (not split_lib):
-        data =  data.groupby(("chrom" ,"pos", "NEA", "DEN", "AFR", "PAN",
-                              "dN", "dD", "dP", "map"),
-                      as_index=False).agg({"ref" : sum, "alt" : sum})
-        q = np.quantile(data.ref + data.alt, .999)
-        data=data[data.ref+data.alt <=q]
-        data["lib"] = "lib0"
 
     libs = list(pd.unique(data.lib))
     n_libs = len(libs)
@@ -284,7 +279,7 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
 
         #probs = np.sum((A[has_obs]/N[has_obs])[:,np.newaxis] * gamma[1:][has_obs],0) / np.sum(gamma[1:][has_obs],0)
 
-        n_steps = emission_mat.shape[0]
+        n_steps = emissions[0].shape[0]
         print("iter %d [%d/%d]: %s -> %s"% (it, n_steps, n_states , ll, ll - old_ll))
 #        print(probs)
         print(cont)
@@ -298,7 +293,7 @@ def baum_welch(data, E0, C0, bin_size=1e4, bad_snp_cutoff=1e-14, max_iter=2000,
 
         trans_mat = np.copy(new_trans_mat)
 
-    return new_trans_mat, alpha0, gamma 
+    return new_trans_mat, alpha0, gamma, ll, data
 
 
 def viterbi_single_obs(alpha0, trans_mat, emissions):
@@ -329,8 +324,10 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
     return path #, ll, backtrack
 
 
-def run_hmm_multinom(infile, outfile=None, out_par=None, out_tmat=None,
+def run_hmm(infile, bedfile=None, 
+            outfile=None, out_par=None, out_tmat=None,
                      E0 = 1e-2, C0=1e-1,
+                     split_lib=False,
                      **kwargs
                      ):
     """ run baum welch to find introgressed tracts
@@ -347,55 +344,33 @@ def run_hmm_multinom(infile, outfile=None, out_par=None, out_tmat=None,
         data=data[data.ref+data.alt <=q]
     except ValueError:
         data = infile
-    data["dN"] = data.NEA - data.AFR
-    data["dD"] = data.DEN - data.AFR
 
-    t,alpha,  gamma = baum_welch(data, E0, C0, **kwargs)
+
+    if "lib" not in data or (not split_lib):
+        data =  data.groupby(("chrom" ,"pos", "NEA", "DEN", "AFR", "PAN"),
+                      as_index=False).agg({"ref" : sum, "alt" : sum})
+        q = np.quantile(data.ref + data.alt, .999)
+        data=data[data.ref+data.alt <=q]
+        data["lib"] = "lib0"
+
+    if bedfile is not None:
+        bed = pd.read_table(bedfile, header=None)[[0, 2]]
+        bed.columns = ["chrom", "pos"]
+        #data = bed.merge(data, on=["chrom", "pos"], how="left")
+
+    t,alpha,  gamma, ll, data = baum_welch(data, E0, C0, **kwargs)
     gamma_flat = np.vstack([g[1:] for g in gamma])
     
-    return t, alpha, gamma, 0
 
-    final_emission_mat = get_emission_mat(data, C0, E0)
-    emissions = get_emission_prob(final_emission_mat, H2E, bad_snp_cutoff)
+    #final_emission_mat = get_emission_mat(data, C0, E0)
+    #emissions = get_emission_prob(final_emission_mat, H2E, bad_snp_cutoff)
 
-    vb_dict = dict((c,viterbi_single_obs(alpha, t, e)) for (c,e) in emissions.items())
-    vb_df = pd.DataFrame(np.hstack(v for v in vb_dict.values()), columns=("viterbi",))
-    vb_df.viterbi = vb_df.viterbi.astype(int)
-
-    data["bin"] = np.nan
-    for chrom, b in bins.items():
-            data.loc[data.chrom==chrom, 'bin'] = np.digitize(data.pos[data.chrom==chrom], b)
-    data.bin = data.bin.astype(int)
-
-
-    coords =  [(chrom, *p) for (chrom, pos) in bins.items() for p in enumerate(pos)]
-    coords = np.array(coords, np.int)
-    coords = pd.DataFrame(coords, columns = ("chrom", "bin", "binpos"))
     gamma_df = pd.DataFrame(gamma_flat, columns = ("NN", "DD", "AA", "AN", "AD", "ND"))
-    df = pd.concat((coords, gamma_df, vb_df), 1)
-
-
-    data = data.merge(df)
-
-
-    #reorder crap
-    #o = np.argsort(probs)
-    #t = t[o,:][:,o] 
-    #probs = probs[o]
-    #gamma_flat = gamma_float[:, o]
+    df = pd.concat((data, gamma_df), 1)
 
 
     if outfile is not None:
-        d = pd.DataFrame(d)
-        d.columns = "ref", "alt"
-        df_gamma = pd.DataFrame(gamma_flat)
-        df_gamma.columns = ("S%d"%i for i in range(gamma.shape[1]))
-        coords = pd.DataFrame(coords)
-        coords.columns = ("chrom", "map")
-
-        q = pd.concat((coords, d, df_gamma), axis=1)
-        q["obs"] = has_obs
-        q.to_csv(outfile)
+        df.to_csv(outfile)
 
     if out_tmat is not None:
         pd.DataFrame(t).to_csv(out_tmat, index=False, header = False)
@@ -410,8 +385,8 @@ def run_hmm_multinom(infile, outfile=None, out_par=None, out_tmat=None,
     return t, alpha, gamma,  data, df
 
 #@jit(nopython=True)
-def get_probs_p0(c, E, P0, P_cont):
-    probs = P_cont[:, np.newaxis] * c + (1.-c) * P0
+def get_probs_p0(c, E, P0, P0_cont):
+    probs = P0_cont[:, np.newaxis] * c + (1.-c) * P0
     probs = (1.-E) * probs + E * (1.-probs)
 
     return probs.T
@@ -456,13 +431,14 @@ def get_emission_mat_p0(O, N, P0_cont, P0, cont, libs, E=1e-2, bad_snp_cutoff=1e
     """ get matrix[n_obs x n_states] giving the emission
     prob for each observation given each state
     """
-    probs = get_probs_p0(cont, E, P0, P0_cont)
+    probs = get_probs_p0(cont[0], E, P0, P0_cont)
     #ignoring binom coeff cause numba doesnt like them and they're constants
     #p2 = np.array([pbinom(O, N, p) for p in probs]).T
-    p2 = np.array([p ** O + (1-p) ** (N-O) for p in probs]).T
+    p2 = np.array([p ** O * (1-p) ** (N-O) for p in probs]).T
+    p2[np.where(p2!=p2)] = 1 #missing data has emission prob 1
     bad_snps = np.sum(p2, 1) < bad_snp_cutoff
     p2[bad_snps] = bad_snp_cutoff
-    return p2
+    return [p2]
 
 @jit(nopython=True)
 def get_emission_prob(emission_mat, bins, H2E_flat, bad_snp_cutoff=1e-4):
