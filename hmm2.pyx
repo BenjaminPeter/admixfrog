@@ -116,21 +116,18 @@ cdef double get_po_given_c(
     freqs : allele frequencies, reads, by library/chromosome
     """
     cdef int i, s, n_snps, id_
-    cdef double p, prob, lprob, ll = 0.
+    cdef double p, prob,  ll = 0.
 
     n_snps = len(ids) 
     for i in range(n_snps):
         prob = 0.
-        lprob = 0.
         id_ = ids[i]
         for s in range(n_states):
             p = c * P_cont[id_] + (1.-c) * P[id_, s]
             p = p * (1-e) + (1-p) * e
-            lprob +=  _pbinom_single(O[id_], N[id_], p)
-            prob += G[i, s] * log(_pbinom_single(O[id_], N[id_], p))
+            prob += G[i,s] * pow(p, O[id_]) * pow(1-p, N[id_] - O[id_])
 
-        if lprob > bad_snp_cutoff:
-            ll += prob
+            ll += log(prob)
     return ll
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function

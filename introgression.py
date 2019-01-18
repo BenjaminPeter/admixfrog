@@ -25,6 +25,7 @@ def get_po_given_zc(c, e, freqs, bad_snp_cutoff):
     """
     p = c * freqs.P_cont[:, np.newaxis] + (1.-c) * freqs.P
     p = p * (1-e) + (1-p) * e
+    return p ** freqs.O[:, np.newaxis] * (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
     return np.maximum(p ** freqs.O[:, np.newaxis] * 
                       (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
                       bad_snp_cutoff)
@@ -219,7 +220,7 @@ def bins_from_bed(bed, data, bin_size):
     return bins, data_bin
 
 def update_contamination(*args, **kwargs):
-    return update_contamination_py(*args, **kwargs)
+    return update_contamination_cy(*args, **kwargs)
 
 def update_contamination_py(cont, error, bin_data, freqs, gamma, 
                      bad_snp_cutoff = 1e-10):
@@ -251,9 +252,6 @@ def update_contamination_py(cont, error, bin_data, freqs, gamma,
         def get_po_given_zc_all(c):
             f = Freqs(O, N, P_cont, P, lib)
             po_given_zc = get_po_given_zc(c, error, f, bad_snp_cutoff)
-
-                    #g is the probability of observations given c, current hidden
-                    # state probs
             prob = np.sum(np.log(np.sum(G * po_given_zc, 1)))
             #print("[%s]minimizing c:" % lib, c, prob)
             return -prob
