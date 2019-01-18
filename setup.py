@@ -12,11 +12,10 @@ directive_defaults['binding'] = True
 extensions = [
         Extension(
                     "hmm",
-                    ["hmm.pyx"],
+                    ["hmm2.pyx"],
                     extra_compile_args=['-fopenmp'],
                     extra_link_args=['-fopenmp'],
-                ),
-        "introgression2019.py"
+                )
 ]
 
 

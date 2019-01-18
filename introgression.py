@@ -159,8 +159,11 @@ def data2freqs(data, state_ids = ("AFR", "NEA", "DEN"), cont_id="AFR"):
 
     return f
 
+def get_emissions(*args, **kwargs):
+    return get_emissions_py(*args, **kwargs)
 
-def get_emissions(cont, bins, bin_data, freqs, e=1e-2, bad_snp_cutoff=1e-10):
+
+def get_emissions_py(cont, bins, bin_data, freqs, e=1e-2, bad_snp_cutoff=1e-10):
     n_snps = len(freqs.O)
     n_steps = bins.shape[0]
     n_states = freqs.P.shape[1]
