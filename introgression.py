@@ -222,7 +222,7 @@ def update_contamination(*args, **kwargs):
     return update_contamination_py(*args, **kwargs)
 
 def update_contamination_py(cont, error, bin_data, freqs, gamma, 
-                     bad_snp_cutoff = 1e-4):
+                     bad_snp_cutoff = 1e-10):
     """
     update emissions by maximizing contamination parameter
 
@@ -346,6 +346,12 @@ def run_hmm(infile, bedfile, split_lib=True,
         - f_nea, f_afr: frequency of african and neandertal
     """
     data=pd.read_csv(infile)
+    try:
+        data.chrom[data.chrom=='X'] = 23
+        data.chrom[data.chrom=='Y'] = 24
+        data.chrom = data.chrom.astype(int)
+    except TypeError:
+        pass
     data=data[data.ref+data.alt>0]
     data=data.dropna()
     q = np.quantile(data.ref + data.alt, .999)
@@ -361,6 +367,12 @@ def run_hmm(infile, bedfile, split_lib=True,
 
     bed = pd.read_table(bedfile, header=None)[[0, 2]]
     bed.columns = ["chrom", "pos"]
+    try:
+        bed.chrom[bed.chrom=='X'] = '23'
+        bed.chrom[bed.chrom=='Y'] = '24'
+        bed.chrom = bed.chrom.astype(int)
+    except TypeError:
+        pass
 
     n_states = len(state_ids)
     n_states = int(n_states + n_states * (n_states - 1) / 2)
