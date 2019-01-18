@@ -11,16 +11,22 @@ directive_defaults['binding'] = True
 
 extensions = [
         Extension(
-                    "hmm",
-                    ["hmm2.pyx"],
+                    "admixfrog.hmm",
+                    ["admixfrog/hmm.pyx"],
                     extra_compile_args=['-fopenmp'],
                     extra_link_args=['-fopenmp'],
-                )
+                ),
+    
 ]
 
 
 setup(
-    ext_modules = cythonize(extensions, annotate=True)
-#    ext_modules = cythonize(extensions, annotate=True)
+    name='admixfrog',
+    version='0.1',
+    description='HMM to call fragments from contaminated genomes',
+    author='Ben Peter',
+    author_email='benjamin_peter@eva.mpg.de',
+    ext_modules = cythonize(extensions, annotate=True),
+    packages = ["admixfrog"]
 )
 

@@ -4,7 +4,7 @@ import pandas as pd
 from collections import namedtuple, defaultdict
 from scipy.stats import binom
 from scipy.optimize import minimize
-from hmm import get_emissions_cy, split_freqs, update_contamination_cy
+from .hmm import get_emissions_cy, split_freqs, update_contamination_cy
 
 np.set_printoptions(suppress=True, precision=4)          
 pbinom = binom.pmf
