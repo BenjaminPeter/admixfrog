@@ -4,6 +4,7 @@ import pandas as pd
 from collections import namedtuple, defaultdict
 from scipy.stats import binom
 from scipy.optimize import minimize
+from hmm import get_emissions_cy, split_freqs, update_contamination_cy
 
 np.set_printoptions(suppress=True, precision=4)          
 pbinom = binom.pmf
@@ -143,7 +144,7 @@ def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n):
     return new_trans_mat
 
 
-def data2freqs(data, state_ids = ("AFR", "NEA", "DEN"), cont_id="AFR"):
+def data2freqs(data, state_ids, cont_id):
     P_homo = [data[s] for s in state_ids]
     P_het = []
     for i, s in enumerate(state_ids):
@@ -160,7 +161,7 @@ def data2freqs(data, state_ids = ("AFR", "NEA", "DEN"), cont_id="AFR"):
     return f
 
 def get_emissions(*args, **kwargs):
-    return get_emissions_py(*args, **kwargs)
+    return get_emissions_cy(*args, **kwargs)
 
 
 def get_emissions_py(cont, bins, bin_data, freqs, e=1e-2, bad_snp_cutoff=1e-10):
@@ -217,8 +218,10 @@ def bins_from_bed(bed, data, bin_size):
     data_bin = np.vstack(data_loc)
     return bins, data_bin
 
+def update_contamination(*args, **kwargs):
+    return update_contamination_py(*args, **kwargs)
 
-def update_contamination(cont, error, bin_data, freqs, gamma, 
+def update_contamination_py(cont, error, bin_data, freqs, gamma, 
                      bad_snp_cutoff = 1e-4):
     """
     update emissions by maximizing contamination parameter
@@ -258,7 +261,7 @@ def update_contamination(cont, error, bin_data, freqs, gamma,
         OO =  minimize(get_po_given_zc_all, [cont[lib]], bounds=[(0., 1)])
         print("[%s/%s]minimizing c: [%.3f->%.3f]: %s" % (lib, len(O), cont[lib], OO.x[0], OO.fun))
         cont[lib] = OO.x[0]
-    return cont
+    return dict(cont)
 
 
 def baum_welch(alpha_0, trans_mat,
@@ -281,12 +284,16 @@ def baum_welch(alpha_0, trans_mat,
     emissions = get_emissions(cont, bins, bin_data, freqs, e=error)
     n_seqs = len(emissions)
 
+    if optimize_cont:
+        libs = pd.unique(freqs.lib)
+        split_ids = split_freqs(freqs)
     for it in range(max_iter):
         alpha, beta, gamma, n = fwd_bwd_algorithm(alpha_0, emissions, trans_mat)
         trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
 
         if optimize_cont:
-            cont = update_contamination(cont, error, bin_data, freqs, gamma, bad_snp_cutoff)
+            #cont = update_contamination_cy(cont, error, bin_data, freqs, gamma, split_ids, libs, bad_snp_cutoff)
+            cont = update_contamination_py(cont, error, bin_data, freqs, gamma,bad_snp_cutoff)
             emissions = get_emissions(cont, bins, bin_data, freqs, bad_snp_cutoff=bad_snp_cutoff, e=error)
 
         alpha_0 = np.linalg.matrix_power(trans_mat, 10000)[0]
@@ -295,7 +302,6 @@ def baum_welch(alpha_0, trans_mat,
         print("iter %d [%d/%d]: %s -> %s"% (it, n_seqs, n_states , ll, ll - old_ll))
         if ll - old_ll < ll_tol:
             break
-    
 
     return gamma, ll, trans_mat, alpha_0, dict(cont), emissions
 
@@ -322,7 +328,7 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
 
     path = np.empty(n_steps)
     cursor = np.argmax(ll[-1])
-    for i in reversed(range(n_steps)):
+    for i in range(n_steps-1, -1, -1):
         cursor = backtrack[i, cursor]
         path[i] = cursor
 
@@ -339,14 +345,11 @@ def run_hmm(infile, bedfile, split_lib=True,
         - tref, talt: number of ref, alt reads
         - f_nea, f_afr: frequency of african and neandertal
     """
-    try:
-        data=pd.read_csv(infile)
-        data=data[data.ref+data.alt>0]
-        data=data.dropna()
-        q = np.quantile(data.ref + data.alt, .999)
-        data=data[data.ref+data.alt <=q]
-    except ValueError:
-        data = infile
+    data=pd.read_csv(infile)
+    data=data[data.ref+data.alt>0]
+    data=data.dropna()
+    q = np.quantile(data.ref + data.alt, .999)
+    data=data[data.ref+data.alt <=q]
 
     if "lib" not in data or (not split_lib):
         data =  data.groupby(("chrom" ,"pos", "NEA", "DEN", "AFR", "PAN",
@@ -356,9 +359,8 @@ def run_hmm(infile, bedfile, split_lib=True,
         data=data[data.ref+data.alt <=q]
         data["lib"] = "lib0"
 
-    if bedfile is not None:
-        bed = pd.read_table(bedfile, header=None)[[0, 2]]
-        bed.columns = ["chrom", "pos"]
+    bed = pd.read_table(bedfile, header=None)[[0, 2]]
+    bed.columns = ["chrom", "pos"]
 
     n_states = len(state_ids)
     n_states = int(n_states + n_states * (n_states - 1) / 2)
