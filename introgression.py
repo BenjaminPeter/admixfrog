@@ -57,7 +57,7 @@ def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
         alpha[i + 1], n[i + 1] = fwd_step(alpha[i], emission[i], trans_mat)
     return alpha, n
 
-@jit(nopython=True, parallel=True)
+@jit(nopython=True)
 def fwd_algorithm(alpha0, emissions, trans_mat):
     """
     calculate P(X_t | o_[1..t], a0)
@@ -67,7 +67,7 @@ def fwd_algorithm(alpha0, emissions, trans_mat):
     n_seqs = len(emissions)
     alpha = [np.empty((2,2)) for _ in range(n_seqs)]
     n = [np.empty((2)) for _ in range(n_seqs)]
-    for i in prange(n_seqs):
+    for i in range(n_seqs):
         alpha[i], n[i] = fwd_algorithm_single_obs(alpha0, emissions[i], trans_mat)
     return alpha, n
 
@@ -92,7 +92,7 @@ def bwd_algorithm_single_obs(emission, trans_mat, n):
         beta[i] = bwd_step(beta[i+1], emission[i], trans_mat, n[i+1])
     return beta
 
-@jit(nopython=True, parallel=True)
+@jit(nopython=True)
 def bwd_algorithm(emissions, trans_mat, n):
     """
     calculate P(o[t+1..n] | X) / P(o[t+1..n])
@@ -107,7 +107,7 @@ def bwd_algorithm(emissions, trans_mat, n):
 
     n_seqs = len(emissions)
     beta = [np.empty((2,2)) for _ in range(n_seqs)]
-    for i in prange(n_seqs):
+    for i in range(n_seqs):
         n_i, em = n[i], emissions[i]
         n_steps, n_states = em.shape
         beta_i = bwd_algorithm_single_obs(em, trans_mat, n_i)
@@ -270,7 +270,8 @@ def baum_welch(alpha_0, trans_mat,
                max_iter=2000,
                ll_tol = 1e-1,
                bad_snp_cutoff= 1e-10,
-               optimize_cont=True):
+               optimize_cont=True,
+               gamma_names=None):
     
 
     n_states = trans_mat.shape[0]
@@ -299,6 +300,8 @@ def baum_welch(alpha_0, trans_mat,
         ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
 
         print("iter %d [%d/%d]: %s -> %s"% (it, n_seqs, n_states , ll, ll - old_ll))
+        if gamma_names is not None: print(*gamma_names, sep="\t")
+        print(*["%.3f" %a for a in alpha_0], sep="\t")
         if ll - old_ll < ll_tol:
             break
 
@@ -394,7 +397,7 @@ def run_hmm(infile, bedfile, split_lib=True,
                       bins=bins,
                       bin_data=bin_data,
                       freqs=freqs,
-                      cont=cont, **kwargs)
+                      cont=cont, gamma_names=gamma_names, **kwargs)
 
     viterbi_path = viterbi(alpha_0, trans_mat, emissions)
     viterbi_df = pd.Series(np.hstack(viterbi_path), name='viterbi')
