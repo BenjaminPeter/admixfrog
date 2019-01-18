@@ -127,7 +127,7 @@ cdef double get_po_given_c(
             p = p * (1-e) + (1-p) * e
             prob += G[i,s] * pow(p, O[id_]) * pow(1-p, N[id_] - O[id_])
 
-            ll += log(prob)
+        ll += log(prob)
     return ll
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -163,6 +163,8 @@ def update_contamination_cy(cont, error, bin_data,
 
     """
 
+
+
     n_states = freqs.P.shape[1]
 
     n_libs = len(libs)
@@ -170,9 +172,8 @@ def update_contamination_cy(cont, error, bin_data,
         lib = libs[i]
         f_ = split_ids[lib]
         G = np.array([gamma[i][j+1] for i, _, j in bin_data[f_]])
-        #f = split_data[i]
-        #assert lib == f.lib
         assert all(lib == freqs.lib[f_])
+        #print(lib, np.sum(G, 0), end = "\t")
 
         def get_po_given_c_all(c):
             prob = get_po_given_c(c=c,

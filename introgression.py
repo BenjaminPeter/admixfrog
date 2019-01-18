@@ -220,7 +220,7 @@ def bins_from_bed(bed, data, bin_size):
     return bins, data_bin
 
 def update_contamination(*args, **kwargs):
-    return update_contamination_cy(*args, **kwargs)
+    return update_contamination_py(*args, **kwargs)
 
 def update_contamination_py(cont, error, bin_data, freqs, gamma, 
                      bad_snp_cutoff = 1e-10):
@@ -245,6 +245,7 @@ def update_contamination_py(cont, error, bin_data, freqs, gamma,
         O, N, P_cont, P = freqs.O[f_], freqs.N[f_], freqs.P_cont[f_], freqs.P[f_]
 
         G = np.array([gamma[i][j+1] for i, _, j in bin_data[f_]])
+        #print(lib, np.sum(G, 0), end = "\t")
 
 
 
