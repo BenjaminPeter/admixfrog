@@ -133,8 +133,7 @@ cdef double get_po_given_c(
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 
-def split_freqs(freqs):
-    libs = np.unique(freqs.lib)
+def split_freqs(libs, freqs):
     split_ids = dict()
 
     for lib in libs:
@@ -145,8 +144,8 @@ def split_freqs(freqs):
 def update_contamination_cy(cont, error, bin_data, 
                             freqs, gamma, 
                             #split_data,
-                            split_ids=None,
-                            libs = None,
+                            split_ids,
+                            libs,
                      bad_snp_cutoff = 1e-12):
     """
     update emissions by maximizing contamination parameter
@@ -165,10 +164,6 @@ def update_contamination_cy(cont, error, bin_data,
     """
 
     n_states = freqs.P.shape[1]
-    if libs is None:
-        libs = pd.unique(freqs.lib)
-    if split_ids is None:
-        split_ids = split_freqs(freqs)
 
     n_libs = len(libs)
     for i in range(n_libs):
@@ -177,6 +172,8 @@ def update_contamination_cy(cont, error, bin_data,
         G = np.array([gamma[i][j+1] for i, _, j in bin_data[f_]])
         #f = split_data[i]
         #assert lib == f.lib
+        assert all(lib == freqs.lib[f_])
+
         def get_po_given_c_all(c):
             prob = get_po_given_c(c=c,
                                  e=error,
@@ -193,13 +190,13 @@ def update_contamination_cy(cont, error, bin_data,
 
         p0 = get_po_given_c_all(cont[lib])
 
-        OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
-        print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-                                                                   cont[lib], OO.x, p0-OO.fun))
-        cont[lib] = OO.x
-        #OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1)])
+        #OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
         #print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-        #                                                           cont[lib], OO.x[0], p0-OO.fun))
-        #cont[lib] = OO.x[0]
+        #                                                           cont[lib], OO.x, p0-OO.fun))
+        #cont[lib] = OO.x
+        OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1)])
+        print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+                                                                   cont[lib], OO.x[0], p0-OO.fun))
+        cont[lib] = OO.x[0]
     return dict(cont)
 

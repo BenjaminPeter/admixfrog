@@ -284,7 +284,7 @@ def baum_welch(alpha_0, trans_mat,
 
     if optimize_cont:
         libs = pd.unique(freqs.lib)
-        split_ids = split_freqs(freqs)
+        split_ids = split_freqs(libs, freqs)
     for it in range(max_iter):
         alpha, beta, gamma, n = fwd_bwd_algorithm(alpha_0, emissions, trans_mat)
         trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
