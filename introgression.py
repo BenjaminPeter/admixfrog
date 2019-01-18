@@ -290,8 +290,8 @@ def baum_welch(alpha_0, trans_mat,
         trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
 
         if optimize_cont:
-            #cont = update_contamination_cy(cont, error, bin_data, freqs, gamma, split_ids, libs, bad_snp_cutoff)
-            cont = update_contamination_py(cont, error, bin_data, freqs, gamma,bad_snp_cutoff)
+            cont = update_contamination_cy(cont, error, bin_data, freqs, gamma, split_ids, libs, bad_snp_cutoff)
+            #cont = update_contamination_py(cont, error, bin_data, freqs, gamma,bad_snp_cutoff)
             emissions = get_emissions(cont, bins, bin_data, freqs, bad_snp_cutoff=bad_snp_cutoff, e=error)
 
         alpha_0 = np.linalg.matrix_power(trans_mat, 10000)[0]
