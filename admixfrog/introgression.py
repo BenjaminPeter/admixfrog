@@ -12,7 +12,7 @@ pbinom = binom.pmf
 Freqs = namedtuple("Freqs", ("O", "N", "P_cont", "P", "lib"))
 
 #@jit(nopython=True)
-def get_po_given_zc(c, e, freqs, bad_snp_cutoff):
+def get_po_given_zc(c, e, freqs, bad_snp_cutoff=1e-10):
     """
     calculate Pr(O | Z, c, p), the probability of all observations given 
     the hidden states, allele frequencies in all potential donors and contamination rate
@@ -24,12 +24,13 @@ def get_po_given_zc(c, e, freqs, bad_snp_cutoff):
     cont : contamination estimate, by library
     freqs : allele frequencies, reads, by library/chromosome
     """
+    n_states = freqs.P.shape[1]
     p = c * freqs.P_cont[:, np.newaxis] + (1.-c) * freqs.P
     p = p * (1-e) + (1-p) * e
-    return p ** freqs.O[:, np.newaxis] * (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
+    #return p ** freqs.O[:, np.newaxis] * (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
     return np.maximum(p ** freqs.O[:, np.newaxis] * 
                       (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
-                      bad_snp_cutoff)
+                      bad_snp_cutoff/n_states)
 
 @jit(nopython=True)
 def calc_ll(alpha0, trans_mat, emissions):
@@ -166,15 +167,19 @@ def get_emissions(*args, **kwargs):
     return get_emissions_cy(*args, **kwargs)
 
 
-def get_emissions_py(cont, bins, bin_data, freqs, e=1e-2, bad_snp_cutoff=1e-10):
+def get_emissions_py(cont, bins, bin_data, freqs, e=1e-2, bad_snp_cutoff=1e-10,
+                     garbage_state=True):
     n_snps = len(freqs.O)
     n_steps = bins.shape[0]
-    n_states = freqs.P.shape[1]
+    n_states = freqs.P.shape[1] + garbage_state
 
     emissions = np.ones((n_steps, n_states))
     c = np.array([cont[l] for l in freqs.lib])
 
     for s in range(n_states):
+
+        if garbage_state and s == n_states - 1: break
+
         p = freqs.P_cont * c + freqs.P[:,s] *( 1. - c )
         p = p * (1. - e) + (1.-p) * e
         em = pbinom(freqs.O, freqs.N, p)
@@ -183,12 +188,14 @@ def get_emissions_py(cont, bins, bin_data, freqs, e=1e-2, bad_snp_cutoff=1e-10):
             row = bin_data[i, 1]
             emissions[row, s] *= em[i]
 
-    emissions = np.maximum(emissions, bad_snp_cutoff)
+    if garbage_state:
+        emissions[:, n_states - 1] = bad_snp_cutoff
+    else:
+        emissions = np.maximum(emissions, bad_snp_cutoff)
+
     chroms = np.unique(bins[:, 0])
     emissions = [emissions[bins[:,0] == chrom] for chrom in chroms]
-    
     return emissions
-
 
 
 def bins_from_bed(bed, data, bin_size):
@@ -220,11 +227,9 @@ def bins_from_bed(bed, data, bin_size):
     data_bin = np.vstack(data_loc)
     return bins, data_bin
 
-def update_contamination(*args, **kwargs):
-    return update_contamination_py(*args, **kwargs)
-
 def update_contamination_py(cont, error, bin_data, freqs, gamma, 
-                     bad_snp_cutoff = 1e-10):
+                     bad_snp_cutoff = 1e-10,
+					 garbage_state=True):
     """
     update emissions by maximizing contamination parameter
 
@@ -248,7 +253,8 @@ def update_contamination_py(cont, error, bin_data, freqs, gamma,
         G = np.array([gamma[i][j+1] for i, _, j in bin_data[f_]])
         #print(lib, np.sum(G, 0), end = "\t")
 
-
+        if garbage_state:
+            G = G[:, :-1]
 
         #numeric minimization
         def get_po_given_zc_all(c):
@@ -258,8 +264,9 @@ def update_contamination_py(cont, error, bin_data, freqs, gamma,
             #print("[%s]minimizing c:" % lib, c, prob)
             return -prob
 
+        p0 = get_po_given_zc_all(cont[lib])
         OO =  minimize(get_po_given_zc_all, [cont[lib]], bounds=[(0., 1)])
-        print("[%s/%s]minimizing c: [%.3f->%.3f]: %s" % (lib, len(O), cont[lib], OO.x[0], OO.fun))
+        print("[%s/%s]minimizing c: [%.3f->%.3f]: %4f, %4f" % (lib, len(O), cont[lib], OO.x[0], p0, OO.fun))
         cont[lib] = OO.x[0]
     return dict(cont)
 
@@ -272,9 +279,9 @@ def baum_welch(alpha_0, trans_mat,
                ll_tol = 1e-1,
                bad_snp_cutoff= 1e-10,
                optimize_cont=True,
+               garbage_state=True,
                gamma_names=None):
     
-
     n_states = trans_mat.shape[0]
     ll = -np.inf
 
@@ -282,7 +289,8 @@ def baum_welch(alpha_0, trans_mat,
     assert trans_mat.shape[1] == n_states
     assert np.allclose(np.sum(trans_mat, 1), 1)
 
-    emissions = get_emissions(cont, bins, bin_data, freqs, e=error)
+    emissions = get_emissions(cont, bins, bin_data, freqs, e=error,
+                              garbage_state=garbage_state)
     n_seqs = len(emissions)
 
     if optimize_cont:
@@ -290,21 +298,26 @@ def baum_welch(alpha_0, trans_mat,
         split_ids = split_freqs(libs, freqs)
     for it in range(max_iter):
         alpha, beta, gamma, n = fwd_bwd_algorithm(alpha_0, emissions, trans_mat)
-        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
-
-        if optimize_cont:
-            cont = update_contamination_cy(cont, error, bin_data, freqs, gamma, split_ids, libs, bad_snp_cutoff)
-            #cont = update_contamination_py(cont, error, bin_data, freqs, gamma,bad_snp_cutoff)
-            emissions = get_emissions(cont, bins, bin_data, freqs, bad_snp_cutoff=bad_snp_cutoff, e=error)
-
-        alpha_0 = np.linalg.matrix_power(trans_mat, 10000)[0]
         ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
 
         print("iter %d [%d/%d]: %s -> %s"% (it, n_seqs, n_states , ll, ll - old_ll))
-        if gamma_names is not None: print(*gamma_names, sep="\t")
-        print(*["%.3f" %a for a in alpha_0], sep="\t")
         if ll - old_ll < ll_tol:
             break
+
+
+        #update stuff
+        alpha_0 = np.linalg.matrix_power(trans_mat, 10000)[0]
+        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
+        if optimize_cont:
+            cont = update_contamination_cy(cont, error, bin_data, freqs, gamma, split_ids, libs, garbage_state=garbage_state)
+            #cont = update_contamination_py(cont, error, bin_data, freqs, gamma,bad_snp_cutoff, garbage_state=True)
+            emissions = get_emissions(cont, bins, bin_data, freqs,
+                                      bad_snp_cutoff=bad_snp_cutoff, e=error,
+                                      garbage_state=garbage_state)
+
+        if gamma_names is not None: print(*gamma_names, sep="\t")
+        print(*["%.3f" %a for a in alpha_0], sep="\t")
+
 
     return gamma, ll, trans_mat, alpha_0, dict(cont), emissions
 
@@ -341,6 +354,7 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
 def run_hmm(infile, bedfile, split_lib=True, 
             state_ids=("AFR", "NEA", "DEN"),
             cont_id="AFR", bin_size=1e4,
+            garbage_state=True,
             **kwargs):
     """ run baum welch to find introgressed tracts
     infile formatting:
@@ -356,18 +370,21 @@ def run_hmm(infile, bedfile, split_lib=True,
     except TypeError:
         pass
     data=data[data.ref+data.alt>0]
+    states = list(set(list(state_ids) + [cont_id]))
+    cols = ["chrom", "pos", 'map', 'lib', 'ref', 'alt'] + states
+    data=data[cols]
     data=data.dropna()
-    q = np.quantile(data.ref + data.alt, .999)
+    q = np.quantile(data.ref + data.alt, .99)
     data=data[data.ref+data.alt <=q]
 
     if "lib" not in data or (not split_lib):
-        data =  data.groupby(("chrom" ,"pos", "NEA", "DEN", "AFR", "PAN",
-                              "dN", "dD", "dP", "map"),
+        data =  data.groupby(("chrom" ,"pos", "NEA", "DEN", "AFR", "PAN"),
                       as_index=False).agg({"ref" : sum, "alt" : sum})
         q = np.quantile(data.ref + data.alt, .999)
         data=data[data.ref+data.alt <=q]
         data["lib"] = "lib0"
 
+    #load bed
     bed = pd.read_table(bedfile, header=None)[[0, 2]]
     bed.columns = ["chrom", "pos"]
     try:
@@ -378,10 +395,10 @@ def run_hmm(infile, bedfile, split_lib=True,
         pass
 
     n_states = len(state_ids)
-    n_states = int(n_states + n_states * (n_states - 1) / 2)
+    n_states = int(n_states + n_states * (n_states - 1) / 2) + garbage_state
     alpha_0 = np.array([1/n_states] * n_states)
-    trans_mat = np.zeros((n_states, n_states)) + 1e-2
-    np.fill_diagonal(trans_mat, 1 - (n_states-1) * 1e-2)
+    trans_mat = np.zeros((n_states, n_states)) + 2e-2
+    np.fill_diagonal(trans_mat, 1 - (n_states-1) * 2e-2)
     cont = defaultdict(lambda:1e-2)
 
     bins, bin_data = bins_from_bed(bed, data, bin_size)
@@ -393,11 +410,14 @@ def run_hmm(infile, bedfile, split_lib=True,
         for s2 in state_ids[i+1:]:
             n_het.append(s + s2)
     gamma_names = n_homo + n_het
+    if garbage_state: gamma_names += ["GARBAGE"]
+
     gamma, ll, trans_mat, alpha_0, cont, emissions = baum_welch(alpha_0 = alpha_0,
                       trans_mat = trans_mat,
                       bins=bins,
                       bin_data=bin_data,
                       freqs=freqs,
+                      garbage_state=garbage_state,
                       cont=cont, gamma_names=gamma_names, **kwargs)
 
     viterbi_path = viterbi(alpha_0, trans_mat, emissions)

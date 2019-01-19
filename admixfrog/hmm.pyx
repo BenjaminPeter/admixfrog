@@ -58,14 +58,15 @@ cdef void _get_emissions(
 def get_emissions_cy(cont, bins, bin_data, 
                      freqs, 
                      e=1e-2, 
-                     bad_snp_cutoff=1e-10):
+                     bad_snp_cutoff=1e-10,
+                     garbage_state=True):
     c = np.array([cont[l] for l in freqs.lib])
     bin_id = bin_data[:, 1]
     n_snps = len(freqs.O)
     n_steps = bins.shape[0]
     n_states = freqs.P.shape[1]
 
-    emissions = np.ones((n_steps, n_states))
+    emissions = np.ones((n_steps, n_states+garbage_state))
     
     _get_emissions(
                           emissions,
@@ -80,10 +81,13 @@ def get_emissions_cy(cont, bins, bin_data,
                           n_states = n_states,
                           error = e)
 
-    #emissions = np.maximum(emissions, bad_snp_cutoff)
-    em_sum = np.sum(emissions, 1)
-    bad_snps = em_sum < bad_snp_cutoff
-    emissions[bad_snps, :] = bad_snp_cutoff / n_states
+    if garbage_state:
+        emissions[:, n_states] = bad_snp_cutoff
+    else:
+        em_sum = np.sum(emissions, 1)
+        bad_snps = em_sum < bad_snp_cutoff
+        emissions[bad_snps, :] = bad_snp_cutoff / n_states
+
     chroms = np.unique(bins[:, 0])
     emissions = [emissions[bins[:,0] == chrom] for chrom in chroms]
     
@@ -102,7 +106,6 @@ cdef double get_po_given_c(
     double [:, :] G,
     long [:] ids,
     int n_states,
-    double bad_snp_cutoff
     ) nogil:
     """
     calculate Pr(O | Z, c, p), the probability of all observations given 
@@ -125,9 +128,11 @@ cdef double get_po_given_c(
         for s in range(n_states):
             p = c * P_cont[id_] + (1.-c) * P[id_, s]
             p = p * (1-e) + (1-p) * e
-            prob += G[i,s] * pow(p, O[id_]) * pow(1-p, N[id_] - O[id_])
+            #prob += G[i,s] * log(  pow(p, O[id_]) * pow(1-p, N[id_] - O[id_]) )
+            prob += G[i,s] * (  O[id_] * log(p) + (N[id_] - O[id_]) * log(1-p))
 
-        ll += log(prob)
+        #ll += log(prob)
+        ll += prob
     return ll
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -146,7 +151,8 @@ def update_contamination_cy(cont, error, bin_data,
                             #split_data,
                             split_ids,
                             libs,
-                     bad_snp_cutoff = 1e-12):
+                            garbage_state=True
+                     ):
     """
     update emissions by maximizing contamination parameter
 
@@ -173,7 +179,9 @@ def update_contamination_cy(cont, error, bin_data,
         f_ = split_ids[lib]
         G = np.array([gamma[i][j+1] for i, _, j in bin_data[f_]])
         assert all(lib == freqs.lib[f_])
-        #print(lib, np.sum(G, 0), end = "\t")
+
+        if garbage_state:
+            G = G[:,:-1]
 
         def get_po_given_c_all(c):
             prob = get_po_given_c(c=c,
@@ -184,8 +192,7 @@ def update_contamination_cy(cont, error, bin_data,
                                  P=freqs.P,
                                  G=G,
                                  ids = split_ids[lib],
-                                 n_states = n_states,
-                                 bad_snp_cutoff=bad_snp_cutoff)
+                                 n_states = n_states)
             return -prob
 
 
