@@ -297,8 +297,16 @@ def baum_welch(alpha_0, trans_mat,
         split_ids = split_freqs(libs, freqs)
     for it in range(max_iter):
         alpha, beta, gamma, n = fwd_bwd_algorithm(alpha_0, emissions, trans_mat)
-        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
+        ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
 
+        print("iter %d [%d/%d]: %s -> %s"% (it, n_seqs, n_states , ll, ll - old_ll))
+        if ll - old_ll < ll_tol:
+            break
+
+
+        #update stuff
+        alpha_0 = np.linalg.matrix_power(trans_mat, 10000)[0]
+        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
         if optimize_cont:
             cont = update_contamination_cy(cont, error, bin_data, freqs, gamma, split_ids, libs, garbage_state=garbage_state)
             #cont = update_contamination_py(cont, error, bin_data, freqs, gamma,bad_snp_cutoff, garbage_state=True)
@@ -306,14 +314,9 @@ def baum_welch(alpha_0, trans_mat,
                                       bad_snp_cutoff=bad_snp_cutoff, e=error,
                                       garbage_state=garbage_state)
 
-        alpha_0 = np.linalg.matrix_power(trans_mat, 10000)[0]
-        ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
-
-        print("iter %d [%d/%d]: %s -> %s"% (it, n_seqs, n_states , ll, ll - old_ll))
         if gamma_names is not None: print(*gamma_names, sep="\t")
         print(*["%.3f" %a for a in alpha_0], sep="\t")
-        if ll - old_ll < ll_tol:
-            break
+
 
     return gamma, ll, trans_mat, alpha_0, dict(cont), emissions
 

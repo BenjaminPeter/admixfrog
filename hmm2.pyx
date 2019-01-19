@@ -128,9 +128,11 @@ cdef double get_po_given_c(
         for s in range(n_states):
             p = c * P_cont[id_] + (1.-c) * P[id_, s]
             p = p * (1-e) + (1-p) * e
-            prob += G[i,s] * pow(p, O[id_]) * pow(1-p, N[id_] - O[id_])
+            #prob += G[i,s] * log(  pow(p, O[id_]) * pow(1-p, N[id_] - O[id_]) )
+            prob += G[i,s] * (  O[id_] * log(p) + (N[id_] - O[id_]) * log(1-p))
 
-        ll += log(prob)
+        #ll += log(prob)
+        ll += prob
     return ll
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -196,13 +198,13 @@ def update_contamination_cy(cont, error, bin_data,
 
         p0 = get_po_given_c_all(cont[lib])
 
-        OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
-        print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-                                                                   cont[lib], OO.x, p0-OO.fun))
-        cont[lib] = OO.x
-        #OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1)])
+        #OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
         #print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-        #                                                           cont[lib], OO.x[0], p0-OO.fun))
-        #cont[lib] = OO.x[0]
+        #                                                           cont[lib], OO.x, p0-OO.fun))
+        #cont[lib] = OO.x
+        OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1)])
+        print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+                                                                   cont[lib], OO.x[0], p0-OO.fun))
+        cont[lib] = OO.x[0]
     return dict(cont)
 
