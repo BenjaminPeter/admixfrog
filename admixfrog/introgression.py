@@ -1,6 +1,7 @@
 from numba import jit, prange
 import numpy as np
 import pandas as pd
+import sys
 from collections import namedtuple, defaultdict
 from scipy.stats import binom
 from scipy.optimize import minimize
@@ -57,7 +58,7 @@ def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
         alpha[i + 1], n[i + 1] = fwd_step(alpha[i], emission[i], trans_mat)
     return alpha, n
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def fwd_algorithm(alpha0, emissions, trans_mat):
     """
     calculate P(X_t | o_[1..t], a0)
@@ -92,7 +93,7 @@ def bwd_algorithm_single_obs(emission, trans_mat, n):
         beta[i] = bwd_step(beta[i+1], emission[i], trans_mat, n[i+1])
     return beta
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def bwd_algorithm(emissions, trans_mat, n):
     """
     calculate P(o[t+1..n] | X) / P(o[t+1..n])
@@ -114,7 +115,7 @@ def bwd_algorithm(emissions, trans_mat, n):
         beta[i] = beta_i
     return beta
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def fwd_bwd_algorithm(alpha0, emissions, trans_mat):
     alpha, n = fwd_algorithm(alpha0=alpha0, emissions=emissions, trans_mat=trans_mat)
     beta = bwd_algorithm(emissions=emissions, n=n, trans_mat=trans_mat)
