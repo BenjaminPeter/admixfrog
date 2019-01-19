@@ -177,7 +177,6 @@ def update_contamination_cy(cont, error, bin_data,
         f_ = split_ids[lib]
         G = np.array([gamma[i][j+1] for i, _, j in bin_data[f_]])
         assert all(lib == freqs.lib[f_])
-        #print(lib, np.sum(G, 0), end = "\t")
 
         if garbage_state:
             G = G[:,:-1]
@@ -197,13 +196,13 @@ def update_contamination_cy(cont, error, bin_data,
 
         p0 = get_po_given_c_all(cont[lib])
 
-        #OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
-        #print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-        #                                                           cont[lib], OO.x, p0-OO.fun))
-        #cont[lib] = OO.x
-        OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1)])
+        OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
         print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-                                                                   cont[lib], OO.x[0], p0-OO.fun))
-        cont[lib] = OO.x[0]
+                                                                   cont[lib], OO.x, p0-OO.fun))
+        cont[lib] = OO.x
+        #OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1)])
+        #print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+        #                                                           cont[lib], OO.x[0], p0-OO.fun))
+        #cont[lib] = OO.x[0]
     return dict(cont)
 
