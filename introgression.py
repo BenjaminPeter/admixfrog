@@ -23,12 +23,13 @@ def get_po_given_zc(c, e, freqs, bad_snp_cutoff):
     cont : contamination estimate, by library
     freqs : allele frequencies, reads, by library/chromosome
     """
+    n_states = freqs.P.shape[1]
     p = c * freqs.P_cont[:, np.newaxis] + (1.-c) * freqs.P
     p = p * (1-e) + (1-p) * e
-    return p ** freqs.O[:, np.newaxis] * (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
+    #return p ** freqs.O[:, np.newaxis] * (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
     return np.maximum(p ** freqs.O[:, np.newaxis] * 
                       (1.-p) ** (freqs.N - freqs.O)[:, np.newaxis], 
-                      bad_snp_cutoff)
+                      bad_snp_cutoff/n_states)
 
 @jit(nopython=True)
 def calc_ll(alpha0, trans_mat, emissions):
@@ -219,9 +220,6 @@ def bins_from_bed(bed, data, bin_size):
     data_bin = np.vstack(data_loc)
     return bins, data_bin
 
-def update_contamination(*args, **kwargs):
-    return update_contamination_py(*args, **kwargs)
-
 def update_contamination_py(cont, error, bin_data, freqs, gamma, 
                      bad_snp_cutoff = 1e-10):
     """
@@ -257,8 +255,9 @@ def update_contamination_py(cont, error, bin_data, freqs, gamma,
             #print("[%s]minimizing c:" % lib, c, prob)
             return -prob
 
+        p0 = get_po_given_zc_all(cont[lib])
         OO =  minimize(get_po_given_zc_all, [cont[lib]], bounds=[(0., 1)])
-        print("[%s/%s]minimizing c: [%.3f->%.3f]: %s" % (lib, len(O), cont[lib], OO.x[0], OO.fun))
+        print("[%s/%s]minimizing c: [%.3f->%.3f]: %4f, %4f" % (lib, len(O), cont[lib], OO.x[0], p0, OO.fun))
         cont[lib] = OO.x[0]
     return dict(cont)
 
@@ -273,7 +272,6 @@ def baum_welch(alpha_0, trans_mat,
                optimize_cont=True,
                gamma_names=None):
     
-
     n_states = trans_mat.shape[0]
     ll = -np.inf
 
@@ -355,13 +353,15 @@ def run_hmm(infile, bedfile, split_lib=True,
     except TypeError:
         pass
     data=data[data.ref+data.alt>0]
+    states = list(set(list(state_ids) + [cont_id]))
+    cols = ["chrom", "pos", 'map', 'lib', 'ref', 'alt'] + states
+    data=data[cols]
     data=data.dropna()
-    q = np.quantile(data.ref + data.alt, .999)
+    q = np.quantile(data.ref + data.alt, .99)
     data=data[data.ref+data.alt <=q]
 
     if "lib" not in data or (not split_lib):
-        data =  data.groupby(("chrom" ,"pos", "NEA", "DEN", "AFR", "PAN",
-                              "dN", "dD", "dP", "map"),
+        data =  data.groupby(("chrom" ,"pos", "NEA", "DEN", "AFR", "PAN"),
                       as_index=False).agg({"ref" : sum, "alt" : sum})
         q = np.quantile(data.ref + data.alt, .999)
         data=data[data.ref+data.alt <=q]
@@ -379,8 +379,8 @@ def run_hmm(infile, bedfile, split_lib=True,
     n_states = len(state_ids)
     n_states = int(n_states + n_states * (n_states - 1) / 2)
     alpha_0 = np.array([1/n_states] * n_states)
-    trans_mat = np.zeros((n_states, n_states)) + 1e-2
-    np.fill_diagonal(trans_mat, 1 - (n_states-1) * 1e-2)
+    trans_mat = np.zeros((n_states, n_states)) + 2e-2
+    np.fill_diagonal(trans_mat, 1 - (n_states-1) * 2e-2)
     cont = defaultdict(lambda:1e-2)
 
     bins, bin_data = bins_from_bed(bed, data, bin_size)
