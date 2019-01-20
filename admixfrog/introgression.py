@@ -142,7 +142,13 @@ def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n):
 
     gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma], 0)
     new_trans_mat /= gamma_sum[:, np.newaxis]
-    assert np.allclose(np.sum(new_trans_mat,1), 1)
+
+    # underflow due to absence of state
+    if not np.allclose(np.sum(new_trans_mat,1), 1):
+        for i in range(n_states):
+            if np.any(np.isnan(new_trans_mat[i])):
+                new_trans_mat[i] = 0.
+                new_trans_mat[i, i] - 1.
 
     return new_trans_mat
 
@@ -229,7 +235,7 @@ def bins_from_bed(bed, data, bin_size):
 
 def update_contamination_py(cont, error, bin_data, freqs, gamma, 
                      bad_snp_cutoff = 1e-10,
-					 garbage_state=True):
+                     garbage_state=True):
     """
     update emissions by maximizing contamination parameter
 
