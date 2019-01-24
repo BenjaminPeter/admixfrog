@@ -58,7 +58,7 @@ cdef void _get_emissions(
 def get_emissions_cy(cont, bins, bin_data, 
                      freqs, 
                      e=1e-2, 
-                     bad_snp_cutoff=1e-10,
+                     bad_snp_cutoff=1e-50,
                      garbage_state=True):
     c = np.array([cont[l] for l in freqs.lib])
     bin_id = bin_data[:, 1]
