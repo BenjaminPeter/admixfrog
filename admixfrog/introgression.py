@@ -170,7 +170,7 @@ def data2freqs(data, state_ids, cont_id, do_hets=True):
                 P_het.append((data[s] + data[s2]) / 2)
         P = np.vstack((P_homo, np.vstack(P_het))).T
     else:
-        P = P_homo
+        P = np.vstack((P_homo)).T
 
     f = Freqs(
         O=np.array(data.alt),
@@ -425,13 +425,17 @@ def run_hmm(
         - tref, talt: number of ref, alt reads
         - f_nea, f_afr: frequency of african and neandertal
     """
+    F_MAX = 0.51
     data = pd.read_csv(infile)
-    try:
-        data.chrom[data.chrom == "X"] = 23
-        data.chrom[data.chrom == "Y"] = 24
-        data.chrom = data.chrom.astype(int)
-    except TypeError:
-        pass
+    data.chrom = data.chrom.astype(str)
+    data = data[data.chrom != "X"]
+    data = data[data.chrom != "Y"]
+    print(data.shape, file=sys.stderr)
+    data = data[np.logical_or(data[cont_id] <= F_MAX, data[cont_id] >= 1. - F_MAX)]
+    print(data.shape, file=sys.stderr)
+    print(F_MAX, file=sys.stderr)
+    data.chrom = data.chrom.astype(int)
+
     data = data[data.ref + data.alt > 0]
     states = list(set(list(state_ids) + [cont_id]))
     cols = ["chrom", "pos", "map", "lib", "ref", "alt"] + states
@@ -452,14 +456,17 @@ def run_hmm(
     bed = pd.read_table(bedfile, header=None)[[0, 2]]
     bed.columns = ["chrom", "pos"]
     try:
-        bed.chrom[bed.chrom == "X"] = "23"
-        bed.chrom[bed.chrom == "Y"] = "24"
+        bed = bed[bed.chrom != "X"]
+        bed = bed[bed.chrom != "Y"]
         bed.chrom = bed.chrom.astype(int)
     except TypeError:
         pass
 
     n_states = len(state_ids)
-    n_states = int(n_states + n_states * (n_states - 1) / 2) + garbage_state
+    if do_hets:
+        n_states += int(n_states * (n_states - 1) / 2)
+    n_states += garbage_state
+
     alpha_0 = np.array([1 / n_states] * n_states)
     trans_mat = np.zeros((n_states, n_states)) + 2e-2
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
