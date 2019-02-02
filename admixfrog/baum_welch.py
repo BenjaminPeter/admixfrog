@@ -1,4 +1,4 @@
-
+import numpy as np
 def baum_welch(
     alpha_0,
     trans_mat,
@@ -110,8 +110,6 @@ def get_emissions_py(
     return emissions
 
 
-def get_emissions(*args, **kwargs):
-    return get_emissions_cy(*args, **kwargs)
 
 def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n):
     new_trans_mat = np.zeros_like(old_trans_mat)

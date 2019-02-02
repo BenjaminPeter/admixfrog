@@ -24,7 +24,7 @@ cdef double _dbeta_mu(double p, double mu, double M) nogil:
     return _dbeta_single(p, mu * M, (1 - mu) * M)
 
 cdef double _dbetabinom_single(int k, int N, double alpha, double beta) nogil:
-    double x
+    cdef double x
     x = scs.betaln(alpha + k, beta + N - k) - scs.betaln(alpha, beta)
     return scs.binom(N, k) * exp(x)
 
@@ -63,11 +63,9 @@ cdef void _get_emissions_beta_homo(
 
     """
     cdef int s, i, g
-    cdef row = -1
+    cdef int row = -1
     cdef double a, b, p
     cdef double G, D = 0.
-    cdef double E[3]
-    E[:] = [0, 0, 0]
 
 
     for s in range(n_pops):
@@ -77,10 +75,9 @@ cdef void _get_emissions_beta_homo(
                 G = _dbetabinom_single(g, 2, a, b)
                 p = cont[i] * p_cont[i] + (1.-cont[i]) / 2. * g
                 p = p * (1. - error) + (1 - p) * error
-                E[g] += G  * _dbinom_single(O[i], N[i], p)
+                row = snp_id[i]
+                emissions[row, s] += G  * _dbinom_single(O[i], N[i], p)
 
-            row = snp_id[i]
-            emissions[row, s] *= D
     return 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -178,6 +175,7 @@ cdef void _get_emissions(
 def get_emissions_beta_cy(cont, bins, bin_data, 
                      freqs, #data object
                      fst,
+                     snp_id,
                      e=1e-2, 
                      bad_snp_cutoff=1e-250,
                      garbage_state=False):
@@ -219,9 +217,8 @@ def get_emissions_beta_cy(cont, bins, bin_data,
         O=freqs.O,
         N=freqs.N,
         p_cont = freqs.P_cont,
-        alpha = freqs.A
-        beta = freqs.B
-        p_state = freqs.P,
+        alpha = freqs.A,
+        beta = freqs.B,
         snp_id = snp_id,
         n_snps = n_snps,
         n_pops = n_pops,

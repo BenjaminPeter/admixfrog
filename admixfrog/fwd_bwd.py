@@ -1,17 +1,19 @@
+from numba import njit
+import numpy as np
 
-@jit(nopython=True)
+@njit
 def calc_ll(alpha0, trans_mat, emissions):
     """likelihood using forward algorithm"""
     _, n = fwd_algorithm(alpha0, emissions, trans_mat=trans_mat)
     return np.sum([np.sum(np.log(n_)) for n_ in n])
-@jit(nopython=True)
+@njit
 def fwd_step(alpha_prev, E, trans_mat):
     alpha_new = (alpha_prev @ trans_mat) * E
     n = np.sum(alpha_new)
     return alpha_new / n, n
 
 
-@jit(nopython=True)
+@njit
 def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
     """
     calculate P(X_t | o_[1..t], a0)
@@ -40,13 +42,13 @@ def fwd_algorithm(alpha0, emissions, trans_mat):
     return alpha, n
 
 
-@jit(nopython=True)
+@njit
 def bwd_step(beta_next, E, trans_mat, n):
     beta = (trans_mat * E) @ beta_next
     return beta / n
 
 
-@jit(nopython=True)
+@njit
 def bwd_algorithm_single_obs(emission, trans_mat, n):
     """
     calculate P(o[t+1..n] | X) / P(o[t+1..n])

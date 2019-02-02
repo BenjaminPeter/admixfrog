@@ -1,4 +1,3 @@
-from numba import jit, prange
 import numpy as np
 import pandas as pd
 import sys
@@ -6,10 +5,15 @@ from collections import namedtuple, defaultdict
 from scipy.stats import binom
 from scipy.optimize import minimize
 from .hmm import get_emissions_cy, split_freqs, update_contamination_cy
+from .fwd_bwd import viterbi, fwd_bwd_algorithm
+from .baum_welch import update_transitions, get_emissions_py, baum_welch
 
 np.set_printoptions(suppress=True, precision=4)
 pbinom = binom.pmf
 Freqs = namedtuple("Freqs", ("O", "N", "P_cont", "P", "lib"))
+
+def get_emissions(*args, **kwargs):
+    return get_emissions_cy(*args, **kwargs)
 
 
 
