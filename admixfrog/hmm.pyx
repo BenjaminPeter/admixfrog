@@ -277,6 +277,43 @@ def get_emissions_cy(cont, bins, bin_data,
     
     return emissions
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cdef double get_po_given_c_beta(
+    double c, 
+    double e,
+    long [:] O,
+    long [:] N,
+    double [:] P_cont,
+    double [:, :] P,
+    double [:, :] G,
+    long [:] ids,
+    int n_states,
+    ) nogil:
+    """
+    calculate Pr(O | Z, c, p), the probability of all observations given 
+    the hidden states, allele frequencies in all potential donors and contamination rate
+
+    - this is currenlty used to maximize the likelihood of c
+    - the binomial coefficient is omitted
+
+    cont : contamination estimate, by library
+    freqs : allele frequencies, reads, by library/chromosome
+    """
+    cdef int i, s, n_snps, id_
+    cdef double p, prob,  ll = 0.
+
+    n_snps = len(ids) 
+    for i in range(n_snps):
+        prob = 0.
+        id_ = ids[i]
+        for s in range(n_states):
+            p = c * P_cont[id_] + (1.-c) * P[id_, s]
+            p = p * (1-e) + (1-p) * e
+            prob += G[i,s] * (  O[id_] * log(p) + (N[id_] - O[id_]) * log(1-p))
+
+        ll += prob
+    return ll
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
