@@ -10,7 +10,7 @@ cimport cython
 from libc.math cimport pow, log, exp
 from libc.stdio cimport printf
 from scipy.optimize import minimize, minimize_scalar
-from .hmmbb cimport *
+from .distributions cimport *
 
 ctypedef np.int_t INT_T
 ctypedef np.float64_t DOUBLE_T
