@@ -12,13 +12,16 @@ directive_defaults['binding'] = True
 extensions = [
         Extension(
                     "admixfrog.hmm",
-                    ["admixfrog/hmm.pyx", 
-                     "admixfrog/hmmbb.pyx",
-                     "admixfrog/distributions.pyx"],
-                    extra_compile_args=['-fopenmp'],
-                    extra_link_args=['-fopenmp'],
+                    ["admixfrog/hmm.pyx"]
                 ),
-    
+        Extension(
+                    "admixfrog.distributions",
+                    ["admixfrog/distributions.pyx"]
+                ),
+        Extension(
+                    "admixfrog.hmmbb",
+                    ["admixfrog/hmmbb.pyx"]
+                ),
 ]
 
 

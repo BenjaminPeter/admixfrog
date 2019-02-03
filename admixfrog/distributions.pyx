@@ -34,3 +34,10 @@ cdef double _dbetabinom_mu(int k, int N, double mu, double M) nogil:
 cdef double _logdbeta_single(double p, double alpha, double beta) nogil:
     return log(p) * (alpha-1) + log(1-p) * (beta - 1) - scs.betaln(alpha, beta) 
 
+
+def dbetabinom(long[:] k, long[:] N, double[:] a, double[:] b):
+    res = np.empty(k.shape[0])
+    for i in range(k.shape[0]):
+        res[i] = _dbetabinom_single(k[i], N[i], a[i], b[i])
+    return res
+

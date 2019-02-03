@@ -181,7 +181,7 @@ def get_emissions_beta_cy(cont, bins, bin_data,
         p_cont [n x 1]
     """
     c = np.array([cont[l] for l in freqs.lib])
-    bin_id = bin_data[:, 1]
+    bin_id, snp_id = bin_data[:, 1], bin_data[:, 2]
 
     n_snps = len(freqs.O)
     n_steps = bins.shape[0]
