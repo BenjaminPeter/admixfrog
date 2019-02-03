@@ -12,7 +12,9 @@ directive_defaults['binding'] = True
 extensions = [
         Extension(
                     "admixfrog.hmm",
-                    ["admixfrog/hmm.pyx", "admixfrog/hmm.pyx"],
+                    ["admixfrog/hmm.pyx", 
+                     "admixfrog/hmmbb.pyx",
+                     "admixfrog/distributions.pyx"],
                     extra_compile_args=['-fopenmp'],
                     extra_link_args=['-fopenmp'],
                 ),
@@ -22,7 +24,7 @@ extensions = [
 
 setup(
     name='admixfrog',
-    version='0.1',
+    version='0.2',
     description='HMM to call fragments from contaminated genomes',
     author='Ben Peter',
     author_email='benjamin_peter@eva.mpg.de',
