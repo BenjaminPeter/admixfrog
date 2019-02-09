@@ -4,23 +4,19 @@ from Cython.Build import cythonize
 import Cython.Compiler.Options
 from Cython.Compiler.Options import get_directive_defaults
 directive_defaults = get_directive_defaults()
-directive_defaults['linetrace'] = True
-directive_defaults['binding'] = True
+#directive_defaults['linetrace'] = True
+#directive_defaults['binding'] = True
 
 
 
 extensions = [
         Extension(
                     "admixfrog.hmm",
-                    ["admixfrog/hmm.pyx"]
+                    ["admixfrog/hmm.pyx", "admixfrog/hmmbb.pyx"]
                 ),
         Extension(
                     "admixfrog.distributions",
                     ["admixfrog/distributions.pyx"]
-                ),
-        Extension(
-                    "admixfrog.hmmbb",
-                    ["admixfrog/hmmbb.pyx"]
                 ),
 ]
 
@@ -31,7 +27,8 @@ setup(
     description='HMM to call fragments from contaminated genomes',
     author='Ben Peter',
     author_email='benjamin_peter@eva.mpg.de',
-    ext_modules = cythonize(extensions, annotate=True),
+    ext_modules = cythonize(["admixfrog/*.pyx"], annotate=True),
+#    ext_modules = cythonize(["admixfrog/*.pyx"], annotate=False),
     packages = ["admixfrog"]
 )
 

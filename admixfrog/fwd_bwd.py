@@ -86,13 +86,18 @@ def bwd_algorithm(emissions, trans_mat, n):
         beta[i] = beta_i
     return beta
 # @jit(nopython=True)
-def fwd_bwd_algorithm(alpha0, emissions, trans_mat):
+def fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma=None):
     alpha, n = fwd_algorithm(alpha0=alpha0, emissions=emissions, trans_mat=trans_mat)
     beta = bwd_algorithm(emissions=emissions, n=n, trans_mat=trans_mat)
-    gamma = [a * b for (a, b) in zip(alpha, beta)]
+    if gamma is None:
+        gamma = [a * b for (a, b) in zip(alpha, beta)]
+        return gamma
+    for a, b, g in zip(alpha, beta, gamma):
+        g[:] = a * b
+    return alpha, beta,  n
+
     # for g in gamma:
     #    assert np.allclose(np.sum(g, 1), 1)
-    return alpha, beta, gamma, n
 
 def viterbi(alpha0, trans_mat, emissions):
     return [viterbi_single_obs(alpha0, trans_mat, e) for e in emissions]

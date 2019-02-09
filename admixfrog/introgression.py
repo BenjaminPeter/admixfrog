@@ -8,7 +8,7 @@ from .hmm import get_emissions_cy, split_freqs, update_contamination_cy
 from .fwd_bwd import viterbi, fwd_bwd_algorithm
 from .baum_welch import update_transitions, get_emissions_py, baum_welch
 
-np.set_printoptions(suppress=True, precision=4)
+#np.set_printoptions(suppress=True, precision=4)
 pbinom = binom.pmf
 Freqs = namedtuple("Freqs", ("O", "N", "P_cont", "P", "lib"))
 
