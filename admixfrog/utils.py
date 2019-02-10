@@ -167,3 +167,62 @@ def init_pars(state_ids, sex=None, tau0=1.0, e0=1e-2, c0=1e-2):
     cont = defaultdict(lambda: c0)
     tau = [tau0] * n_homo
     return Pars(alpha0, trans_mat, cont, e0, tau, gamma_names, sex=sex)
+
+
+def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
+    states = list(set(list(state_ids) + [cont_id]))
+    dtype_ = dict(chrom="category")
+    ref = pd.read_csv(ref_file, dtype=dtype_)
+    ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)
+
+    if "UNIF" in states:
+        ref["UNIF_ref"] = 1 - prior
+        ref["UNIF_alt"] = 1 - prior
+    if "REF" in states:
+        ref["REF_ref"] = 1
+        ref["REF_alt"] = 0
+    if "ALT" in states:
+        ref["ALT_ref"] = 0
+        ref["ALT_alt"] = 1
+    if "SFS" in states:
+        ref["SFS_ref"] = 0.5 - prior
+        ref["SFS_alt"] = 0.5 - prior
+    if "PAN" in states:
+        ref["PAN_ref"] /= 2
+        ref["PAN_alt"] /= 2
+    ix = list(ref.columns[:5])
+    suffixes = ["_alt", "_ref"]
+    cols = ix + [s + x for s in states for x in suffixes]
+    ref = ref[cols].dropna()
+    if autosomes_only:
+        ref = ref[ref.chrom != "X"]
+        ref = ref[ref.chrom != "Y"]
+    return ref
+
+
+def load_data(infile, split_lib=True):
+    dtype_ = dict(chrom="category")
+    data = pd.read_csv(infile, dtype=dtype_).dropna()
+    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
+    if "lib" not in data or (not split_lib):
+        data = data.groupby(["chrom", "pos", "map"], as_index=False).agg(
+            {"tref": sum, "talt": sum}
+        )
+        data["lib"] = "lib0"
+
+    # rm sites with extremely high coverage
+    data = data[data.tref + data.talt > 0]
+    q = np.quantile(data.tref + data.talt, 0.999)
+    data = data[data.tref + data.talt <= q]
+    return data
+
+
+def posterior_table(pg, Z, IX):
+    PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
+    mu = np.sum(PG * np.arange(3), 1)[:, np.newaxis] / 2
+    # musq = np.sum(PG * (np.arange(3))**2,1)[:, np.newaxis]
+    # ahat = (2 *mu - musq) / (2 * (mu / musq - mu - 1) + mu)
+    # bhat = (2 - mu)*(2- mu/musq) / (2 * (mu / musq - mu - 1) + mu)
+    PG = np.log10(PG + 1e-40)
+    PG = np.minimum(0.0, PG)
+    return pd.DataFrame(np.hstack((PG, mu)), columns=["G0", "G1", "G2", "p"])

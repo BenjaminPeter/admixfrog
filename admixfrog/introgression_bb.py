@@ -7,15 +7,17 @@ from scipy.stats import binom
 from scipy.optimize import minimize
 
 try:
-    from utils import bins_from_bed, data2probs, init_pars, Pars
+    from utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
+    from utils import posterior_table
     from distributions import dbetabinom
     from hmmbb import get_emissions_bb_cy
     from hmm_updates import update_contamination
     from fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
     from posterior_geno import post_geno_py, update_tau
 except (ModuleNotFoundError, ImportError):
+    from .utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
+    from .utils import posterior_table
     from .distributions import dbetabinom
-    from .utils import bins_from_bed, data2probs, init_pars, Pars
     from .hmmbb import get_emissions_bb_cy
     from .hmm_updates import update_contamination
     from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
@@ -53,7 +55,7 @@ def get_po_given_c_py(c, e, O, N, P_cont, G, pg, IX):
     return ll
 
 
-def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-100):
+def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-200):
     n_homo_states = P.alpha.shape[1]
     n_het_states = int(n_homo_states * (n_homo_states - 1) / 2)
     n_states = n_homo_states + n_het_states
@@ -112,17 +114,6 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-100):
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
 
 
-def posterior_table(pg, Z, IX):
-    PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
-    mu = np.sum(PG * np.arange(3), 1)[:, np.newaxis] / 2
-    # musq = np.sum(PG * (np.arange(3))**2,1)[:, np.newaxis]
-    # ahat = (2 *mu - musq) / (2 * (mu / musq - mu - 1) + mu)
-    # bhat = (2 - mu)*(2- mu/musq) / (2 * (mu / musq - mu - 1) + mu)
-    PG = np.log10(PG + 1e-40)
-    PG = np.minimum(0.0, PG)
-    return pd.DataFrame(np.hstack((PG, mu)), columns=["G0", "G1", "G2", "p"])
-
-
 def bw_bb(
     P, IX, pars, max_iter=1000, ll_tol=1e-1, est_contamination=True, est_tau=True
 ):
@@ -154,6 +145,7 @@ def bw_bb(
         ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
         assert np.allclose(np.sum(Z, 1), 1)
         if ll - old_ll < ll_tol:
+            pg, _, _ = post_geno_py(P, cont, tau, IX, error)
             break
         tpl = (
             IX.n_reads / 1000,
@@ -161,10 +153,11 @@ def bw_bb(
             IX.n_snps / 1000,
             IX.n_bins / 1000,
             it,
+            np.mean(np.max(Z, 1) >= 0.95),
             ll,
             ll - old_ll,
         )
-        print("[%dk|%dk|%dk|%dk]: iter:%d\tLL:%.4f\tΔLL:%.4f" % tpl)
+        print("[%dk|%dk|%dk|%dk]: iter:%d |p95:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
 
         # update stuff
         trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n, sex)
@@ -174,11 +167,11 @@ def bw_bb(
             print(*gamma_names, sep="\t")
         print(*["%.3f" % a for a in alpha0], sep="\t")
 
-        pg, x, y = post_geno_py(P, cont, tau, IX, error)
-        assert np.all(pg >= 0)
-        assert np.all(pg <= 1)
-        assert np.allclose(np.sum(pg, 2), 1)
-
+        if est_contamination or est_tau:
+            pg, x, y = post_geno_py(P, cont, tau, IX, error)
+            assert np.all(pg >= 0)
+            assert np.all(pg <= 1)
+            assert np.allclose(np.sum(pg, 2), 1)
         if est_contamination:
             update_contamination(cont, error, P, Z, pg, IX, libs)
         if est_tau:
@@ -188,54 +181,6 @@ def bw_bb(
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, tau, gamma_names, sex)
     return Z, pg, pars, ll, emissions
-
-
-def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
-    states = list(set(list(state_ids) + [cont_id]))
-    dtype_ = dict(chrom="category")
-    ref = pd.read_csv(ref_file, dtype=dtype_)
-    ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)
-
-    if "UNIF" in states:
-        ref["UNIF_ref"] = 1 - prior
-        ref["UNIF_alt"] = 1 - prior
-    if "REF" in states:
-        ref["REF_ref"] = 1
-        ref["REF_alt"] = 0
-    if "ALT" in states:
-        ref["ALT_ref"] = 0
-        ref["ALT_alt"] = 1
-    if "SFS" in states:
-        ref["SFS_ref"] = 0.5 - prior
-        ref["SFS_alt"] = 0.5 - prior
-    if "PAN" in states:
-        ref["PAN_ref"] /= 2
-        ref["PAN_alt"] /= 2
-    ix = list(ref.columns[:5])
-    suffixes = ["_alt", "_ref"]
-    cols = ix + [s + x for s in states for x in suffixes]
-    ref = ref[cols].dropna()
-    if autosomes_only:
-        ref = ref[ref.chrom != "X"]
-        ref = ref[ref.chrom != "Y"]
-    return ref
-
-
-def load_data(infile, split_lib=True):
-    dtype_ = dict(chrom="category")
-    data = pd.read_csv(infile, dtype=dtype_).dropna()
-    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
-    if "lib" not in data or (not split_lib):
-        data = data.groupby(["chrom", "pos", "map"], as_index=False).agg(
-            {"tref": sum, "talt": sum}
-        )
-        data["lib"] = "lib0"
-
-    # rm sites with extremely high coverage
-    data = data[data.tref + data.talt > 0]
-    q = np.quantile(data.tref + data.talt, 0.999)
-    data = data[data.tref + data.talt <= q]
-    return data
 
 
 def run_hmm_bb(
