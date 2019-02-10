@@ -1,11 +1,14 @@
 from numba import njit
 import numpy as np
 
+
 @njit
 def calc_ll(alpha0, trans_mat, emissions):
     """likelihood using forward algorithm"""
     _, n = fwd_algorithm(alpha0, emissions, trans_mat=trans_mat)
     return np.sum([np.sum(np.log(n_)) for n_ in n])
+
+
 @njit
 def fwd_step(alpha_prev, E, trans_mat):
     alpha_new = (alpha_prev @ trans_mat) * E
@@ -21,15 +24,17 @@ def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
     """
     n_steps, n_states = emission.shape
     alpha = np.empty((n_steps, n_states))
-    n = np.empty((n_steps ))
+    n = np.empty((n_steps))
     alpha[0] = alpha0
     n[0] = np.sum(alpha0)
     for i in range(n_steps):
         if i == 0:
-            alpha[i ], n[i ] = fwd_step(alpha0, emission[i], trans_mat)
-        else :
-            alpha[i ], n[i ] = fwd_step(alpha[i-1], emission[i], trans_mat)
+            alpha[i], n[i] = fwd_step(alpha0, emission[i], trans_mat)
+        else:
+            alpha[i], n[i] = fwd_step(alpha[i - 1], emission[i], trans_mat)
     return alpha, n
+
+
 # @jit(nopython=True)
 def fwd_algorithm(alpha0, emissions, trans_mat):
     """
@@ -59,12 +64,13 @@ def bwd_algorithm_single_obs(emission, trans_mat, n):
 
     n_steps, n_states = emission.shape
 
-    beta = np.ones((n_steps , n_states))
+    beta = np.ones((n_steps, n_states))
 
     # for i, e in zip(range(n_steps-1, -1, -1), reversed(em)):
     for i in range(n_steps - 1, 0, -1):
-        beta[i-1] = bwd_step(beta[i], emission[i], trans_mat, n[i ])
+        beta[i - 1] = bwd_step(beta[i], emission[i], trans_mat, n[i])
     return beta
+
 
 # @jit(nopython=True)
 def bwd_algorithm(emissions, trans_mat, n):
@@ -87,6 +93,8 @@ def bwd_algorithm(emissions, trans_mat, n):
         beta_i = bwd_algorithm_single_obs(em, trans_mat, n_i)
         beta[i] = beta_i
     return beta
+
+
 # @jit(nopython=True)
 def fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma=None):
     alpha, n = fwd_algorithm(alpha0=alpha0, emissions=emissions, trans_mat=trans_mat)
@@ -96,7 +104,7 @@ def fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma=None):
         return gamma
     for a, b, g in zip(alpha, beta, gamma):
         g[:] = a * b
-    return alpha, beta,  n
+    return alpha, beta, n
 
 
 def viterbi(pars, emissions):
@@ -148,7 +156,7 @@ def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n):
     if not np.allclose(np.sum(new_trans_mat, 1), 1):
         for i in range(n_states):
             if np.any(np.isnan(new_trans_mat[i])):
-                new_trans_mat[i] = 0.
-                new_trans_mat[i, i] - 1.
+                new_trans_mat[i] = 0.0
+                new_trans_mat[i, i] - 1.0
 
     return new_trans_mat

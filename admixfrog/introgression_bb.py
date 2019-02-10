@@ -5,6 +5,7 @@ import sys
 from collections import namedtuple, defaultdict, Counter
 from scipy.stats import binom
 from scipy.optimize import minimize
+
 try:
     from utils import bins_from_bed, data2probs, init_pars, Pars
     from distributions import dbetabinom
@@ -21,7 +22,6 @@ except (ModuleNotFoundError, ImportError):
     from .posterior_geno import post_geno_py, update_tau
 
 np.set_printoptions(suppress=True, precision=4)
-
 
 
 def p_reads_given_gt(P, n_obs, c, error):
@@ -62,7 +62,7 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-100):
     c = np.array([cont[l] for l in P.lib])
 
     read_emissions = p_reads_given_gt(P, n_obs, c, error)
-    read_emissions[IX.HAPOBS, 1] = 0. # convention is that middle gt is set to zero
+    read_emissions[IX.HAPOBS, 1] = 0.0  # convention is that middle gt is set to zero
     # P(SNP | GT)
     gt_emissions = np.ones((n_snps, 3))
     for i, row in enumerate(IX.OBS2SNP):
@@ -92,8 +92,8 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-100):
             s += 1
     assert np.allclose(np.sum(GT, 2), 1)
 
-    GT[IX.HAPSNP, :, 1] = 0. #no het emissions
-    GT[IX.HAPSNP, n_homo_states:] = 0. #no het hidden state
+    GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
+    GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
     for s in range(n_homo_states):
         a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
         GT[IX.HAPSNP, s, 0] = b / (a + b)
@@ -101,17 +101,15 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-100):
 
     snp_emissions = np.sum(GT * gt_emissions[:, np.newaxis, :], 2)
 
-
-    E[:] = 1 #reset
+    E[:] = 1  # reset
     for bin_, snp in zip(IX.SNP2BIN, snp_emissions):
         E[bin_] *= snp
 
     E[IX.HAPBIN, n_homo_states:] = 0
-    
+
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     print("bad bins", sum(bad_bins))
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
-
 
 
 def posterior_table(pg, Z, IX):
@@ -126,13 +124,7 @@ def posterior_table(pg, Z, IX):
 
 
 def bw_bb(
-    P,
-    IX,
-    pars,
-    max_iter=1000,
-    ll_tol=1e-1,
-    est_contamination=True,
-    est_tau=True,
+    P, IX, pars, max_iter=1000, ll_tol=1e-1, est_contamination=True, est_tau=True
 ):
 
     alpha0, trans_mat, cont, error, tau, gamma_names, = pars
@@ -142,7 +134,10 @@ def bw_bb(
     n_states = len(alpha0)
 
     # create posterior states, and view for each chromosome
-    Z,E = np.zeros((sum(IX.bin_sizes), n_states)), np.ones((sum(IX.bin_sizes), n_states))
+    Z, E = (
+        np.zeros((sum(IX.bin_sizes), n_states)),
+        np.ones((sum(IX.bin_sizes), n_states)),
+    )
     gamma, emissions = [], []
     row0 = 0
     for r in IX.bin_sizes:
@@ -188,7 +183,7 @@ def bw_bb(
 
 def load_ref(ref_file, state_ids, cont_id, autosomes_only=False):
     states = list(set(list(state_ids) + [cont_id]))
-    dtype_ = dict(chrom='category')
+    dtype_ = dict(chrom="category")
     ref = pd.read_csv(ref_file, dtype=dtype_)
     ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)
 
@@ -218,7 +213,7 @@ def load_ref(ref_file, state_ids, cont_id, autosomes_only=False):
 
 
 def load_data(infile, split_lib=True):
-    dtype_ = dict(chrom='category')
+    dtype_ = dict(chrom="category")
     data = pd.read_csv(infile, dtype=dtype_).dropna()
     data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
     if "lib" not in data or (not split_lib):
@@ -243,7 +238,7 @@ def run_hmm_bb(
     bin_size=1e4,
     prior_alpha=0.5,
     prior_beta=0.5,
-    sex = None,
+    sex=None,
     pos_mode=False,
     autosomes_only=False,
     **kwargs
@@ -257,22 +252,24 @@ def run_hmm_bb(
         data.map = data.pos
         ref.map = ref.pos
 
-    #sexing stuff
-    if 'Y' in data.chrom.values:
-        sex = 'm'
-    if sex is None and 'X' in data.chrom.values:
+    # sexing stuff
+    if "Y" in data.chrom.values:
+        sex = "m"
+    if sex is None and "X" in data.chrom.values:
         """guess sex"""
-        cov = data.groupby(data.chrom=='X').apply(lambda df: np.sum(df.tref + df.talt))
+        cov = data.groupby(data.chrom == "X").apply(
+            lambda df: np.sum(df.tref + df.talt)
+        )
         cov = cov.astype(float)
-        cov[True] /= np.sum(ref.chrom == 'X')
-        cov[False] /= np.sum(ref.chrom != 'X')
+        cov[True] /= np.sum(ref.chrom == "X")
+        cov[False] /= np.sum(ref.chrom != "X")
 
-        if cov[True] / cov[False] < .8:
+        if cov[True] / cov[False] < 0.8:
             sex = "m"
-            print("guessing sex is male, %.4f/%.4f" % (cov[True],cov[False]))
+            print("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
         else:
             sex = "f"
-            print("guessing sex is female, %.4f/%.4f" % (cov[True],cov[False]))
+            print("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
 
     # merge. This is a bit overkill
     ref = ref.merge(data.iloc[:, :3].drop_duplicates()).drop_duplicates()
@@ -280,8 +277,7 @@ def run_hmm_bb(
     ref = ref.sort_values(["chrom", "map", "pos"])
     data = data.sort_values(["chrom", "map", "pos"])
     bins, IX = bins_from_bed(
-        bed=ref.iloc[:, :5], data=data, bin_size=bin_size, pos_mode=pos_mode,
-        sex = sex
+        bed=ref.iloc[:, :5], data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
     )
     P = data2probs(data, ref, state_ids, cont_id, (prior_alpha, prior_beta))
     assert ref.shape[0] == P.alpha.shape[0]
@@ -293,7 +289,6 @@ def run_hmm_bb(
     Z, G, pars, ll, emissions = bw_bb(P, IX, pars, **kwargs)
 
     viterbi_path = viterbi(pars, emissions)
-
 
     # output formating from here
     V = np.array(pars.gamma_names)[np.hstack(viterbi_path)]
@@ -311,28 +306,28 @@ def run_hmm_bb(
     T = posterior_table(G, Z, IX)
     snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
 
-    df_libs = pd.DataFrame(pars.cont.items(), columns = ['lib', 'cont'])
+    df_libs = pd.DataFrame(pars.cont.items(), columns=["lib", "cont"])
     rgs, deams = [], []
     for l in df_libs.lib:
-        try:                         
-            rg, deam = l.split("_") 
-        except ValueError:           
-            rg, deam = l, "NA"      
+        try:
+            rg, deam = l.split("_")
+        except ValueError:
+            rg, deam = l, "NA"
         rgs.append(rg)
         deams.append(deam)
-    df_libs['rg'] = rgs
-    df_libs['deam'] = deams
+    df_libs["rg"] = rgs
+    df_libs["deam"] = deams
     CC = Counter(data.lib)
     snp = pd.DataFrame([CC[l] for l in df_libs.lib], columns=["n_snps"])
     df_libs = pd.concat((df_libs, snp), axis=1)
-    df_libs.sort_values('n_snps', ascending=False)
+    df_libs.sort_values("n_snps", ascending=False)
 
-    df_pars = pd.DataFrame(pars.trans_mat, columns =pars.gamma_names)
-    df_pars['alpha0'] = pars.alpha0
-    df_pars['state'] = pars.gamma_names
-    df_pars['tau'] = 0
-    df_pars['ll'] = ll
+    df_pars = pd.DataFrame(pars.trans_mat, columns=pars.gamma_names)
+    df_pars["alpha0"] = pars.alpha0
+    df_pars["state"] = pars.gamma_names
+    df_pars["tau"] = 0
+    df_pars["ll"] = ll
     for i in range(len(pars.tau)):
-        df_pars.loc[i, 'tau'] = pars.tau[i]
+        df_pars.loc[i, "tau"] = pars.tau[i]
 
     return df, snp_df, df_libs, df_pars, ll

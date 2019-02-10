@@ -24,5 +24,10 @@ setup(
                   'pandas',
                   'cython'
       ],
+    entry_points={
+        'console_scripts': [
+            'admixfrog=admixfrog:run'
+        ]
+    }
 )
 
