@@ -12,9 +12,6 @@ from libc.stdio cimport printf
 from scipy.optimize import minimize, minimize_scalar
 from .distributions cimport *
 
-ctypedef np.int_t INT_T
-ctypedef np.float64_t DOUBLE_T
-
 
 def get_emissions_bb_cy(P,
                         IX,
@@ -44,25 +41,24 @@ def get_emissions_bb_cy(P,
                       tau=tau[s],
                       n_snps = IX.n_snps)
 
-    s = n_homo
     fa, fb = (P.alpha ).T, (P.beta ).T
     pp = fa / (fa + fb)
     qq = 1 - pp
     for s1 in range(n_homo):
         for s2 in range(s1+1, n_homo):
+           s += 1
            _p_gt_het(GT[:, s, :], 
                      alpha1 = fa[s1],
                      beta1 = fb[s1],
                      alpha2 = fa[s2],
                      beta2 = fb[s2],
                      n_snps=IX.n_snps)
-           s += 1
 
     snp_emissions = np.sum(GT * gt_emissions[:, np.newaxis, :],2)   
 
     bin_emissions = [np.ones((IX.bin_sizes[i], n_states)) for i in range(IX.n_chroms)]
-    for (chrom, bin_), snp in zip(IX.SNP2BIN, snp_emissions):
-        print(chrom, bin_, snp)
+    for (chrom, bin_), snp in zip(IX.SNP2CHROMBIN, snp_emissions):
+        #print(chrom, bin_, snp)
         bin_emissions[chrom][bin_] *= snp
 
         if np.sum(bin_emissions[chrom][bin_]) < bad_bin_cutoff:

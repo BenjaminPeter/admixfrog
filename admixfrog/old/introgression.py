@@ -5,8 +5,8 @@ from collections import namedtuple, defaultdict
 from scipy.stats import binom
 from scipy.optimize import minimize
 from .hmm import get_emissions_cy, split_freqs, update_contamination_cy
-from .fwd_bwd import viterbi, fwd_bwd_algorithm
-from .baum_welch import update_transitions, get_emissions_py, baum_welch
+from .fwd_bwd import viterbi, fwd_bwd_algorithm, update_transitions
+from .baum_welch import  get_emissions_py, baum_welch
 
 #np.set_printoptions(suppress=True, precision=4)
 pbinom = binom.pmf
@@ -162,22 +162,17 @@ def run_hmm(
         **kwargs
     )
 
-    viterbi_path = viterbi(alpha_0, trans_mat, emissions)
-    viterbi_df = pd.Series(np.hstack(viterbi_path), name="viterbi")
+    viterbi_path = viterbi(pars,alpha_0, trans_mat, emissions)
+    V = np.array(gamma_names)[np.hstack(viterbi_path)]
+    viterbi_df = pd.Series(V, name="viterbi")
+    df = pd.DataFrame(Z, columns = gamma_names)
+    CC = Counter(IX.SNP2BIN)
+    snp = pd.DataFrame([CC[i] for i in range(len(df))], columns = ["n_snps"])
+    df = pd.concat((pd.DataFrame(bins), viterbi_df, snp, df), axis=1)
 
-    gamma_out = np.hstack((bins, np.vstack([g[1:] for g in gamma])))
-    gamma_out = pd.DataFrame(
-        gamma_out, columns=["chrom_id", "bin_pos", "bin_id"] + gamma_names
-    )
-    gamma_out = pd.concat(
-        (gamma_out.reset_index(drop=True), viterbi_df.reset_index(drop=True)), axis=1
-    )
-    data_out = pd.concat(
-        (
-            data.reset_index(drop=True),
-            gamma_out.iloc[bin_data[:, 1]].reset_index(drop=True),
-        ),
-        axis=1,
-    )
+    D = data.groupby(["chrom", "pos", "map"]).agg({"tref": sum, "talt": sum}).reset_index()
+    T = posterior_table(pg, Z, IX)
+    snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    
 
-    return gamma_out, data_out, emissions, (ll, trans_mat, cont, alpha_0)
+    return df, snp_df, ll, pars
