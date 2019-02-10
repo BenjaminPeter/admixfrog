@@ -103,6 +103,7 @@ def post_geno_py(P, cont, tau, IX, error):
 
 def update_tau(tau, Z, pg, P, IX):
     n_states = len(tau)
+    delta = 0.
     for s in range(n_states):
 
         def f(t):
@@ -124,6 +125,9 @@ def update_tau(tau, Z, pg, P, IX):
         )
         # OO =  minimize(f, [log(tau[s])])
         print("[%s] \ttau: [%.4f->%.4f]:\t%.4f" % (s, tau[s], OO.x[0], prev - OO.fun))
+        delta += abs(tau[s] - OO.x[0])
         tau[s] = OO.x[0]
         # OO =  minimize_scalar(f,tol = 1e-2)
         # tau[s] = exp(OO.x)
+
+    return delta

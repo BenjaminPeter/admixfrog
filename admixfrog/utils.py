@@ -1,6 +1,7 @@
 from collections import namedtuple, defaultdict
 import numpy as np
 import pandas as pd
+from scipy.stats import binom
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
 Pars = namedtuple(
@@ -200,7 +201,7 @@ def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
     return ref
 
 
-def load_data(infile, split_lib=True):
+def load_data(infile, split_lib=True, downsample=1):
     dtype_ = dict(chrom="category")
     data = pd.read_csv(infile, dtype=dtype_).dropna()
     data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
@@ -211,6 +212,10 @@ def load_data(infile, split_lib=True):
         data["lib"] = "lib0"
 
     # rm sites with extremely high coverage
+    if downsample < 1:
+        data.tref = binom.rvs(data.tref, downsample, size = len(data.tref))
+        data.talt = binom.rvs(data.talt, downsample, size = len(data.talt))
+
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 0.999)
     data = data[data.tref + data.talt <= q]

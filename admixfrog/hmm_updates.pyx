@@ -194,6 +194,7 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
 
     """
     n_libs = len(libs)
+    delta = 0.
     for i in range(n_libs):
         lib = libs[i]
         f_ = IX.RG2OBS[lib]
@@ -222,5 +223,8 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
         print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
                                                                    cont[lib], OO.x[0], p0-OO.fun))
+        delta += abs(cont[lib] - OO.x[0])
         cont[lib] = OO.x[0]
+
+    return delta
 

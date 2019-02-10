@@ -115,7 +115,8 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-200):
 
 
 def bw_bb(
-    P, IX, pars, max_iter=1000, ll_tol=1e-1, est_contamination=True, est_tau=True
+    P, IX, pars, max_iter=1000, ll_tol=1e-1, est_contamination=True, est_tau=True,
+    freq_contamination =1, freq_tau = 1,
 ):
 
     alpha0, trans_mat, cont, error, tau, gamma_names, sex = pars
@@ -167,16 +168,23 @@ def bw_bb(
             print(*gamma_names, sep="\t")
         print(*["%.3f" % a for a in alpha0], sep="\t")
 
-        if est_contamination or est_tau:
+
+        cond_cont = (est_contamination and (it % freq_contamination == 0 or it < 3))
+        cond_tau = (est_tau and (it % freq_tau == 0 or it < 3))
+        if  cond_tau or cond_cont:
             pg, x, y = post_geno_py(P, cont, tau, IX, error)
             assert np.all(pg >= 0)
             assert np.all(pg <= 1)
             assert np.allclose(np.sum(pg, 2), 1)
-        if est_contamination:
-            update_contamination(cont, error, P, Z, pg, IX, libs)
-        if est_tau:
+        if cond_cont:
+            delta = update_contamination(cont, error, P, Z, pg, IX, libs)
+            if delta < 1e-5: #when we converged, do not update contamination
+                est_contamination, cond_contamination = False, False
+        if cond_tau:
             update_tau(tau, Z, pg, P, IX)
-        if est_contamination or est_tau:
+            if delta < 1e-5: #when we converged, do not update tau
+                est_tau, cond_tau = False, False
+        if  cond_tau or cond_cont:
             update_emissions(E, P, IX, cont, tau, error)
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, tau, gamma_names, sex)
@@ -194,12 +202,13 @@ def run_hmm_bb(
     sex=None,
     pos_mode=False,
     autosomes_only=False,
+    downsample=1,
     **kwargs
 ):
 
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
-    data = load_data(infile, split_lib)
+    data = load_data(infile, split_lib, downsample)
     ref = load_ref(ref_file, state_ids, cont_id, prior, autosomes_only)
     if pos_mode:
         data.map = data.pos

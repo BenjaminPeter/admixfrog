@@ -94,10 +94,22 @@ def run():
         help="""Don't estimate contamination (default do)""",
     )
     parser.add_argument(
+        "--freq-contamination", "--fc",
+        type = int,
+        default=1,
+        help="""update frequency for contamination (default 1)""",
+    )
+    parser.add_argument(
         "--est-tau",
         action="store_true",
         default=False,
         help="""Estimate tau (distance from ref, default False)""",
+    )
+    parser.add_argument(
+        "--freq-tau", "--ft",
+        type = int,
+        default=1,
+        help="""update frequency for tau (default 1)""",
     )
     parser.add_argument(
         "--cont-id",
@@ -135,6 +147,12 @@ def run():
         default=False,
         help="Only run autosomes",
     )
+    parser.add_argument(
+        "--downsample",
+        type=float,
+        default=1.,
+        help="downsample coveragem keep only DS%",
+    )
 
     args = parser.parse_args()
     pprint(vars(args))
@@ -144,6 +162,6 @@ def run():
 
     bins, snps, cont, pars, ll = run_hmm_bb(**vars(args))
     bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
-    snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
     cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
     pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")
+    snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
