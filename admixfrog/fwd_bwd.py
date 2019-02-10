@@ -137,20 +137,37 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
     return path
 
 
-def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n):
-    new_trans_mat = np.zeros_like(old_trans_mat)
-    n_states = old_trans_mat.shape[0]
-    # update transition
-    for i in range(n_states):
-        for j in range(n_states):
-            for a, b, e, n_ in zip(alpha, beta, emissions, n):
-                new_trans_mat[i, j] += np.sum(
-                    a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
-                )
+def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f"):
+    if sex == "m" and len(alpha) > 22:
+        """ this is a hack, I just remove last chromosome and no checks are done"""
+        print("update hack")
+        new_trans_mat = np.zeros_like(old_trans_mat)
+        n_states = old_trans_mat.shape[0]
+        # update transition
+        for i in range(n_states):
+            for j in range(n_states):
+                for a, b, e, n_ in zip(alpha[:-1], beta[:-1], emissions[:-1], n[:-1]):
+                    new_trans_mat[i, j] += np.sum(
+                        a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
+                    )
 
-    gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma], 0)
-    new_trans_mat /= gamma_sum[:, np.newaxis]
-    assert np.allclose(np.sum(new_trans_mat, 1), 1)
+        gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma[:-1]], 0)
+        new_trans_mat /= gamma_sum[:, np.newaxis]
+        assert np.allclose(np.sum(new_trans_mat, 1), 1)
+    else:
+        new_trans_mat = np.zeros_like(old_trans_mat)
+        n_states = old_trans_mat.shape[0]
+        # update transition
+        for i in range(n_states):
+            for j in range(n_states):
+                for a, b, e, n_ in zip(alpha, beta, emissions, n):
+                    new_trans_mat[i, j] += np.sum(
+                        a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
+                    )
+
+        gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma], 0)
+        new_trans_mat /= gamma_sum[:, np.newaxis]
+        assert np.allclose(np.sum(new_trans_mat, 1), 1)
 
     # deal with underflow due to absence of state
     if not np.allclose(np.sum(new_trans_mat, 1), 1):

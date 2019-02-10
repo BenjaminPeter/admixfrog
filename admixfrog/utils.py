@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
-Pars = namedtuple("Pars", ("alpha0", "trans_mat", "cont", "e0", "tau", "gamma_names"))
+Pars = namedtuple(
+    "Pars", ("alpha0", "trans_mat", "cont", "e0", "tau", "gamma_names", "sex")
+)
 HAPX = (2699520, 155260560)  # start, end of haploid region
 
 
@@ -144,11 +146,12 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     IX.n_bins = len(bins)
     IX.n_snps = len(IX.SNP2BIN)
     IX.n_obs = len(IX.OBS2SNP)
+    IX.n_reads = np.sum(data.tref + data.talt)
 
     return bins, IX  # , data_bin
 
 
-def init_pars(state_ids, tau0=1.0, e0=1e-2, c0=1e-2):
+def init_pars(state_ids, sex=None, tau0=1.0, e0=1e-2, c0=1e-2):
     homo = [s for s in state_ids]
     het = []
     for i, s in enumerate(state_ids):
@@ -163,4 +166,4 @@ def init_pars(state_ids, tau0=1.0, e0=1e-2, c0=1e-2):
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
     tau = [tau0] * n_homo
-    return Pars(alpha0, trans_mat, cont, e0, tau, gamma_names)
+    return Pars(alpha0, trans_mat, cont, e0, tau, gamma_names, sex=sex)

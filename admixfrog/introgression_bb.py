@@ -118,7 +118,7 @@ def posterior_table(pg, Z, IX):
     # musq = np.sum(PG * (np.arange(3))**2,1)[:, np.newaxis]
     # ahat = (2 *mu - musq) / (2 * (mu / musq - mu - 1) + mu)
     # bhat = (2 - mu)*(2- mu/musq) / (2 * (mu / musq - mu - 1) + mu)
-    PG = np.log(PG + 1e-10)
+    PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(np.hstack((PG, mu)), columns=["G0", "G1", "G2", "p"])
 
@@ -127,7 +127,7 @@ def bw_bb(
     P, IX, pars, max_iter=1000, ll_tol=1e-1, est_contamination=True, est_tau=True
 ):
 
-    alpha0, trans_mat, cont, error, tau, gamma_names, = pars
+    alpha0, trans_mat, cont, error, tau, gamma_names, sex = pars
 
     libs = np.unique(P.lib)
     ll = -np.inf
@@ -155,10 +155,19 @@ def bw_bb(
         assert np.allclose(np.sum(Z, 1), 1)
         if ll - old_ll < ll_tol:
             break
-        print("iter %d [%d/%d]: %s -> %s" % (it, n_seqs, n_states, ll, ll - old_ll))
+        tpl = (
+            IX.n_reads / 1000,
+            IX.n_obs / 1000,
+            IX.n_snps / 1000,
+            IX.n_bins / 1000,
+            it,
+            ll,
+            ll - old_ll,
+        )
+        print("[%dk|%dk|%dk|%dk]: iter:%d\tLL:%.4f\tΔLL:%.4f" % tpl)
 
         # update stuff
-        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n)
+        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n, sex)
         alpha0 = np.linalg.matrix_power(trans_mat, 10000)[0]
 
         if gamma_names is not None:
@@ -177,28 +186,28 @@ def bw_bb(
         if est_contamination or est_tau:
             update_emissions(E, P, IX, cont, tau, error)
 
-    pars = Pars(alpha0, trans_mat, dict(cont), error, tau, gamma_names)
+    pars = Pars(alpha0, trans_mat, dict(cont), error, tau, gamma_names, sex)
     return Z, pg, pars, ll, emissions
 
 
-def load_ref(ref_file, state_ids, cont_id, autosomes_only=False):
+def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
     states = list(set(list(state_ids) + [cont_id]))
     dtype_ = dict(chrom="category")
     ref = pd.read_csv(ref_file, dtype=dtype_)
     ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)
 
     if "UNIF" in states:
-        ref["UNIF_ref"] = 1
-        ref["UNIF_alt"] = 1
+        ref["UNIF_ref"] = 1 - prior
+        ref["UNIF_alt"] = 1 - prior
     if "REF" in states:
         ref["REF_ref"] = 1
         ref["REF_alt"] = 0
     if "ALT" in states:
         ref["ALT_ref"] = 0
         ref["ALT_alt"] = 1
-    if "UNIF2" in states:
-        ref["UNIF2_ref"] = 0
-        ref["UNIF2_alt"] = 0
+    if "SFS" in states:
+        ref["SFS_ref"] = 0.5 - prior
+        ref["SFS_alt"] = 0.5 - prior
     if "PAN" in states:
         ref["PAN_ref"] /= 2
         ref["PAN_alt"] /= 2
@@ -236,8 +245,7 @@ def run_hmm_bb(
     cont_id="AFR",
     split_lib=True,
     bin_size=1e4,
-    prior_alpha=0.5,
-    prior_beta=0.5,
+    prior=0.5,
     sex=None,
     pos_mode=False,
     autosomes_only=False,
@@ -247,7 +255,7 @@ def run_hmm_bb(
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
     data = load_data(infile, split_lib)
-    ref = load_ref(ref_file, state_ids, cont_id, autosomes_only)
+    ref = load_ref(ref_file, state_ids, cont_id, prior, autosomes_only)
     if pos_mode:
         data.map = data.pos
         ref.map = ref.pos
@@ -279,10 +287,10 @@ def run_hmm_bb(
     bins, IX = bins_from_bed(
         bed=ref.iloc[:, :5], data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
     )
-    P = data2probs(data, ref, state_ids, cont_id, (prior_alpha, prior_beta))
+    P = data2probs(data, ref, state_ids, cont_id, (prior, prior))
     assert ref.shape[0] == P.alpha.shape[0]
 
-    pars = init_pars(state_ids)
+    pars = init_pars(state_ids, sex)
 
     print("done loading data")
 
