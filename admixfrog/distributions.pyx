@@ -1,9 +1,9 @@
 #!python
-#cython: language_level=3
-#cython: infer_types=True
-#cython: boundscheck=False
-#cython: wraparound=False
-#cython: cdivision=True
+# cython: language_level=3
+# cython: infer_types=True
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
 
 import pandas as pd
 import numpy as np
@@ -126,3 +126,12 @@ def dbetabinom(long[:] k, long[:] N, double[:] a, double[:] b):
         res[i] = _dbetabinom_single(k[i], N[i], a[i], b[i])
     return res
 
+cdef double _log_p_gt_homo_single2(int g, double a, double b) nogil:
+    return lbeta(a + g, b + 2 - g) - lbeta(a, b) + log(2) * (g == 1) #binom(2,g) if g==1
+cdef double _p_gt_homo_single2(int g, double a, double b) nogil:
+    return exp(_log_p_gt_homo_single2(g, a, b))
+def dbetabinom2(double[:] a, double[:] b, long n_snps, double[:, :] res):
+    cdef long i, g
+    for i in range(n_snps):
+        for g in range(3):
+            res[i, g] = _p_gt_homo_single2(g, a[i], b[i])
