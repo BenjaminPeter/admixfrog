@@ -20,12 +20,15 @@ def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
     =P(X_t , o_[1..t], a0 | o_[1..t])
     """
     n_steps, n_states = emission.shape
-    alpha = np.empty((n_steps + 1, n_states))
-    n = np.empty((n_steps + 1))
+    alpha = np.empty((n_steps, n_states))
+    n = np.empty((n_steps ))
     alpha[0] = alpha0
     n[0] = np.sum(alpha0)
     for i in range(n_steps):
-        alpha[i + 1], n[i + 1] = fwd_step(alpha[i], emission[i], trans_mat)
+        if i == 0:
+            alpha[i ], n[i ] = fwd_step(alpha0, emission[i], trans_mat)
+        else :
+            alpha[i ], n[i ] = fwd_step(alpha[i-1], emission[i], trans_mat)
     return alpha, n
 # @jit(nopython=True)
 def fwd_algorithm(alpha0, emissions, trans_mat):
@@ -56,12 +59,11 @@ def bwd_algorithm_single_obs(emission, trans_mat, n):
 
     n_steps, n_states = emission.shape
 
-    beta = np.empty((n_steps + 1, n_states))
-    beta[n_steps] = 1
+    beta = np.ones((n_steps , n_states))
 
     # for i, e in zip(range(n_steps-1, -1, -1), reversed(em)):
-    for i in range(n_steps - 1, -1, -1):
-        beta[i] = bwd_step(beta[i + 1], emission[i], trans_mat, n[i + 1])
+    for i in range(n_steps - 1, 0, -1):
+        beta[i-1] = bwd_step(beta[i], emission[i], trans_mat, n[i ])
     return beta
 
 # @jit(nopython=True)
@@ -96,11 +98,9 @@ def fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma=None):
         g[:] = a * b
     return alpha, beta,  n
 
-    # for g in gamma:
-    #    assert np.allclose(np.sum(g, 1), 1)
 
-def viterbi(alpha0, trans_mat, emissions):
-    return [viterbi_single_obs(alpha0, trans_mat, e) for e in emissions]
+def viterbi(pars, emissions):
+    return [viterbi_single_obs(pars.alpha0, pars.trans_mat, e) for e in emissions]
 
 
 def viterbi_single_obs(alpha0, trans_mat, emissions):
@@ -120,10 +120,35 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
         ll[i] = np.max(aux_mat, 1)
         backtrack[i] = np.argmax(aux_mat, 1)
 
-    path = np.empty(n_steps)
+    path = np.empty(n_steps, int)
     cursor = np.argmax(ll[-1])
     for i in range(n_steps - 1, -1, -1):
         cursor = backtrack[i, cursor]
         path[i] = cursor
 
     return path
+
+
+def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n):
+    new_trans_mat = np.zeros_like(old_trans_mat)
+    n_states = old_trans_mat.shape[0]
+    # update transition
+    for i in range(n_states):
+        for j in range(n_states):
+            for a, b, e, n_ in zip(alpha, beta, emissions, n):
+                new_trans_mat[i, j] += np.sum(
+                    a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
+                )
+
+    gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma], 0)
+    new_trans_mat /= gamma_sum[:, np.newaxis]
+    assert np.allclose(np.sum(new_trans_mat, 1), 1)
+
+    # deal with underflow due to absence of state
+    if not np.allclose(np.sum(new_trans_mat, 1), 1):
+        for i in range(n_states):
+            if np.any(np.isnan(new_trans_mat[i])):
+                new_trans_mat[i] = 0.
+                new_trans_mat[i, i] - 1.
+
+    return new_trans_mat
