@@ -166,7 +166,15 @@ def init_pars(state_ids, sex=None, tau0=1.0, e0=1e-2, c0=1e-2):
     trans_mat = np.zeros((n_states, n_states)) + 2e-2
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
-    tau = [tau0] * n_homo
+    try: 
+        if len(tau0) == n_homo:
+            tau = tau0
+        elif len(tau0) == 1:
+            tau = tau0 * n_homo
+        else:
+            tau = [tau0] * n_homo
+    except TypeError:
+            tau = [tau0] * n_homo
     return Pars(alpha0, trans_mat, cont, e0, tau, gamma_names, sex=sex)
 
 

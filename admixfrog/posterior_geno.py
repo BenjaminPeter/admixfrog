@@ -119,7 +119,7 @@ def update_tau(tau, Z, pg, P, IX):
         OO = minimize(
             f,
             [tau[s]],
-            bounds=[(1e-4, 1e2)],
+            bounds=[(1e-4, 1e4)],
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )

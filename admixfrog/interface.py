@@ -151,7 +151,26 @@ def run():
         "--downsample",
         type=float,
         default=1.,
-        help="downsample coveragem keep only DS%",
+        help="downsample coveragem keep only DS",
+    )
+    parser.add_argument(
+        "--tau0",
+        nargs="*",
+        type=float,
+        default=1.,
+        help="initial tau"
+    )
+    parser.add_argument(
+        "--e0", "-e",
+        type=float,
+        default=1e-2,
+        help="initial error rate"
+    )
+    parser.add_argument(
+        "--c0", "-c",
+        type=float,
+        default=1e-2,
+        help="initial contamination rate"
     )
 
     args = parser.parse_args()

@@ -180,10 +180,12 @@ def bw_bb(
             delta = update_contamination(cont, error, P, Z, pg, IX, libs)
             if delta < 1e-5: #when we converged, do not update contamination
                 est_contamination, cond_contamination = False, False
+                print("stopping contamination updates")
         if cond_tau:
-            update_tau(tau, Z, pg, P, IX)
+            delta = update_tau(tau, Z, pg, P, IX)
             if delta < 1e-5: #when we converged, do not update tau
                 est_tau, cond_tau = False, False
+                print("stopping tau updates")
         if  cond_tau or cond_cont:
             update_emissions(E, P, IX, cont, tau, error)
 
@@ -203,6 +205,9 @@ def run_hmm_bb(
     pos_mode=False,
     autosomes_only=False,
     downsample=1,
+    tau0=1,
+    e0 = 1e-2,
+    c0 = 1e-2,
     **kwargs
 ):
 
@@ -244,7 +249,7 @@ def run_hmm_bb(
     P = data2probs(data, ref, state_ids, cont_id, (prior, prior))
     assert ref.shape[0] == P.alpha.shape[0]
 
-    pars = init_pars(state_ids, sex)
+    pars = init_pars(state_ids, sex, tau0, e0, c0)
 
     print("done loading data")
 
