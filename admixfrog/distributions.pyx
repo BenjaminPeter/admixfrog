@@ -127,11 +127,20 @@ def dbetabinom(long[:] k, long[:] N, double[:] a, double[:] b):
     return res
 
 cdef double _log_p_gt_homo_single2(int g, double a, double b) nogil:
-    return lbeta(a + g, b + 2 - g) - lbeta(a, b) + log(2) * (g == 1) #binom(2,g) if g==1
+    return log(_p_gt_homo_single2(g, a, b))
+    #return lbeta(a + g, b + 2 - g) - lbeta(a, b) + log(2) * (g == 1) #binom(2,g) if g==1
 cdef double _p_gt_homo_single2(int g, double a, double b) nogil:
+    if g == 0:
+        return b * (b + 1) / (a + b) / (a + b + 1)
+    if g == 1:
+        return 2 * a * b / (a + b) / (a + b + 1)
+    if g == 2:
+        return a * (a + 1) / (a + b) / (a + b + 1)
     return exp(_log_p_gt_homo_single2(g, a, b))
-def dbetabinom2(double[:] a, double[:] b, long n_snps, double[:, :] res):
+cdef void _dbetabinom2(double[:] a, double[:] b, long n_snps, double[:, :] res):
     cdef long i, g
     for i in range(n_snps):
         for g in range(3):
             res[i, g] = _p_gt_homo_single2(g, a[i], b[i])
+def dbetabinom2(double[:] a, double[:] b, long n_snps, double[:, :] res):
+    _dbetabinom2(a, b, n_snps, res)

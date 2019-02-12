@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 try:
     from utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
     from utils import posterior_table
-    from distributions import dbetabinom
+    from distributions import dbetabinom2
     from hmmbb import get_emissions_bb_cy
     from hmm_updates import update_contamination
     from fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
@@ -17,7 +17,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     from .utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
     from .utils import posterior_table
-    from .distributions import dbetabinom
+    from .distributions import dbetabinom2
     from .hmmbb import get_emissions_bb_cy
     from .hmm_updates import update_contamination
     from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
@@ -74,11 +74,11 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-200):
     # P(GT | Z)
     for s in range(n_homo_states):
         for g in range(3):
-            GT[:, s, g] = dbetabinom(
-                np.zeros(n_snps, int) + g,
-                np.zeros(n_snps, int) + 2,
-                tau[s] * (P.alpha[:, s]),
-                tau[s] * (P.beta[:, s]),
+            dbetabinom2(
+                a=tau[s] * P.alpha[:, s],
+                b=tau[s] * P.beta[:, s],
+                n_snps = n_snps,
+                res = GT[:, s, :]
             )
 
     s = n_homo_states

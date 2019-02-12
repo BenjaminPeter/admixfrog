@@ -29,22 +29,9 @@ def _p_gt_homo_py(s, P, tau):
     return gt
 
 
-def _p_gt_het_py(s1, s2, P):
-    n_snps = P.alpha.shape[0]
-    gt = np.ones((n_snps, 3))
-    a1, b1 = P.alpha[:, s1], P.beta[:, s1]
-    a2, b2 = P.alpha[:, s2], P.beta[:, s2]
-    D = (a1 + b1) * (a2 + b2)
-
-    gt[:, 0] = b1 * b2 / D
-    gt[:, 2] = a1 * a2 / D
-    gt[:, 1] = 1 - gt[:, 0] - gt[:, 2]
-    assert np.allclose(np.sum(gt, 1), 1)
-    return gt
-
 
 @njit
-def _p_gt_het_py2(a1, b1, a2, b2):
+def _p_gt_het_py(a1, b1, a2, b2):
     n_snps = len(a1)
     gt = np.empty((n_snps, 3))
     D = (a1 + b1) * (a2 + b2)
@@ -89,8 +76,7 @@ def post_geno_py(P, cont, tau, IX, error):
     for s1 in range(n_homo):
         for s2 in range(s1 + 1, n_homo):
             s += 1
-            # prior_geno = _p_gt_het_py(s1, s2, P)
-            prior_geno = _p_gt_het_py2(
+            prior_geno = _p_gt_het_py(
                 P.alpha[:, s1], P.beta[:, s1], P.alpha[:, s2], P.beta[:, s2]
             )
             pg[:, s] = ll_snp * prior_geno
