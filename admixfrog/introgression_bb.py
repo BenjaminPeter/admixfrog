@@ -125,11 +125,10 @@ def bw_bb(
     ll = -np.inf
     n_states = len(alpha0)
 
-    # create posterior states, and view for each chromosome
-    Z, E = (
-        np.zeros((sum(IX.bin_sizes), n_states)),
-        np.ones((sum(IX.bin_sizes), n_states)),
-    )
+    # create arrays for posterior, emissions
+    Z = np.zeros((sum(IX.bin_sizes), n_states))
+    E = np.ones((sum(IX.bin_sizes), n_states))
+        
     gamma, emissions = [], []
     row0 = 0
     for r in IX.bin_sizes:

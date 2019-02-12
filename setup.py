@@ -17,6 +17,7 @@ setup(
     ext_modules = cythonize(["admixfrog/*.pyx"], annotate=True),
 #    ext_modules = cythonize(["admixfrog/*.pyx"], annotate=False),
     packages=find_namespace_packages(),
+    setup_requires=['scipy', 'cython'],
     install_requires=[
                   'numba',
                   'numpy',
