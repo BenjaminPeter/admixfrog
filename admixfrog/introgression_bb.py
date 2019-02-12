@@ -5,23 +5,22 @@ import sys
 from collections import namedtuple, defaultdict, Counter
 from scipy.stats import binom
 from scipy.optimize import minimize
+import pdb
 
 try:
     from utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
     from utils import posterior_table
-    from distributions import dbetabinom2
-    from hmmbb import get_emissions_bb_cy
+    from distributions import gt_homo_dist
     from hmm_updates import update_contamination
     from fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-    from posterior_geno import post_geno_py, update_tau
+    from posterior_geno import post_geno_py, update_F
 except (ModuleNotFoundError, ImportError):
     from .utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
     from .utils import posterior_table
-    from .distributions import dbetabinom2
-    from .hmmbb import get_emissions_bb_cy
+    from .distributions import gt_homo_dist
     from .hmm_updates import update_contamination
     from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-    from .posterior_geno import post_geno_py, update_tau
+    from .posterior_geno import post_geno_py, update_F
 
 np.set_printoptions(suppress=True, precision=4)
 
@@ -55,7 +54,7 @@ def get_po_given_c_py(c, e, O, N, P_cont, G, pg, IX):
     return ll
 
 
-def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-200):
+def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-200):
     n_homo_states = P.alpha.shape[1]
     n_het_states = int(n_homo_states * (n_homo_states - 1) / 2)
     n_states = n_homo_states + n_het_states
@@ -74,16 +73,13 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-200):
     # P(GT | Z)
     for s in range(n_homo_states):
         for g in range(3):
-            dbetabinom2(
-                a=tau[s] * P.alpha[:, s],
-                b=tau[s] * P.beta[:, s],
-                n_snps = n_snps,
-                res = GT[:, s, :]
+            gt_homo_dist(
+                a=P.alpha[:, s], b=P.beta[:, s], n_snps=n_snps, F=F[s], res=GT[:, s, :]
             )
 
     s = n_homo_states
     fa, fb = (P.alpha).T, (P.beta).T
-    pp = fa / (fa + fb)
+    pp = fa / (fa + fb)  # if fa + fb > 0 else .5
     qq = 1 - pp
     for s1 in range(n_homo_states):
         for s2 in range(s1 + 1, n_homo_states):
@@ -98,8 +94,8 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-200):
     GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
     for s in range(n_homo_states):
         a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
-        GT[IX.HAPSNP, s, 0] = b / (a + b)
-        GT[IX.HAPSNP, s, 2] = a / (a + b)
+        GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
+        GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
 
     snp_emissions = np.sum(GT * gt_emissions[:, np.newaxis, :], 2)
 
@@ -115,11 +111,18 @@ def update_emissions(E, P, IX, cont, tau, error, bad_bin_cutoff=1e-200):
 
 
 def bw_bb(
-    P, IX, pars, max_iter=1000, ll_tol=1e-1, est_contamination=True, est_tau=True,
-    freq_contamination =1, freq_tau = 1,
+    P,
+    IX,
+    pars,
+    max_iter=1000,
+    ll_tol=1e-1,
+    est_contamination=True,
+    est_F=True,
+    freq_contamination=1,
+    freq_F=1,
 ):
 
-    alpha0, trans_mat, cont, error, tau, gamma_names, sex = pars
+    alpha0, trans_mat, cont, error, F, gamma_names, sex = pars
 
     libs = np.unique(P.lib)
     ll = -np.inf
@@ -128,7 +131,7 @@ def bw_bb(
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))
     E = np.ones((sum(IX.bin_sizes), n_states))
-        
+
     gamma, emissions = [], []
     row0 = 0
     for r in IX.bin_sizes:
@@ -136,7 +139,7 @@ def bw_bb(
         emissions.append(E[row0 : (row0 + r)])
         row0 += r
 
-    update_emissions(E, P, IX, cont, tau, error)
+    update_emissions(E, P, IX, cont, F, error)
     n_seqs = len(emissions)
 
     for it in range(max_iter):
@@ -145,7 +148,7 @@ def bw_bb(
         ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
         assert np.allclose(np.sum(Z, 1), 1)
         if ll - old_ll < ll_tol:
-            pg, _, _ = post_geno_py(P, cont, tau, IX, error)
+            pg, _, _ = post_geno_py(P, cont, F, IX, error)
             break
         tpl = (
             IX.n_reads / 1000,
@@ -167,28 +170,27 @@ def bw_bb(
             print(*gamma_names, sep="\t")
         print(*["%.3f" % a for a in alpha0], sep="\t")
 
-
-        cond_cont = (est_contamination and (it % freq_contamination == 0 or it < 3))
-        cond_tau = (est_tau and (it % freq_tau == 0 or it < 3))
-        if  cond_tau or cond_cont:
-            pg, x, y = post_geno_py(P, cont, tau, IX, error)
+        cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
+        cond_F = est_F and (it % freq_F == 0 or it < 3)
+        if cond_F or cond_cont:
+            pg, x, y = post_geno_py(P, cont, F, IX, error)
             assert np.all(pg >= 0)
             assert np.all(pg <= 1)
             assert np.allclose(np.sum(pg, 2), 1)
         if cond_cont:
             delta = update_contamination(cont, error, P, Z, pg, IX, libs)
-            if delta < 1e-5: #when we converged, do not update contamination
+            if delta < 1e-5:  # when we converged, do not update contamination
                 est_contamination, cond_contamination = False, False
                 print("stopping contamination updates")
-        if cond_tau:
-            delta = update_tau(tau, Z, pg, P, IX)
-            if delta < 1e-5: #when we converged, do not update tau
-                est_tau, cond_tau = False, False
-                print("stopping tau updates")
-        if  cond_tau or cond_cont:
-            update_emissions(E, P, IX, cont, tau, error)
+        if cond_F:
+            delta = update_F(F, Z, pg, P, IX)
+            if delta < 1e-5:  # when we converged, do not update F
+                est_F, cond_F = False, False
+                print("stopping F updates")
+        if cond_F or cond_cont:
+            update_emissions(E, P, IX, cont, F, error)
 
-    pars = Pars(alpha0, trans_mat, dict(cont), error, tau, gamma_names, sex)
+    pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
     return Z, pg, pars, ll, emissions
 
 
@@ -204,9 +206,9 @@ def run_hmm_bb(
     pos_mode=False,
     autosomes_only=False,
     downsample=1,
-    tau0=1,
-    e0 = 1e-2,
-    c0 = 1e-2,
+    F0=0,
+    e0=1e-2,
+    c0=1e-2,
     **kwargs
 ):
 
@@ -248,7 +250,7 @@ def run_hmm_bb(
     P = data2probs(data, ref, state_ids, cont_id, (prior, prior))
     assert ref.shape[0] == P.alpha.shape[0]
 
-    pars = init_pars(state_ids, sex, tau0, e0, c0)
+    pars = init_pars(state_ids, sex, F0, e0, c0)
 
     print("done loading data")
 
@@ -291,9 +293,9 @@ def run_hmm_bb(
     df_pars = pd.DataFrame(pars.trans_mat, columns=pars.gamma_names)
     df_pars["alpha0"] = pars.alpha0
     df_pars["state"] = pars.gamma_names
-    df_pars["tau"] = 0
+    df_pars["F"] = 0
     df_pars["ll"] = ll
-    for i in range(len(pars.tau)):
-        df_pars.loc[i, "tau"] = pars.tau[i]
+    for i in range(len(pars.F)):
+        df_pars.loc[i, "F"] = pars.F[i]
 
     return df, snp_df, df_libs, df_pars, ll

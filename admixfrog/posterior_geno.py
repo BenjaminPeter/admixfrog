@@ -2,11 +2,12 @@ import numpy as np
 from scipy.stats import binom
 from scipy.optimize import minimize, minimize_scalar
 from math import exp, log
+import pdb
 
 try:
-    from .distributions import dbetabinom, dbetabinom2
+    from .distributions import gt_homo_dist
 except (ModuleNotFoundError, ImportError):
-    from distributions import dbetabinom, dbetabinom2
+    from distributions import gt_homo_dist
 
 from numba import njit
 
@@ -21,13 +22,12 @@ def p_reads_given_gt(P, c, error):
     return read_emissions
 
 
-def _p_gt_homo_py(s, P, tau):
+def _p_gt_homo_py(s, P, F):
     n_snps = P.alpha.shape[0]
     gt = np.ones((n_snps, 3)) + 21
-    dbetabinom2(P.alpha[:, s] * tau, P.beta[:, s] * tau, n_snps, gt)
+    gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, n_snps=n_snps, res=gt)
     assert np.allclose(np.sum(gt, 1), 1)
-    return gt
-
+    return np.minimum(np.maximum(gt, 0), 1)  # rounding error
 
 
 @njit
@@ -42,12 +42,12 @@ def _p_gt_het_py(a1, b1, a2, b2):
     return gt
 
 
-def post_geno_py(P, cont, tau, IX, error):
+def post_geno_py(P, cont, F, IX, error):
     """
     calculate the probability of genotype given 
     observation and hidden state
     """
-    n_homo = len(tau)
+    n_homo = len(F)
     n_het = int(n_homo * (n_homo - 1) / 2)
     n_snps = P.alpha.shape[0]
     n_states = n_homo + n_het
@@ -64,13 +64,13 @@ def post_geno_py(P, cont, tau, IX, error):
 
     # P(G | Z, homo)
     for s in range(n_homo):
-        prior_geno = _p_gt_homo_py(s, P, tau[s])
+        prior_geno = _p_gt_homo_py(s, P, F[s])
         prior_geno[IX.HAPSNP, 0] = P.beta[IX.HAPSNP, s] / (
-            P.beta[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
+            P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
         prior_geno[IX.HAPSNP, 1] = 0
         prior_geno[IX.HAPSNP, 2] = P.alpha[IX.HAPSNP, s] / (
-            P.beta[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
+            P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
         pg[:, s] = ll_snp * prior_geno
     for s1 in range(n_homo):
@@ -87,33 +87,32 @@ def post_geno_py(P, cont, tau, IX, error):
     return np.minimum(np.maximum(pg, 0), 1), ll_snp, prior_geno  # rounding error
 
 
-def update_tau(tau, Z, pg, P, IX):
-    n_states = len(tau)
-    delta = 0.
+def update_F(F, Z, pg, P, IX):
+    n_states = len(F)
+    delta = 0.0
     for s in range(n_states):
 
         def f(t):
             x = (
-                np.log(_p_gt_homo_py(s, P, t[0]))
+                np.log(_p_gt_homo_py(s, P, t[0]) + 1e-10)  # avoid underflow
                 * Z[IX.SNP2BIN, s][:, np.newaxis]
                 * pg[:, s, :]
             )
+            if np.isnan(np.sum(x)):
+                pdb.set_trace()
             x[IX.HAPSNP] = 0.0
             return -np.sum(x)
 
-        prev = f([tau[s]])
+        prev = f([F[s]])
         OO = minimize(
             f,
-            [tau[s]],
-            bounds=[(1e-4, 1e4)],
+            [F[s]],
+            bounds=[(0, 1)],
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        # OO =  minimize(f, [log(tau[s])])
-        print("[%s] \ttau: [%.4f->%.4f]:\t%.4f" % (s, tau[s], OO.x[0], prev - OO.fun))
-        delta += abs(tau[s] - OO.x[0])
-        tau[s] = OO.x[0]
-        # OO =  minimize_scalar(f,tol = 1e-2)
-        # tau[s] = exp(OO.x)
+        print("[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun))
+        delta += abs(F[s] - OO.x[0])
+        F[s] = OO.x[0]
 
     return delta

@@ -80,36 +80,38 @@ def run():
         "--prior",
         "-p",
         type=float,
-        default=0.5,
+        default=1e-8,
         help="""Prior of reference allele frequencies. This number is added to both the
         ref and alt allele count for each reference, to reflect the uncertainty in allele
-        frequencies from a sample. IMPORTANT: low values (<1e-4) may lead to
-        underflow issues in the betabinomial calculations and should be avoided""",
+        frequencies from a sample. """,
     )
     parser.add_argument(
-        "--no-est-contamination",
+        "--dont-est-contamination",
         action="store_false",
         dest="est_contamination",
         default=True,
         help="""Don't estimate contamination (default do)""",
     )
     parser.add_argument(
-        "--freq-contamination", "--fc",
-        type = int,
+        "--freq-contamination",
+        "--fc",
+        type=int,
         default=1,
         help="""update frequency for contamination (default 1)""",
     )
     parser.add_argument(
-        "--est-tau",
+        "--est-F",
+        "-f",
         action="store_true",
         default=False,
-        help="""Estimate tau (distance from ref, default False)""",
+        help="""Estimate F (distance from ref, default False)""",
     )
     parser.add_argument(
-        "--freq-tau", "--ft",
-        type = int,
+        "--freq-F",
+        "--f",
+        type=int,
         default=1,
-        help="""update frequency for tau (default 1)""",
+        help="""update frequency for F (default 1)""",
     )
     parser.add_argument(
         "--cont-id",
@@ -150,27 +152,21 @@ def run():
     parser.add_argument(
         "--downsample",
         type=float,
-        default=1.,
+        default=1.0,
         help="downsample coveragem keep only DS",
     )
     parser.add_argument(
-        "--tau0",
+        "--F0",
         nargs="*",
         type=float,
-        default=1.,
-        help="initial tau"
+        default=0.5,
+        help="initial F (should be in [0;1]) (default 0)",
     )
     parser.add_argument(
-        "--e0", "-e",
-        type=float,
-        default=1e-2,
-        help="initial error rate"
+        "--e0", "-e", type=float, default=1e-2, help="initial error rate"
     )
     parser.add_argument(
-        "--c0", "-c",
-        type=float,
-        default=1e-2,
-        help="initial contamination rate"
+        "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
     )
 
     args = parser.parse_args()

@@ -5,7 +5,7 @@ from scipy.stats import binom
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
 Pars = namedtuple(
-    "Pars", ("alpha0", "trans_mat", "cont", "e0", "tau", "gamma_names", "sex")
+    "Pars", ("alpha0", "trans_mat", "cont", "e0", "F", "gamma_names", "sex")
 )
 HAPX = (2699520, 155260560)  # start, end of haploid region
 
@@ -152,7 +152,7 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     return bins, IX  # , data_bin
 
 
-def init_pars(state_ids, sex=None, tau0=1.0, e0=1e-2, c0=1e-2):
+def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2):
     homo = [s for s in state_ids]
     het = []
     for i, s in enumerate(state_ids):
@@ -166,16 +166,16 @@ def init_pars(state_ids, sex=None, tau0=1.0, e0=1e-2, c0=1e-2):
     trans_mat = np.zeros((n_states, n_states)) + 2e-2
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
-    try: 
-        if len(tau0) == n_homo:
-            tau = tau0
-        elif len(tau0) == 1:
-            tau = tau0 * n_homo
+    try:
+        if len(F0) == n_homo:
+            F = F0
+        elif len(F0) == 1:
+            F = F0 * n_homo
         else:
-            tau = [tau0] * n_homo
+            F = [F0]
     except TypeError:
-            tau = [tau0] * n_homo
-    return Pars(alpha0, trans_mat, cont, e0, tau, gamma_names, sex=sex)
+        F = [F0] * n_homo
+    return Pars(alpha0, trans_mat, cont, e0, F, gamma_names, sex=sex)
 
 
 def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
@@ -193,6 +193,9 @@ def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
     if "ALT" in states:
         ref["ALT_ref"] = 0
         ref["ALT_alt"] = 1
+    if "ZERO" in states:
+        ref["ZERO_ref"] = 0 - prior
+        ref["ZERO_alt"] = 0 - prior
     if "SFS" in states:
         ref["SFS_ref"] = 0.5 - prior
         ref["SFS_alt"] = 0.5 - prior
@@ -221,8 +224,8 @@ def load_data(infile, split_lib=True, downsample=1):
 
     # rm sites with extremely high coverage
     if downsample < 1:
-        data.tref = binom.rvs(data.tref, downsample, size = len(data.tref))
-        data.talt = binom.rvs(data.talt, downsample, size = len(data.talt))
+        data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))
+        data.talt = binom.rvs(data.talt, downsample, size=len(data.talt))
 
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 0.999)
