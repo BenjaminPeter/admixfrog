@@ -12,6 +12,7 @@ LOWER=1e-9
 #' 6. for optimization, we use the log-transform of the parameters, to enforce positivity
 #' 	though the _optmv insted are parameterized by mean and sd of he distn
 #' 7. d*lomax are density functions, p?lomax are TAIL functions
+#' 8. file nees to be cleaned up
 
 
 
