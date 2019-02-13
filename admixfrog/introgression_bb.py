@@ -147,9 +147,6 @@ def bw_bb(
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
         ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
         assert np.allclose(np.sum(Z, 1), 1)
-        if ll - old_ll < ll_tol:
-            pg, _, _ = post_geno_py(P, cont, F, IX, error)
-            break
         tpl = (
             IX.n_reads / 1000,
             IX.n_obs / 1000,
@@ -161,6 +158,9 @@ def bw_bb(
             ll - old_ll,
         )
         print("[%dk|%dk|%dk|%dk]: iter:%d |p95:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
+        if ll - old_ll < ll_tol:
+            pg, _, _ = post_geno_py(P, cont, F, IX, error)
+            break
 
         # update stuff
         trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n, sex)
