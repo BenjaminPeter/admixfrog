@@ -49,7 +49,8 @@ def run():
         - REF : always reference allele
         - ALT : always alternate allele
         - UNIF : allele frequencies are drawn from a uniform / Beta(1, 1) distribution
-        - SFS : allele frequencies are drawn from a neutral SFS / Beta(0.5, 0.5) distribution
+        - HALF : allele frequencies are drawn from a  Beta(0.5, 0.5) distribution
+        - ZERO : allele frequencies are drawn from a  Beta(0, 0) distribution
         """,
     )
     parser.add_argument(

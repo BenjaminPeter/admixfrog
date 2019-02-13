@@ -196,7 +196,7 @@ def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
     if "ZERO" in states:
         ref["ZERO_ref"] = 1e-8 - prior
         ref["ZERO_alt"] = 1e-8 - prior
-    if "SFS" in states:
+    if "HALF" in states:
         ref["SFS_ref"] = 0.5 - prior
         ref["SFS_alt"] = 0.5 - prior
     if "PAN" in states:
