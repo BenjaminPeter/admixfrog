@@ -1,6 +1,6 @@
 require(tidyverse)
 require(reshape2)
-source("lomax.R")
+source("scripts/lomax.R")
 
 bin_size = 10000
 panel = "AFR_NEA_CHA_ALT"

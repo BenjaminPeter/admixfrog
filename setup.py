@@ -22,7 +22,7 @@ setup(
                   'numba',
                   'numpy',
                   'scipy',
-                  'pandas',
+                  'pandas>=0.24',
                   'cython'
       ],
     entry_points={

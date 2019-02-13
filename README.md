@@ -13,7 +13,7 @@ combinations of ancestry between one or two sources.
 Requires `python3`
 Install dependencies:
 ```
-pip install numba numpy scipy pandas
+pip install numba numpy scipy pandas setuptools --upgrade
 ```
 
 Install `admixfrog` (from source directory):
