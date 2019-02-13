@@ -1,0 +1,11 @@
+__default__ :
+    time : 4:00:00
+    mem : 2G
+    cpus-per-task : 1
+    output : "autosnake/{{rule}}-\\$JOB_ID.out"
+    err : "autosnake/{{rule}}-\\$JOB_ID.err"
+    name : "{rule}"
+run_hmm:
+    time : "6:00:00"
+    mem : "16G"
+    cpus-per-task" : 1

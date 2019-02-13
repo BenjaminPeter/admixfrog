@@ -6,7 +6,7 @@ require(reshape2)
 
 
 read_binout <- function(fname){
-    a <- read_csv(fname) %>% select(-X1) %>% mutate(chrom=as.integer(chrom_id+1))
+    a <- read_csv(fname) %>% mutate(chrom=factor(chrom, levels=unique(chrom)))
 }
 read_snpout <- function(fname){
     a <- read_csv(fname) %>% select(-X1) %>% mutate(chrom=as.integer(chrom_id+1))
@@ -38,12 +38,12 @@ load_data <- function(infiles, name){
     a <- lapply(infiles, read_binout)
     names(a) <- name
     a <- bind_rows(a, .id="sample")
-    a %>% mutate(viterbi=as.factor(names(a)[viterbi+5]))
 }
 
 get_long_data <- function(data){
-    b <- data %>% select(-chrom_id) %>% 
-        melt(id.vars=c("sample", "chrom", "bin_id", "bin_pos",  "viterbi")) %>% 
+    b <- data %>% 
+        select(-id, -chrom_id, -hap, -n_snps) %>%
+        melt(id.vars=c("sample", "chrom", "map", "pos",  "viterbi")) %>% 
         as_tibble 
 }
 
