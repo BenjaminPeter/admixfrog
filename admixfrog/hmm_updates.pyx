@@ -4,7 +4,6 @@
 
 import pandas as pd
 import numpy as np
-cimport numpy as np
 cimport scipy.special.cython_special as scs
 cimport cython
 from libc.math cimport pow, log, exp
@@ -13,8 +12,6 @@ from scipy.optimize import minimize, minimize_scalar
 from scipy.special import betaln
 from .distributions cimport *
 
-ctypedef np.int_t INT_T
-ctypedef np.float64_t DOUBLE_T
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function

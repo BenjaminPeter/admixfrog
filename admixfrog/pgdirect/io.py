@@ -4,7 +4,6 @@ import pysam
 from . import DEAMINATION, SAMPLING
 from .gt import ReadGT, DiploidGT, HaploidGT, GTNoData
 import os.path
-from pyplink import PyPlink
 from .sample import Sample
 from math import ceil
 from .utils import rev_complement, Read
