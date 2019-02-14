@@ -1,7 +1,32 @@
 import argparse
 from .introgression_bb import run_hmm_bb
 from pprint import pprint
-import pandas as pd
+from .bam import process_bam
+
+
+def add_bam_parse_group(parser):
+    g = parser.add_argument_group("bam parsing")
+    g.add_argument("--bamfile", "--bam",
+                   help="Bam File to process")
+    g.add_argument("--bedfile", "--bed",
+                   help="Bed file with anc/der allele to restrict to")
+    g.add_argument("--deam-cutoff", type=int, default=3,
+                   help="""reads with deamination in positions < deam-cutoff are
+                   considered separately""")
+    g.add_argument("--length-bin-size", type=int, default=None,
+                   help="""if set, reads are binned by length for contamination estimation""")
+
+def bam():
+    parser = argparse.ArgumentParser(
+        description="Parse bam file for admixfrog"
+    )
+    parser.add_argument("--outfile", "--out",
+                   help="output file name (xz-zipped)")
+    args = parser.parse_args()
+    add_bam_parse_group(parser)
+    pprint(vars(args))
+
+    process_bam(**vars(args))
 
 
 def run():
@@ -10,7 +35,7 @@ def run():
         #        formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
-        "infile",
+        "--infile",
         help="""Sample input file (csv). Contains individual specific data, obtained from
                         a bam file.
 
@@ -23,7 +48,7 @@ def run():
                         - talt: number of alt reads observed""",
     )
     parser.add_argument(
-        "ref_file",
+        "--ref-file", "--ref",
         help="""refernce input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
@@ -181,10 +206,26 @@ def run():
         ancestral allele is unknown
         """,
     )
+    add_bam_parse_group(parser)
 
     args = parser.parse_args()
     pprint(vars(args))
     V = vars(args)
+
+    if V["infile"] is not None and V["bamfile"] is not None:
+        raise ValueError("cant specify csv and bam input")
+    elif V["bamfile"] is not None and V["bedfile"] is None:
+        raise ValueError("require bed file to create input from bam")
+    if V["bamfile"] is not None and V["bedfile"] is not None:
+        print("creating input from bed file")
+        process_bam(outfile=V['out'] + ".in.xz",
+                    bamfile=V.pop('bamfile'),
+                    bedfile=V.pop('bedfile'),
+                    deam_cutoff=V.pop('deam_cutoff'),
+                    length_bin_size=V.pop('length_bin_size')
+                    )
+        V['infile'] = V['out'] + ".in.xz"
+
     out = V.pop("out")
 
     bins, snps, cont, pars, ll = run_hmm_bb(**vars(args))

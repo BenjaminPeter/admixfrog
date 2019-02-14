@@ -6,20 +6,21 @@ USE_CYTHON = False
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
-extensions = [Extension("admixfrog",
-                        ["admixfrog/distributions"+ext,
-                         "admixfrog/hmm_updates"+ext
-                         ])]
+extensions = [Extension("admixfrog.distributions", ["admixfrog/distributions"+ext]),
+              Extension("admixfrog.hmm_updates", ["admixfrog/hmm_updates"+ext])]
 
 if USE_CYTHON:
     from Cython.Build import cythonize
     extensions = cythonize(extensions)
 
-    setup(setup_requires["pbr"],
+    setup(
+        setup_requires =["pbr>=1.9", 'setuptools>=17.1'],
         ext_modules = extensions,
           pbr=True)
 
-setup(setup_requires=["pbr"], 
-      ext_modules = extensions,#cythonize(["admixfrog/*.pyx"], annotate=True),
+setup(
+    setup_requires=["pbr>=1.9", 'setuptools>=17.1'],
+    python_requires=">=3.6",
+    ext_modules = extensions,#cythonize(["admixfrog/*.pyx"], annotate=True),
       pbr=True)
 

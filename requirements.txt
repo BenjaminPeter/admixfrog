@@ -1,4 +1,8 @@
-numba
-numpy
-scipy
+numba>=0.42
+numpy>=0.15
+scipy>=1.1
 pandas>=0.24
+pybedtools>=0.7.10
+pysam>=0.15.0
+Cython
+cython>=0.29.4
