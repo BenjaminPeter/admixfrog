@@ -20,6 +20,7 @@ if USE_CYTHON:
 
 setup(
     setup_requires=["pbr>=1.9", 'setuptools>=17.1'],
+    requires_python=">=3.6",
     ext_modules = extensions,#cythonize(["admixfrog/*.pyx"], annotate=True),
       pbr=True)
 
