@@ -13,13 +13,16 @@ combinations of ancestry between one or two sources.
 Requires `python3`
 Install dependencies:
 ```
-pip install numba numpy scipy pandas setuptools --upgrade
+pip install cython numba numpy scipy pandas setuptools --upgrade
 ```
 
 Install `admixfrog` (from source directory):
 ```
 pip install .
 ```
+
+For the pipeline to work, also needs `pgdirect`:
+[https://vcs.eva.mpg.de/benjamin_peter/pgdirect](https://vcs.eva.mpg.de/benjamin_peter/pgdirect)
 
 ## Output
 There are four output files:
