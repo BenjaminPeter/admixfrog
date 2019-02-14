@@ -38,9 +38,9 @@ def data2probs(
         P_cont=np.array(
             (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
         ),
-        alpha=np.array(ref[alpha_ix]) + pa
-        beta=np.array(ref[beta_ix]) + pb
-        lib=np.array(data.lib),
+        alpha=np.array(ref[alpha_ix]) + pa,
+        beta=np.array(ref[beta_ix]) + pb,
+        lib=np.array(data.lib)
     )
     return P
 
