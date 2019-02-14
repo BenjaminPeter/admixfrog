@@ -49,6 +49,7 @@ rule run_admixfrog:
         freq_f = 5,
         freq_c = 10,
         error = 1e-2,
+        ancestral = "PAN",
     benchmark:
         "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
     version: ".2"
@@ -70,6 +71,7 @@ rule run_admixfrog:
         s += " --est-F --freq-F {params.freq_f} "
         s += " --freq-contamination {params.freq_c} "
         s += " --e0 {params.error} "
+        s += " --ancestral {params.PAN} "
         shell(s)
 
 """ BAM STUFF"""
@@ -233,7 +235,6 @@ def _panel_bin(wc):
         bin_size=["{bin_size}"],
         states=["{states}"],
         snpset=["{snpset}"],
-        filter=["{filter}"],
         sample=config['panels'][wc.panel])
     return l
 rule plot_hmm_panel_marginal:
@@ -258,27 +259,28 @@ rule plot_hmm_panel_region:
     script:
         "scripts/plotting/hmm_region.R"
 
-"""not done"""
 rule plot_hmm_panel_pw:
     input:
         bins = _panel_bin,
         script_ = "scripts/plotting/hmm_panel_pw.R"
     params:
-        lengths= [0, 100, 200, 500, 1000, 2000] # in kb
+        lengths= [0, 500, 1000, 1500] # in kb
     output:
         pwplot="figures/admixfrog/{states}/{TRACK}/C{cutoff}/{panel}_pwall_{bin_size,\d+}_{snpset}.png",
         trackplot="figures/admixfrog/{states}/{TRACK}/C{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_panel_pw.R"
 
+"""not done"""
+
 rule plot_hmm_panel_rle:
     input:
         bins = _panel_bin,
         script_ = "scripts/plotting/hmm_rle.R"
     output:
-        rleplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
-        rlelogplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rll_{bin_size,\d+}_{snpset}.png",
-        gammaplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_gamma_{bin_size,\d+}_{snpset}.png",
+        rleplot="figures/admixfrog/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
+        rlelogplot="figures/admixfrog/{states}/{TRACK}/{cutoff}/{panel}_rll_{bin_size,\d+}_{snpset}.png",
+        gammaplot="figures/admixfrog/{states}/{TRACK}/{cutoff}/{panel}_gamma_{bin_size,\d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_rle.R"
 

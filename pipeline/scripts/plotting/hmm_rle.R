@@ -1,5 +1,7 @@
 source("~/programs/admixfrog/plotting/comparison_plot.R")
 
+
+save(".rdebug")
 bin_size = as.integer(snakemake@wildcards$bin_size)
 infile = snakemake@input$bin
 panel = snakemake@wildcards$panel

@@ -170,12 +170,12 @@ get_rundf <- function(data, min_length=0){
         mutate(values=ifelse(values * lengths > min_length, TRUE, FALSE))
 
     df_run = df %>% group_by(sample) %>% 
-        do(runs=data.frame(bin_id=1:sum(.$lengths)-1, 
+        do(runs=data.frame(id=1:sum(.$lengths)-1, 
                            runs=rep(.$values, .$lengths))) %>% 
         unnest(runs) %>% 
-        left_join(data) %>%
-        select(sample, bin_id, runs) %>%
-        dcast(bin_id ~ sample) %>%
+        left_join(data, iby=c("sample", "id")) %>%
+        select(sample, id, runs) %>%
+        dcast(id ~ sample) %>%
         as_tibble
 }
 
