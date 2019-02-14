@@ -1,0 +1,6 @@
+numba
+numpy
+scipy
+pandas>=0.24
+cython
+

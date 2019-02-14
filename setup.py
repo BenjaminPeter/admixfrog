@@ -7,28 +7,34 @@ directive_defaults = get_directive_defaults()
 #directive_defaults['binding'] = True
 
 
+from setuptools import setup
 
-setup(
-    name='admixfrog',
-    version='0.2',
-    description='HMM to call fragments from contaminated genomes',
-    author='Ben Peter',
-    author_email='benjamin_peter@eva.mpg.de',
-    ext_modules = cythonize(["admixfrog/*.pyx"], annotate=True),
-#    ext_modules = cythonize(["admixfrog/*.pyx"], annotate=False),
-    packages=find_namespace_packages(),
-    setup_requires=['scipy', 'cython'],
-    install_requires=[
-                  'numba',
-                  'numpy',
-                  'scipy',
-                  'pandas>=0.24',
-                  'cython'
-      ],
-    entry_points={
-        'console_scripts': [
-            'admixfrog=admixfrog:run'
-        ]
-    }
-)
+setup(setup_requires=["pbr"], 
+      ext_modules = cythonize(["admixfrog/*.pyx"], annotate=True),
+      pbr=True)
+
+if False:
+    setup(
+        name='admixfrog',
+        version='0.2',
+        description='HMM to call fragments from contaminated genomes',
+        author='Ben Peter',
+        author_email='benjamin_peter@eva.mpg.de',
+        ext_modules = cythonize(["admixfrog/*.pyx"], annotate=True),
+    #    ext_modules = cythonize(["admixfrog/*.pyx"], annotate=False),
+        packages=find_namespace_packages(),
+        setup_requires=['scipy', 'cython'],
+        install_requires=[
+                      'numba',
+                      'numpy',
+                      'scipy',
+                      'pandas>=0.24',
+                      'cython'
+          ],
+        entry_points={
+            'console_scripts': [
+                'admixfrog=admixfrog:run'
+            ]
+        }
+    )
 
