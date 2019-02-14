@@ -13,11 +13,11 @@ if USE_CYTHON:
     from Cython.Build import cythonize
     extensions = cythonize(extensions)
 
-    setup(#setup_requires["pbr"],
+    setup(setup_requires["pbr"],
         ext_modules = extensions,
           pbr=True)
 
-setup(#setup_requires=["pbr"], 
+setup(setup_requires=["pbr"], 
       ext_modules = extensions,#cythonize(["admixfrog/*.pyx"], annotate=True),
       pbr=True)
 
