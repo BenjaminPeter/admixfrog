@@ -1,7 +1,28 @@
 import argparse
 from .introgression_bb import run_hmm_bb
 from pprint import pprint
-import pandas as pd
+from .bam import process_bam
+
+
+def bam():
+    parser = argparse.ArgumentParser(
+        description="Parse bam file for admixfrog"
+    )
+    parser.add_argument("bamfile",
+                        help="Bam File to process")
+    parser.add_argument("bedfile",
+                        help="Bed file with anc/der allele to restrict to")
+    parser.add_argument("outfile",
+                        help="output file name (xz-zipped)")
+    parser.add_argument("--deam-cutoff", type=int, default=3,
+                        help="""reads with deamination in positions < deam-cutoff are
+                        considered separately""")
+    parser.add_argument("--length-bin-size", type=int, default=None,
+                        help="""if set, reads are binned by length for contamination estimation""")
+    args = parser.parse_args()
+    pprint(vars(args))
+
+    process_bam(**vars(args))
 
 
 def run():

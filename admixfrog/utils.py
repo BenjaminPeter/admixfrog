@@ -54,10 +54,9 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     IX = _IX()
     libs = np.unique(data.lib)
     if pos_mode:
-        data.map = data.pos
         bed.map = bed.pos
     chroms = pd.unique(bed.chrom)
-    snp = data[["chrom", "pos", "map"]].drop_duplicates()
+    snp = data[["chrom", "pos", 'map']].drop_duplicates()
     n_snps = snp.shape[0]
     snp["snp_id"] = range(n_snps)
     snp["hap"] = False
@@ -74,10 +73,10 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     data = data.merge(snp)
     IX.OBS2SNP = np.array(data["snp_id"])
 
-    bin_loc, data_loc = [], []
+    bin_loc = []
     bin0 = 0
 
-    dtype_bin = dtype = np.dtype(
+    dtype_bin = np.dtype(
         [
             ("chrom", "U2"),
             ("map", float),
@@ -85,15 +84,6 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
             ("id", int),
             ("chrom_id", int),
             ("hap", bool),
-        ]
-    )
-    dtype_data = dtype = np.dtype(
-        [
-            ("chrom", "U2"),
-            ("bin_id", int),
-            ("snp_id", int),
-            ("loc_id", int),
-            ("chrom_id", int),
         ]
     )
 
@@ -124,8 +114,6 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
         bin_loc.append(_bin)
 
         snp_ids = snp.snp_id[snp.chrom == chrom]
-        dig_data = np.digitize(map_data, bins, right=False) - 1
-
         dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
         IX.SNP2CHROMBIN[snp_ids, 0] = i
         IX.SNP2CHROMBIN[snp_ids, 1] = dig_snp
@@ -228,7 +216,7 @@ def load_data(infile, split_lib=True, downsample=1):
     data = pd.read_csv(infile, dtype=dtype_).dropna()
     data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
     if "lib" not in data or (not split_lib):
-        data = data.groupby(["chrom", "pos", "map"], as_index=False).agg(
+        data = data.groupby(["chrom", "pos"], as_index=False).agg(
             {"tref": sum, "talt": sum}
         )
         data["lib"] = "lib0"

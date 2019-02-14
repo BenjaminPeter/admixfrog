@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import lzma
 from collections import defaultdict, namedtuple
 
 
@@ -35,8 +36,8 @@ class Coverage(Callback):
         self.kwargs = kwargs
 
     def preprocess(self, sampleset):
-        self.f = open(self.outfile, "w")
-        print("chrom", "pos", "cov", "ref", "alt", "deam", "other",
+        self.f = lzma.open(self.outfile, "wt")
+        print("chrom", "pos", "ref", "alt", "tref", "talt", "tdeam", "tother",
               sep = ",", file=self.f)
 
     def process_snp(self, block, snp):
@@ -53,7 +54,8 @@ class Coverage(Callback):
                 n_deam += 1
             elif r.base != "N":
                 n_other +=1
-        print(snp.chrom, snp.pos, len(reads), n_ref, n_alt, n_deam, n_other,
+        print(snp.chrom, snp.pos, snp.ref, snp.alt,
+              n_ref, n_alt, n_deam, n_other,
               file=self.f, sep =",")
 
     def postprocess(self, sampleset):
@@ -69,8 +71,9 @@ class ExtCoverage(Callback):
             self.n_deam = 0
             self.n_other = 0
             
-    def __init__(self, outfile, **kwargs):
+    def __init__(self, outfile, deam_cutoff, **kwargs):
         self.outfile = outfile
+        self.deam_cutoff = deam_cutoff
         self.kwargs = kwargs
 
     def preprocess(self, sampleset):
@@ -83,7 +86,9 @@ class ExtCoverage(Callback):
         D = defaultdict(lambda : self.Obs())
         #n_ref, n_alt, n_deam, n_other = 0, 0, 0, 0
         for r in reads:
-            DEAM = (r.deam[0] < 3 or r.deam[1] < 3) and r.deam[0] >=0 
+            DEAM = (r.deam[0] < self.deam_cutoff or \
+                    r.deam[1] < self.deam_cutoff) and \
+                r.deam[0] >=0 
             if r.base == snp.ref:
                 D[r.RG, DEAM].n_ref += 1
             elif r.base == snp.alt:

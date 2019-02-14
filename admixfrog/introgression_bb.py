@@ -1,10 +1,7 @@
 import numpy as np
 import pandas as pd
-from scipy.special import betaln
-import sys
-from collections import namedtuple, defaultdict, Counter
+from collections import  defaultdict, Counter
 from scipy.stats import binom
-from scipy.optimize import minimize
 import pdb
 from .utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
 from .utils import posterior_table
@@ -209,7 +206,6 @@ def run_hmm_bb(
     data = load_data(infile, split_lib, downsample)
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
     if pos_mode:
-        data.map = data.pos
         ref.map = ref.pos
 
     # sexing stuff
@@ -232,8 +228,10 @@ def run_hmm_bb(
             print("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
 
     # merge. This is a bit overkill
-    ref = ref.merge(data.iloc[:, :3].drop_duplicates()).drop_duplicates()
+    ref = ref.merge(data.iloc[:, :2].drop_duplicates()).drop_duplicates()
+    print(ref.shape)
     data = data.merge(ref)
+    print(data.shape)
     ref = ref.sort_values(["chrom", "map", "pos"])
     data = data.sort_values(["chrom", "map", "pos"])
     bins, IX = bins_from_bed(
