@@ -1,8 +1,8 @@
 from setuptools import setup, find_namespace_packages
 from Cython.Build import cythonize
-import Cython.Compiler.Options
-from Cython.Compiler.Options import get_directive_defaults
-directive_defaults = get_directive_defaults()
+#import Cython.Compiler.Options
+#from Cython.Compiler.Options import get_directive_defaults
+#directive_defaults = get_directive_defaults()
 #directive_defaults['linetrace'] = True
 #directive_defaults['binding'] = True
 
@@ -11,7 +11,7 @@ directive_defaults = get_directive_defaults()
 setup(
     name='admixfrog',
     version='0.2',
-    description='HMM to call fragments from contaminated genomes',
+    description='HMM to call admixture frogments from contaminated genomes',
     author='Ben Peter',
     author_email='benjamin_peter@eva.mpg.de',
     ext_modules = cythonize(["admixfrog/*.pyx"], annotate=True),

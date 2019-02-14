@@ -1,0 +1,229 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[latin1]{inputenc}
+\usepackage[top=1in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\author{benjamin Peter}
+
+
+\title{Admixfrog model}
+\begin{document}
+	\maketitle
+\section*{Introduction}
+
+	We aim to build an HMM that classifies a single \emph{target} genome into regions that were derived from different diverged populations. This is motivated by admixture between modern humans, Neandertals or Denisovans, (which I will occasionally refer to as source populations) although the model is applicable to many other taxa. 
+	
+	Briefly, the hidden states are the sources of the individual, e.g. homozygous modern human (HH) homozygous Denisovan (DD) and homozygous Neandertal (NN), as well as the heterozygosu states HD, DN, HN where one haplotype each is derived from the sources.
+	
+	We assume a homogeneous Markov model throughout, which we achieve by binning the genome in bins  of constant map size (e.g. 0.005 cM), so it is possible that a bin has zero, one or many emissions, which are treated independently distributed given the hidden state. We assume that data comes in the form of biallelic SNP. We assume we have a sample of genotypes from each source, as well as reads covering the SNP from the target.
+	
+	Emissions are the number of reads of the ancestral /derived allele, with the allele frequency in Humans / Neandertals / Denisovans assumed known.
+	
+	The transition matrix is estimated using standard- Baum-Welch. The rest of this note deals with inferring the emission probabilities, and in particular estimating contamination.
+\section*{Notation}
+	Let 
+	\begin{itemize}
+		\item $R, L$ the number of read groups, and hidden-state bins, respectively
+		\item $S_l$ the number of SNP in bin $l$
+		\item $n_{rs}$ the number of reads of readgroup $r$ at SNP $s$
+		\item $O = (O_{rs})$ the set of derived-allele- read counts from library $r$ at SNP $s$
+		\item $Z = (Z_l)$ be the sequence of hidden states
+		\item $R = (R_{l})$ the number of contaminant reads at SNP $l$
+		\item $A_{sk}, B_{sk}$ the number of derived and ancestral allele counts in reference $k$ at SNP $s$, (or more generally parameters of a Beta prior)
+		\item $T$ be a transition matrix		
+		\item $F_k$ a measure of distance between source $k$ and the introgressing population
+		\item $c_r$ proportion of contaminant reads in read group $r$
+		\item $p_{sc}$ the allele frequency of a contaminant at position $s$. 
+		\item $e$ the sequencing error rate
+		\item $\mathbf{\theta} = (F_k, c_r, T, e)$, the set of all parameters to be estimated
+	\end{itemize}
+The model can be summarized as
+	\begin{itemize}
+		\item $O_{rs} | G_{s}, n_{rs} \sim Binomial(O_{rs}; n_{rs}, p(e, c_r, p_{sc}, G_{s}))$
+		\item $G_s|Z_l=k \sim Binomial(2, f_{sk})$
+		\item $f_{s} | Z_l=k \sim Beta(a_kF_k, b_kF_k)$
+		\item $Z_s | Z_{s-1}= k' \sim T_{k'}$
+		\item $Z_0 \sim \alpha_0$
+	\end{itemize}
+	Where we want to estimate the $c_r, F_k, T$ and $\alpha_0$
+
+\section{Algorithm details}
+We factor the likelihood as 
+$$P(O | \theta) =  \sum_{\mathcal{G}, \mathcal{Z}} P(O | G, c, p_c, N)P(G | Z, A, B) P(Z| T)$$
+Where $\mathcal{G}, \mathcal{Z}$ are the sets of all possible genotype assignments.
+
+Under the Markov assumption, this can be further split up as
+$$P(O | \theta) = P(Z_0) +
+\sum_{k=1}^K \sum_{g=0}^2 \sum_{l=1}^L 
+P(O_l | G_l, c, p_{cn}, N_l)
+P(G_l | Z_l = k, A_{lk}, B_{lk}, \tau)
+P(Z_l = k |Z_{l-1}, T) $$
+we refer to these terms as the genotype likelihood, state likelihood and transition probability, respectively.
+
+A standard trick is to assume the latent variables $G, Z$ are known. Taking the log
+yields the complete data likelihood
+\begin{equation}
+\mathcal{L}  = P(O, Z, G | \theta) = \log P(Z_0) 
++ \sum_{l=1}^L \log P(O_l | G_l, c)
++ \sum_{l=1}^L \log P(G_l | Z_l = k, F)
++ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T) \label{eq:ll:simple}
+\end{equation}
+
+The model is further improved by taking into account the each bin has $S_L$ snps, and we have $R$ distinct read groups.
+\begin{align}
+\mathcal{L}  &= P(O, Z, G | \theta)  \nonumber\\
+&=\log P(Z_0) \nonumber\\
+&+ \sum_{r=1}^R\sum_{s=1}^{S_L}\sum_{l=1}^L \log P(O_r | G_s, c)\nonumber\\
+&+ \sum_{s=1}^{S_L}\sum_{l=1}^L \log P(G_s | Z_l = k, F)\nonumber\\
+&+ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T) \label{eq:ll:correct}
+\end{align}
+
+The parameters we want to estimate are the contamination rate $c_r$ for each read group, the $F_{ST}$ for each source population, and the sequence of hidden states $Z$.
+
+\subsection{Genotype Likelihood}
+\begin{equation}
+P(O_{rs}| G_s, c_r, n_{rs}) \sim Binom(O_{rs}; n_{rs}, p) \label{eq:ll:geno}
+\end{equation}
+where $p = (1-e) p' + e (1-p')$
+and $p' =c_{rs} p_c + (1-c_{rs}) G_s$
+\subsection{State Likelihood}
+\subsubsection{Homozygous States}
+\paragraph{Direct samples}
+(subscripts are omitted) We wish to calculate the probability that the individual is homozygous, given the SNP of interest derives from a population whose allele frequency can be characterized as
+$$f \sim Beta(aF, bF)$$
+$$G \sim Binom(2, f)$$
+The resulting compound distribution is  betabinomial:
+\begin{eqnarray}
+P(G=k | F, a, b) &\sim& Betabinom(k; n=2, aF, bF)\nonumber\\
+&=& \binom{2}{k} \frac{B[k+a F, n-k + b F]}{B[ (a + b) F]} \label{eq:ll:homo}
+\end{eqnarray}
+where $B[.]$ denotes the beta function.
+\paragraph{Drift to reference}
+Let $f$ denote the frequency in the reference, $A, D$ the number of ancestral and derived alleles observed in a 
+sample from there, and $G$ the number of derived alleles present.
+
+Conceptually, genetic drift will increase the chance that the two alleles in the target are derived from the same ancestor: If the populations are very distant, the probability $F$ that the two alleles are identical by descent is one.  Conversely, if we have a very close reference, that probability is zero. 
+\begin{align}
+P(G=2 | A,D) &= \int P(G|f) P(f | A, D) df\nonumber\\
+&= \int \left[ F f + (1-F) f^2\right] P(f | A, D) df\nonumber\\
+&= F E[f|A, D] + (1-F)  E[f^2|A, D]\nonumber\\
+&= F \frac{D}{A+D} + (1-F)  \frac{D (D+1)}{(A+D)(A+D+1)}\nonumber\\
+&= \frac{D^2 + D + ADF}{(A+D)(A+D+1)}
+\end{align}
+Hence we have an excess of homozygous emissions. The probability for $G=0$ is obtained by switching $A$ and $D$, and for $G=1$ by subtracting them from one:
+\begin{equation}
+P(G=1 | A,D) = \frac{AD(1-F)}{(A+D)(A+D+1)}
+\end{equation} 
+\subsubsection{Heterozygous States}
+For a heterozygous state, we know the allele frequencies in the two source pops, and we know they contribute one haplotype each.
+\begin{align}
+P(G=1 | F, a, b) &= Betabinom( n=1, a F, b F)\nonumber\\
+% &=&\binom{n, k) \frac{\Gamma(k+a)\Gamma(n-k+b)}{\Gamma(n+a+b)}\frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}\\
+&=\frac{\Gamma(1+a F))\Gamma(b F)}{\Gamma(1+F(a+b))}
+\frac{\Gamma(F(a+b))}{\Gamma(F a)\Gamma(F b)}\nonumber\\
+&=\frac{F a}{(Fa+Fb)}\nonumber\\
+&=\frac{a}{a+b}.\label{eq:ll:het}
+\end{align}
+Intuitively, this is because if we just sample one allele from a population, that population's allele frequency is the best guess for the state of our sample. The distance increases our uncertainty, but not the mean estimate.
+Thus
+\begin{align*}
+P(G=0) &= \frac{b_1}{a_1+b_1}\frac{b_2}{a_2 + b_2}\\
+P(G=1) &= \frac{a_1 b_2 + a_2 b_1}{ (a_1+b_1)(a_2+b_2)}\\
+P(G=2) &= \frac{a_1}{a_1+b_1}\frac{a_2}{a_2 + b_2}
+\end{align*}
+\subsubsection{Haploid States}
+On the sex chromosome, or when inbreeding is present, we further encounter haploid regions. Here, the heterozygous states have emission probability 0, and we just have one allele of the heterozygous case: $F_{ST}$ does not matter.
+\begin{align}
+P(G=0) &= \frac{b}{a+b}\nonumber\\
+P(G=1) &= \frac{a}{a+b}\label{eq:ll:hap}
+\end{align}
+
+
+
+
+\subsection{Estimating F}
+\begin{align}
+Q(F|F' )&= E[\log P(O, Z, G )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
+&=\sum_{Z \in \mathcal{Z}, G \in \mathcal{G}} \log P(G  | Z, A, B, \tau) P(G|Z, \theta') P(Z | O, \theta')\nonumber\\
+&=\sum_k\sum_{g=0}^2\sum_{l=1}^L \log P(G_t | Z_l=k, A_{lk}, B_{lk}, F)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta')
+\end{align}
+Since the $F_k$-parameters are independent for each homozygous state, these likelihoods are optimized numerically and independently.
+
+\begin{equation}
+\hat{F}_k =\operatorname*{argmax}_F \left[ \sum_{g=0}^2\sum_{l=1}^L \log P(G_t | Z_l=k, A_{lk}, B_{lk}, F)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta') 
+\right]\label{eq:opt:F}
+\end{equation}
+
+where $P(Z_l = k |O, \theta')$ is the output of the forward-backward algorithm, $P(G_s | Z_l=k, A_{sk}, B_{sk}, F_k)$ is given by (\ref{eq:ll:homo}).   and
+\begin{equation}
+P(G_i | Z_i=k, O) = \frac{P(O_i | G_i, c') P(G_i | Z_i=k, F')}{ \sum_{g=0}^2 P(O_i | G_i=g, c') P(G_i=g | Z=k, F_k') }
+\label{eq:em:G}
+\end{equation}
+This equation follows from 
+\begin{align}
+P(G,Z| O) &= P(G|Z, O)P(Z|O)\nonumber\\
+&=P(G | Z, O_i) P(Z | O)\nonumber\\
+&= \frac{P(O_i | G) P(G|Z)}{P(O_i | Z)} P(Z|O)
+\end{align}
+as $G_i | Z_i$ is independent of all observations except $O_i$ and Bayes theorem.
+
+
+
+\subsection{Estimating Contamination}
+\begin{align}
+Q(c|c' )&= E[\log P(O, Z, G )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
+&=\sum_{Z \in \mathcal{Z}}\sum_{G \in \mathcal{G}} \log P( O | G, c) P(G|Z, \theta') P(Z | O, \theta')\nonumber\\
+&=\sum_{r=1}^R\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{lr} | G_s=g, c_r)  P(G_s|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
+\end{align}
+
+We thus optimize
+\begin{align}
+\hat{c}_r = \operatorname*{argmax}_{c_r}\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{lr} | G_s=g, c_r)  P(G_s|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
+\end{align}
+using (\ref{eq:em:G}) and (\ref{eq:ll:geno}).
+\subsection{Estimationg Transitions and Initial State}
+$T$ is estimated using standard Baum-welch, $\alpha_0$ is set to the stationary distribution of $T$.
+
+
+
+\section{Prior}
+There are a few options for priors. For computational reasons, a beta prior is most suitable.
+One possibility is to use a $Beta[0,0]$ or $Beta[1,1]$, which can be done by adding psuedocounts to the observed data.
+More interesting is the assumption that the observed alleles were drawn from a neutral population with allele frequencies proportional to 
+\begin{equation}
+P(f) \propto \frac{\theta}{x}
+\end{equation}
+If we encounter a sample with $a$ ancestral and $d$ derived alleles, we have by Bayes' theorem
+\begin{align}
+P(f | a, d) &\propto P(f) P(a, d|f) \nonumber\\
+ &\propto \frac{\theta}{f} \binom{a+d}{d} f^d (1-f)^a \nonumber\\
+ &\propto f^{d-1} (1-f)^a \nonumber\\
+&\sim Beta(d, a+1)
+\end{align}
+I.e. knowing the ancestral allele is equivalent to adding an additional ancestral allele to the observation. If the ancestral allele is unknown, ``mirroring this distribution``
+
+For the folded SFS,
+\begin{align}
+P(f | a, d) &\propto P(f) P(a, d|f) \nonumber\\
+&\propto \left[ \frac{1}{f} + \frac{1}{1-f}\right] f^d (1-f)^a\nonumber\\
+&\propto \frac{1}{f(1-f)} f^d (1-f)^a\nonumber\\
+&\propto f^{d-1} (1-f)^{a-1} \nonumber\\
+&\sim Beta(d, a)
+\end{align}
+
+In a finite population, alleles enter a population at a frequency of $2N^{-1}$. Writing
+$$\eta(N) = \frac{1}{2N \sum_{i=1}^{2N-1}1/i}$$
+We find that the SFS is well approximated by 
+\begin{align}
+P(f | a, d, N) &\sim Beta(d + \eta, a+1 - \eta)\\
+&\sim Beta(d + \eta, a + \eta)
+\end{align}
+for the unfolded and folded case, respectively.
+		
+
+
+
+
+\end{document}
