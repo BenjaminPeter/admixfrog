@@ -1,0 +1,309 @@
+from collections import Counter
+from os import path
+import pgdirect as pg
+
+configfile: "config/config.yaml"
+configfile: "config/data.yaml"
+configfile: "config/panels.yaml"
+configfile: "config/regions.yaml"
+
+CHROMS = [str(i+1) for i in range(22)] + ["X"]
+
+
+
+rule admixfrog_panel_input:
+    input:
+        bed = "bed/rec/{snpset}.bed",
+        vcfs = expand("vcfs/asc/{{snpset}}/{panel}.vcf.gz",
+            panel=["archhc", "sgdpeur", "sgdpafr"]),
+    output:
+        ref = "stats/admixfrog_panels/ref_{snpset}.csv.xz",
+    params:
+        ALT = "AltaiNeandertal",
+        CHA = "Chagyrskaya-Phalanx",
+        VIN = "Vindija33.19",
+        DEN = "Denisova",
+        PAN = "panTro4",
+        recmap = "AA_Map",
+    script:
+        "scripts/prep_hmm_vcf.R"
+
+rule admixfrog_sample_input:
+    input :
+        bed = "bed/rec/{snpset}.bed",
+        sample_stats = "stats/bamcov/{sample}_{snpset}.extbamcov",
+        _script = "scripts/prep_hmm2.R",
+    params:
+        recmap = "AA_Map",
+    output:
+        csv = "stats/admixfrog_samples/{sample}_{snpset}.csv.xz"
+    script: "scripts/prep_hmm2.R"
+
+rule run_admixfrog:
+    input:
+        infile = "stats/admixfrog_samples/{sample}_{snpset}.csv.xz",
+        ref = "stats/admixfrog_panels/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-1,
+        freq_f = 5,
+        freq_c = 10,
+        error = 1e-2,
+    benchmark:
+        "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
+    version: ".2"
+    log : 
+        log="stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.log"
+    output:
+        res_bin = "stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.pars.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog {input.infile} {input.ref} -o {outname} "
+        s += " --state-ids {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --freq-F {params.freq_f} "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        shell(s)
+
+""" BAM STUFF"""
+rule index_bam:
+    input: "{name}.bam"
+    output: "{name}.bam.bai"
+    shell: "samtools index {input}"
+# input file part 1
+def _bam_coverage(wc):
+    if wc.name in sample2lib and wc.proj == 'bysample':
+        return "bams/sample/%s/%s.bam" % (wc.asc, wc.name)
+    return "bams/dedup_bams/%s/%s/%s.bam" % (wc.proj, wc.asc, wc.name)
+def _bam_coverage_ix(wc):
+    return _bam_coverage(wc) + ".bai"
+def do_extbam_coverage(input, output, wildcards):
+    read_filter = 'nofilter' #wildcards.read_filter
+    blocks=pg.NoBlocks(input.bed)
+
+    sampleset = pg.CallBackSampleSet.from_file_names([input.bam], blocks=blocks)
+
+    filter_args = config["filter"]["_default"]
+    try:
+        filter_args.update(config["filter"][read_filter])
+        cov = pg.ExtCoverage(**filter_args ,outfile=output.csv)
+    except KeyError:
+        raise KeyError("don't know filter " + filter)
+
+    sampleset.add_callback(cov)
+    sampleset.run_callbacks()
+rule ext_bam_coverage:
+    input:
+        bam="bams/{sample}_{snpset}.bam",
+        bai="bams/{sample}_{snpset}.bam.bai",
+        bed="bed/sorted/{snpset}.bed",
+    output:
+        csv="stats/bamcov/{sample}_{snpset}.extbamcov"
+    run:
+        do_extbam_coverage(input, output, wildcards)
+
+
+""" BED STUFF"""
+def get_asc(wildcards):
+    return config["bed"]["unsorted_ascertainment"][wildcards.asc]
+rule sort_bed:
+    input: 
+        bed=get_asc
+    output: "bed/sorted_nonpolarized/{asc}.bed"
+    run:
+        if input.bed.endswith("gz"):
+            s = "zcat {input.bed} | sort -V > {output}"
+        else:
+            s ="sort -V {input.bed} > {output}"
+        shell(s)
+
+rule polarize_bed:
+    input: 
+        bed = "bed/sorted_nonpolarized/{name}.bed",
+        fa = config["fa"],
+    output: 
+        bed = "bed/sorted/{name}.bed"
+    run:
+        from pysam import FastaFile
+        from pybedtools import BedTool
+        f = FastaFile(input.fa)
+        bed = BedTool(input.bed)
+        with open(output.bed, "w") as o:
+            for b in bed:
+                ref = f.fetch(b.chrom, b.start, b.end)
+                if b.score.upper() == ref.upper():
+                    tpl = b.chrom, b.start, b.end, b.score, b.name
+                elif b.name.upper() == ref.upper():
+                    tpl = b.chrom, b.start, b.end, b.name, b.score
+                else:
+                    print("ERROR:", b.chrom, b.start, b.name, b.score, ref)
+                    #raise ValueError("don't know allele", b.chrom, b.start)
+                print(*tpl, sep="\t", file=o)
+
+rule get_rec_pos:                     
+    input:                            
+        bed="bed/sorted/{snpset}.bed",
+        rec="recs/maps_b37.tar.gz",
+        script_="scripts/bedrec.R"    
+    output:                           
+        bed="bed/rec/{snpset}.bed"    
+    script: "scripts/bedrec.R"        
+
+rule download_rec:
+    output:
+        rec=protected("recs/maps_b37.tar.gz")
+    shell: "cd recs && wget https://www.well.ox.ac.uk/~anjali/AAmap/maps_b37.tar.gz && tar xzvf maps_b37.tar.gz"
+
+"""VCF STUFF"""
+rule restrict2asc:
+    input:
+        vcf="vcfs/merged/{vcf}.vcf.gz",
+        vcftbi="vcfs/merged/{vcf}.vcf.gz.tbi",
+        bed="bed/sorted/{asc}.bed",
+    output:
+        vcf = "vcfs/asc/{asc}/{vcf}.vcf.gz"
+    shell : "bcftools view -R {input.bed} {input.vcf} -O z -o {output.vcf}"
+
+rule tinyvcf_chrom:
+    input: 
+        ref=config["vcf"]["giantvcf"] 
+    output:
+        vcf="vcfs/by_chrom/{sampleset}/{CHROM}.vcf.gz"
+    run:
+        samples = ",".join(config["sampleset"][wildcards.sampleset])
+        s = "bcftools view {input.ref} -s {samples} -Oz -o {output.vcf}"
+        shell(s)
+
+rule tinyvcf:
+    input: 
+        vcfs=expand("vcfs/by_chrom/{{sampleset}}/{CHROM}.vcf.gz",
+            CHROM =CHROMS)
+    output:
+        vcfs="vcfs/merged/{sampleset}.vcf.gz"
+    shell:
+        "bcftools concat {input.vcfs} -Oz -o {output.vcfs}"
+
+rule tabix:
+    input: "{name}.vcf.gz"
+    output: "{name}.vcf.gz.tbi"
+    shell: "tabix -p vcf {input}"
+
+"""plotting"""
+rule plot_hmm_sample_overview:
+    input:
+        bin = "stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        snp = "stats/admixfrog_samples/{sample}_{snpset}.csv.xz",
+        script_ = "scripts/plotting/hmm_overview.R"
+    params:
+        pmax = 0.7, #state with avg posterior larger than this is omitted
+        pmin = 5e-3 #states with avg posterior lower than this are omitted
+    output:
+        png = "figures/admixfrog/{states}/{sample}_overview_{bin_size, \d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_overview.R"
+
+rule plot_hmm_sample_multitrack:
+    input:
+        bin = "stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        snp = "stats/admixfrog_samples/{sample}_{snpset}.csv.xz",
+        script_ = "scripts/plotting/hmm_overview.R"
+    output:
+        png = "figures/admixfrog/{states}/{sample}_mt{TRACK}__{bin_size, \d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_overview.R"
+
+rule plot_hmm_sample_cont:
+    input:
+        cont = "stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        script_ = "scripts/plotting/hmm_cont.R"
+    output:
+        png = "figures/admixfrog/{states}/{sample}_cont_{bin_size,\d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_cont.R"
+
+def _panel_bin(wc):
+    l = expand("stats/admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        bin_size=["{bin_size}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        filter=["{filter}"],
+        sample=config['panels'][wc.panel])
+    return l
+rule plot_hmm_panel_marginal:
+    input:
+        bins = _panel_bin,
+        script_ = "scripts/plotting/hmm_panel_marginal.R"
+    output:
+        plot="figures/admixfrog/{states}/{panel}_marginal_{bin_size,\d+}_{snpset}.png",
+        plot2="figures/admixfrog/{states}/{panel}_marginal2_{bin_size,\d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_panel_marginal.R"
+
+rule plot_hmm_panel_region:
+    input:
+        bins = _panel_bin,
+        script_ = "scripts/plotting/hmm_region.R"
+    params:
+        pmax = 0.7,
+        pmin = 2e-3
+    output:
+        plot = "figures/admixfrog_region/{region}/{states}/{panel}_{bin_size,\d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_region.R"
+
+"""not done"""
+rule plot_hmm_panel_pw:
+    input:
+        bins = _panel_bin,
+        script_ = "scripts/plotting/hmm_panel_pw.R"
+    params:
+        lengths= [0, 100, 200, 500, 1000, 2000] # in kb
+    output:
+        pwplot="figures/admixfrog/{states}/{TRACK}/C{cutoff}/{panel}_pwall_{bin_size,\d+}_{snpset}.png",
+        trackplot="figures/admixfrog/{states}/{TRACK}/C{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_panel_pw.R"
+
+rule plot_hmm_panel_rle:
+    input:
+        bins = _panel_bin,
+        script_ = "scripts/plotting/hmm_rle.R"
+    output:
+        rleplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
+        rlelogplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rll_{bin_size,\d+}_{snpset}.png",
+        gammaplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_gamma_{bin_size,\d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_rle.R"
+
+"""CONTROLLERS"""
+def _panel_all_cont(wc):
+    s1= expand("figures/admixfrog/{{states}}/{sample}_cont_{{bin_size,\d+}}_{{snpset}}.png",
+        sample = config['panels'][wc.panel])
+    s2= expand("figures/admixfrog/{{states}}/{sample}_overview_{{bin_size,\d+}}_{{snpset}}.png",
+        sample = config['panels'][wc.panel])
+    return s1 + s2
+rule plot_hmm_panel_all:
+    input:
+        marg = "figures/admixfrog/{states}/{panel}_marginal_{bin_size,\d+}_{snpset}.png",
+        bysample = _panel_all_cont,
+    output:
+        touch("controller/admixfrog/{states}/{panel}_{bin_size,\d+}_{snpset}.figs")
+
+def _panel_all_track(wc):
+    s3= expand("figures/admixfrog/{{states}}/{sample}_mt__{{TRACK}}__{{bin_size,\d+}}_{{snpset}}.png",
+        sample = config['panels'][wc.panel])
+    return s3
+rule plot_hmm_panel_track:
+    input:
+        x = _panel_all_track,
+        rleplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
+        trackplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
+    output:
+        touch("controller/admixfrog/track/{states}/{TRACK}/{cutoff}/{panel}_{bin_size,\d+}_{snpset}.figs")

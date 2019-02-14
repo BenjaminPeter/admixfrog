@@ -201,7 +201,8 @@ def run_hmm_bb(
     cont_id="AFR",
     split_lib=True,
     bin_size=1e4,
-    prior=0.5,
+    prior=1e-5,
+    ancestral=None,
     sex=None,
     pos_mode=False,
     autosomes_only=False,
@@ -215,7 +216,7 @@ def run_hmm_bb(
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
     data = load_data(infile, split_lib, downsample)
-    ref = load_ref(ref_file, state_ids, cont_id, prior, autosomes_only)
+    ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
     if pos_mode:
         data.map = data.pos
         ref.map = ref.pos
