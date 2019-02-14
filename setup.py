@@ -1,4 +1,4 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import setup#, find_namespace_packages
 from Cython.Build import cythonize
 
 setup(setup_requires=["pbr"], 
