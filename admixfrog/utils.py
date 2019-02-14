@@ -16,12 +16,19 @@ class _IX:
 
 
 def data2probs(
-    data, ref, state_ids, cont_id, state_priors=(0.5, 0.5), cont_prior=(1, 1)
+    data, ref, state_ids, cont_id, state_priors=(0.5, 0.5), cont_prior=(1e-8, 1e-8),
+    ancestral=None
 ):
     alpha_ix = ["%s_alt" % s for s in state_ids]
     beta_ix = ["%s_ref" % s for s in state_ids]
+    if ancestral is None:
+        pa, pb = cont_prior
+    else:
+        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        pa = data[anc_alt] + cont_prior[0] * (1 - 2 * np.sign(data[anc_alt]))
+        pb = data[anc_ref] + cont_prior[1] * (1 - 2 * np.sign(data[anc_ref]))
     cont = "%s_alt" % cont_id, "%s_ref" % cont_id
-    pa, pb = cont_prior
+    ca, cb = cont_prior
 
     print(alpha_ix, beta_ix)
 
@@ -29,10 +36,10 @@ def data2probs(
         O=np.array(data.talt),
         N=np.array(data.tref + data.talt),
         P_cont=np.array(
-            (data[cont[0]] + pa) / (data[cont[0]] + data[cont[1]] + pa + pb)
+            (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
         ),
-        alpha=np.array(ref[alpha_ix]) + state_priors[0],
-        beta=np.array(ref[beta_ix]) + state_priors[1],
+        alpha=np.array(ref[alpha_ix]) + pa
+        beta=np.array(ref[beta_ix]) + pb
         lib=np.array(data.lib),
     )
     return P
@@ -178,8 +185,11 @@ def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2):
     return Pars(alpha0, trans_mat, cont, e0, F, gamma_names, sex=sex)
 
 
-def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
-    states = list(set(list(state_ids) + [cont_id]))
+def load_ref(ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False):
+    if ancestral is None:
+        states = list(set(list(state_ids) + [cont_id]))
+    else:
+        states = list(set(list(state_ids) + [cont_id, ancestral]))
     dtype_ = dict(chrom="category")
     ref = pd.read_csv(ref_file, dtype=dtype_)
     ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)
@@ -202,6 +212,7 @@ def load_ref(ref_file, state_ids, cont_id, prior=0, autosomes_only=False):
     if "PAN" in states:
         ref["PAN_ref"] /= 2
         ref["PAN_alt"] /= 2
+
     ix = list(ref.columns[:5])
     suffixes = ["_alt", "_ref"]
     cols = ix + [s + x for s in states for x in suffixes]

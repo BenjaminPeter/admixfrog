@@ -1,4 +1,6 @@
-source("~/programs/admixfrog/plotting/comparison_plot.R")
+source("scripts/comparison_plot.R")
+
+save.image(".rdebug")
 
 bin_size = as.integer(snakemake@wildcards$bin_size)
 infile = snakemake@input$bin
@@ -12,7 +14,9 @@ start = as.numeric(R$start)
 end = as.numeric(R$end)
 n_samples = length(names)
 
-#save.image(".rdebug")
+if(is.null(start)){
+stop("region not found. check config/regions.yaml")
+}
 
 p_max = snakemake@params$pmax
 p_min = snakemake@params$pmin
@@ -24,10 +28,10 @@ if(!is.null(snakemake@wildcards$TRACK )){
 }
 
 data = load_data(infile, names) %>%
-    filter(chrom==chrom_, bin_pos < end, bin_pos > start)
+    filter(chrom==chrom_, pos < end, pos > start)
 if(is.null(TRACK)){
     v <- data %>% 
-	select(-chrom, -chrom_id, -bin_pos, -bin_id, -sample, -viterbi)  %>% 
+	dplyr::select(-1:-9)  %>% 
 	summarize_all(.funs=mean)  %>% 
 	unlist 
     TRACK <- names(v[v<=p_max& v>=p_min])                                                           
@@ -42,7 +46,7 @@ d2 = get_long_data(data) %>% filter( variable %in% TRACK)
 
 P =  ggplot() + 
 	#geom_line(data=d2, aes(x=bin_pos/1e6, y=value, color=variable, fill=variable), lwd=.3) + 
-	geom_col(data=d2, mapping=aes(x=bin_pos/1e6, y=value, fill=variable), width=bin_size/1e6) + 
+	geom_col(data=d2, mapping=aes(x=pos/1e6, y=value, fill=variable), width=bin_size/1e6) + 
 #	geom_point(data=snps, mapping=aes(x=pos/1e6, y=as.numeric(deam)), pch=".", size=.1) +
         facet_wrap(~sample, ncol=1, strip.position="left") +
         ggtitle(sprintf("[%s]%d-%d : %s", chrom_, start, end, region))

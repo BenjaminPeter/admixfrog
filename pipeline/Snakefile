@@ -95,7 +95,7 @@ def do_extbam_coverage(input, output, wildcards):
         filter_args.update(config["filter"][read_filter])
         cov = pg.ExtCoverage(**filter_args ,outfile=output.csv)
     except KeyError:
-        raise KeyError("don't know filter " + wildcards.read_filter)
+        raise KeyError("don't know filter " + filter)
 
     sampleset.add_callback(cov)
     sampleset.run_callbacks()
@@ -246,29 +246,6 @@ rule plot_hmm_panel_marginal:
     script:
         "scripts/plotting/hmm_panel_marginal.R"
 
-rule plot_hmm_panel_pw:
-    input:
-        bins = _panel_bin,
-        script_ = "scripts/plotting/hmm_panel_pw.R"
-    params:
-        lengths= [0, 100, 200, 500, 1000, 2000] # in kb
-    output:
-        pwplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_pwall_{bin_size,\d+}_{snpset}_{filter}.png",
-        trackplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}_{filter}.png",
-    script:
-        "scripts/plotting/hmm_panel_pw.R"
-
-rule plot_hmm_panel_rle:
-    input:
-        bins = _panel_bin,
-        script_ = "scripts/plotting/hmm_rle.R"
-    output:
-        rleplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}_{filter}.png",
-        rlelogplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rll_{bin_size,\d+}_{snpset}_{filter}.png",
-        gammaplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_gamma_{bin_size,\d+}_{snpset}_{filter}.png",
-    script:
-        "scripts/plotting/hmm_rle.R"
-
 rule plot_hmm_panel_region:
     input:
         bins = _panel_bin,
@@ -277,32 +254,56 @@ rule plot_hmm_panel_region:
         pmax = 0.7,
         pmin = 2e-3
     output:
-        plot = "figures/admixfrog_region/{region}/{states}/{panel}_{bin_size,\d+}_{snpset}_{filter}.png",
+        plot = "figures/admixfrog_region/{region}/{states}/{panel}_{bin_size,\d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_region.R"
 
+"""not done"""
+rule plot_hmm_panel_pw:
+    input:
+        bins = _panel_bin,
+        script_ = "scripts/plotting/hmm_panel_pw.R"
+    params:
+        lengths= [0, 100, 200, 500, 1000, 2000] # in kb
+    output:
+        pwplot="figures/admixfrog/{states}/{TRACK}/C{cutoff}/{panel}_pwall_{bin_size,\d+}_{snpset}.png",
+        trackplot="figures/admixfrog/{states}/{TRACK}/C{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_panel_pw.R"
+
+rule plot_hmm_panel_rle:
+    input:
+        bins = _panel_bin,
+        script_ = "scripts/plotting/hmm_rle.R"
+    output:
+        rleplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
+        rlelogplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_rll_{bin_size,\d+}_{snpset}.png",
+        gammaplot="figures/{htype}HMM/{states}/{TRACK}/{cutoff}/{panel}_gamma_{bin_size,\d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_rle.R"
+
+"""CONTROLLERS"""
 def _panel_all_cont(wc):
-    s1= expand("figures/{{htype}}HMM/{{states}}/{sample}_cont_{{bin_size,\d+}}_{{snpset}}_{{filter}}.png",
+    s1= expand("figures/admixfrog/{{states}}/{sample}_cont_{{bin_size,\d+}}_{{snpset}}.png",
         sample = config['panels'][wc.panel])
-    s2= expand("figures/{{htype}}HMM/{{states}}/{sample}_overview_{{bin_size,\d+}}_{{snpset}}_{{filter}}.png",
+    s2= expand("figures/admixfrog/{{states}}/{sample}_overview_{{bin_size,\d+}}_{{snpset}}.png",
         sample = config['panels'][wc.panel])
     return s1 + s2
 rule plot_hmm_panel_all:
     input:
-        marg = "figures/{htype}HMM/{states}/{panel}_marginal_{bin_size,\d+}_{snpset}_{filter}.png",
+        marg = "figures/admixfrog/{states}/{panel}_marginal_{bin_size,\d+}_{snpset}.png",
         bysample = _panel_all_cont,
     output:
-        touch("controller/{htype}HMM/{states}/{panel}_{bin_size,\d+}_{snpset}_{filter}.figs")
+        touch("controller/admixfrog/{states}/{panel}_{bin_size,\d+}_{snpset}.figs")
 
 def _panel_all_track(wc):
-    s3= expand("figures/{htype}HMM/{{states}}/{sample}_mt__{{TRACK}}__{{bin_size,\d+}}_{{snpset}}_{{filter}}.png",
+    s3= expand("figures/admixfrog/{{states}}/{sample}_mt__{{TRACK}}__{{bin_size,\d+}}_{{snpset}}.png",
         sample = config['panels'][wc.panel])
     return s3
-
 rule plot_hmm_panel_track:
     input:
         x = _panel_all_track,
-        rleplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}_{filter}.png",
-        trackplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}_{filter}.png",
+        rleplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
+        trackplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
     output:
-        touch("controller/{htype}HMM/track/{states}/{TRACK}/{cutoff}/{panel}_{bin_size,\d+}_{snpset}_{filter}.figs")
+        touch("controller/admixfrog/track/{states}/{TRACK}/{cutoff}/{panel}_{bin_size,\d+}_{snpset}.figs")

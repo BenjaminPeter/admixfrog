@@ -21,7 +21,7 @@ if(cutoff > 0){
     data$TRACK = rowSums(data[,TRACK]) <  (-cutoff)
 }
 
-coords <- data %>% select(chrom, bin_pos, bin_id)
+coords <- data %>% select(chrom, pos, map)
 mycov = function(...)cov(...) %>% cov2cor %>% replace_na(0)
 
 df = lapply(l_cutoffs, get_rundf, data=data)

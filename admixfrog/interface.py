@@ -81,10 +81,13 @@ def run():
         "--prior",
         "-p",
         type=float,
-        default=1e-8,
+        default=1e-5,
         help="""Prior of reference allele frequencies. This number is added to both the
         ref and alt allele count for each reference, to reflect the uncertainty in allele
-        frequencies from a sample. """,
+        frequencies from a sample. If references are stationary with size 2N, this is
+        approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
+
+        """,
     )
     parser.add_argument(
         "--dont-est-contamination",
@@ -168,6 +171,12 @@ def run():
     )
     parser.add_argument(
         "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
+    )
+    parser.add_argument(
+        "--ancestral", "-a", type=str, default=None, 
+        help="""Outgroup population with the ancestral allele. By default, assume
+        ancestral allele is unknown
+        """
     )
 
     args = parser.parse_args()
