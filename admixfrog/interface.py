@@ -173,20 +173,22 @@ def run():
         "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
     )
     parser.add_argument(
-        "--ancestral", "-a", type=str, default=None, 
+        "--ancestral",
+        "-a",
+        type=str,
+        default=None,
         help="""Outgroup population with the ancestral allele. By default, assume
         ancestral allele is unknown
-        """
+        """,
     )
 
     args = parser.parse_args()
     pprint(vars(args))
     V = vars(args)
-    out = V["out"]
-    del V["out"]
+    out = V.pop("out")
 
     bins, snps, cont, pars, ll = run_hmm_bb(**vars(args))
-    bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
-    cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
-    pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")
-    snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
+    bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
+    cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
+    pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
+    snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
