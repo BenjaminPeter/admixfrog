@@ -3,11 +3,7 @@ from scipy.stats import binom
 from scipy.optimize import minimize, minimize_scalar
 from math import exp, log
 import pdb
-
-try:
-    from .distributions import gt_homo_dist
-except (ModuleNotFoundError, ImportError):
-    from distributions import gt_homo_dist
+from .distributions import gt_homo_dist
 
 from numba import njit
 

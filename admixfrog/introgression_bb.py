@@ -6,21 +6,12 @@ from collections import namedtuple, defaultdict, Counter
 from scipy.stats import binom
 from scipy.optimize import minimize
 import pdb
-
-try:
-    from utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
-    from utils import posterior_table
-    from distributions import gt_homo_dist
-    from hmm_updates import update_contamination
-    from fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-    from posterior_geno import post_geno_py, update_F
-except (ModuleNotFoundError, ImportError):
-    from .utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
-    from .utils import posterior_table
-    from .distributions import gt_homo_dist
-    from .hmm_updates import update_contamination
-    from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-    from .posterior_geno import post_geno_py, update_F
+from .utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
+from .utils import posterior_table
+from .distributions import gt_homo_dist
+from .hmm_updates import update_contamination
+from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
+from .posterior_geno import post_geno_py, update_F
 
 np.set_printoptions(suppress=True, precision=4)
 
