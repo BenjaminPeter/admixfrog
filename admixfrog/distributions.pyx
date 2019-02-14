@@ -1,5 +1,4 @@
-#!python
-# cython: language_level=3
+#cython: language_level=3
 # cython: infer_types=True
 # cython: boundscheck=False
 # cython: wraparound=False

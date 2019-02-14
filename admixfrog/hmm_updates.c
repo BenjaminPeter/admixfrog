@@ -4,13 +4,12 @@
 {
     "distutils": {
         "depends": [],
-        "name": "admixfrog",
+        "name": "admixfrog.hmm_updates",
         "sources": [
-            "admixfrog/distributions.pyx",
-            "admixfrog/hmm_updates.pyx"
+            "/r1/people/benjamin_peter/programs/admixfrog/admixfrog/hmm_updates.pyx"
         ]
     },
-    "module_name": "admixfrog"
+    "module_name": "admixfrog.hmm_updates"
 }
 END: Cython Metadata */
 
@@ -837,7 +836,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "admixfrog/hmm_updates.pyx",
+  "hmm_updates.pyx",
   "stringsource",
 };
 /* MemviewSliceStruct.proto */
@@ -2068,6 +2067,7 @@ static const char __pyx_k_scipy_optimize[] = "scipy.optimize";
 static const char __pyx_k_View_MemoryView[] = "View.MemoryView";
 static const char __pyx_k_allocate_buffer[] = "allocate_buffer";
 static const char __pyx_k_dtype_is_object[] = "dtype_is_object";
+static const char __pyx_k_hmm_updates_pyx[] = "hmm_updates.pyx";
 static const char __pyx_k_minimize_scalar[] = "minimize_scalar";
 static const char __pyx_k_pyx_PickleError[] = "__pyx_PickleError";
 static const char __pyx_k_setstate_cython[] = "__setstate_cython__";
@@ -2084,7 +2084,6 @@ static const char __pyx_k_MemoryView_of_r_at_0x_x[] = "<MemoryView of %r at 0x%x
 static const char __pyx_k_contiguous_and_indirect[] = "<contiguous and indirect>";
 static const char __pyx_k_Cannot_index_with_type_s[] = "Cannot index with type '%s'";
 static const char __pyx_k_Invalid_shape_in_axis_d_d[] = "Invalid shape in axis %d: %d.";
-static const char __pyx_k_admixfrog_hmm_updates_pyx[] = "admixfrog/hmm_updates.pyx";
 static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cython.array";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
@@ -2141,7 +2140,6 @@ static PyObject *__pyx_kp_u__4;
 static PyObject *__pyx_kp_u__5;
 static PyObject *__pyx_kp_u__6;
 static PyObject *__pyx_n_s_admixfrog_hmm_updates;
-static PyObject *__pyx_kp_s_admixfrog_hmm_updates_pyx;
 static PyObject *__pyx_n_s_all;
 static PyObject *__pyx_n_s_allocate_buffer;
 static PyObject *__pyx_n_s_base;
@@ -2170,6 +2168,7 @@ static PyObject *__pyx_n_s_fun;
 static PyObject *__pyx_n_s_get_po_given_c_all;
 static PyObject *__pyx_n_s_getstate;
 static PyObject *__pyx_kp_s_got_differing_extents_in_dimensi;
+static PyObject *__pyx_kp_s_hmm_updates_pyx;
 static PyObject *__pyx_n_s_i;
 static PyObject *__pyx_n_s_id;
 static PyObject *__pyx_n_s_import;
@@ -16972,7 +16971,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_u__5, __pyx_k__5, sizeof(__pyx_k__5), 0, 1, 0, 0},
   {&__pyx_kp_u__6, __pyx_k__6, sizeof(__pyx_k__6), 0, 1, 0, 0},
   {&__pyx_n_s_admixfrog_hmm_updates, __pyx_k_admixfrog_hmm_updates, sizeof(__pyx_k_admixfrog_hmm_updates), 0, 0, 1, 1},
-  {&__pyx_kp_s_admixfrog_hmm_updates_pyx, __pyx_k_admixfrog_hmm_updates_pyx, sizeof(__pyx_k_admixfrog_hmm_updates_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_all, __pyx_k_all, sizeof(__pyx_k_all), 0, 0, 1, 1},
   {&__pyx_n_s_allocate_buffer, __pyx_k_allocate_buffer, sizeof(__pyx_k_allocate_buffer), 0, 0, 1, 1},
   {&__pyx_n_s_base, __pyx_k_base, sizeof(__pyx_k_base), 0, 0, 1, 1},
@@ -17001,6 +16999,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_get_po_given_c_all, __pyx_k_get_po_given_c_all, sizeof(__pyx_k_get_po_given_c_all), 0, 0, 1, 1},
   {&__pyx_n_s_getstate, __pyx_k_getstate, sizeof(__pyx_k_getstate), 0, 0, 1, 1},
   {&__pyx_kp_s_got_differing_extents_in_dimensi, __pyx_k_got_differing_extents_in_dimensi, sizeof(__pyx_k_got_differing_extents_in_dimensi), 0, 0, 1, 0},
+  {&__pyx_kp_s_hmm_updates_pyx, __pyx_k_hmm_updates_pyx, sizeof(__pyx_k_hmm_updates_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_i, __pyx_k_i, sizeof(__pyx_k_i), 0, 0, 1, 1},
   {&__pyx_n_s_id, __pyx_k_id, sizeof(__pyx_k_id), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
@@ -17097,7 +17096,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple_ = PyTuple_Pack(2, __pyx_n_s_cc, __pyx_n_s_prob); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 68, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
-  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_admixfrog_hmm_updates_pyx, __pyx_n_s_get_po_given_c_all, 68, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_hmm_updates_pyx, __pyx_n_s_get_po_given_c_all, 68, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 68, __pyx_L1_error)
 
   /* "View.MemoryView":133
  * 
@@ -17301,7 +17300,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__25 = PyTuple_Pack(16, __pyx_n_s_cont, __pyx_n_s_error, __pyx_n_s_P, __pyx_n_s_Z, __pyx_n_s_pg, __pyx_n_s_IX, __pyx_n_s_libs, __pyx_n_s_n_libs, __pyx_n_s_delta, __pyx_n_s_i, __pyx_n_s_lib, __pyx_n_s_f, __pyx_n_s_get_po_given_c_all, __pyx_n_s_get_po_given_c_all, __pyx_n_s_p0, __pyx_n_s_OO); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__25);
   __Pyx_GIVEREF(__pyx_tuple__25);
-  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(7, 0, 16, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_admixfrog_hmm_updates_pyx, __pyx_n_s_update_contamination, 50, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 50, __pyx_L1_error)
+  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(7, 0, 16, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_hmm_updates_pyx, __pyx_n_s_update_contamination, 50, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 50, __pyx_L1_error)
 
   /* "View.MemoryView":286
  *         return self.name
