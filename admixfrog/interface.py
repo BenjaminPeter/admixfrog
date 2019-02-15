@@ -2,12 +2,21 @@ import argparse
 from .introgression_bb import run_hmm_bb
 from pprint import pprint
 from .bam import process_bam
+from os.path import isfile
 
 
 def add_bam_parse_group(parser):
     g = parser.add_argument_group("bam parsing")
     g.add_argument("--bamfile", "--bam",
-                   help="Bam File to process")
+                   help="""Bam File to process. Choose this or infile. 
+                   The resulting input file will be writen in {out}.in.xz,
+                   so it doesn't need to be regenerated.
+                   If the input file exists, an error is generated unless
+                   --force-bam is set
+                   """)
+    g.add_argument("--force-bam",
+                   default=False,
+                   action="store_true")
     #g.add_argument("--bedfile", "--bed",
     #               help="Bed file with anc/der allele to restrict to")
     g.add_argument("--deam-cutoff", type=int, default=3,
@@ -211,6 +220,8 @@ def run():
     args = parser.parse_args()
     pprint(vars(args))
     V = vars(args)
+    force_bam = V.pop("force_bam")
+
 
     if V["infile"] is not None and V["bamfile"] is not None:
         raise ValueError("cant specify csv and bam input")
@@ -218,15 +229,18 @@ def run():
     #    raise ValueError("require bed file to create input from bam")
     #if V["bamfile"] is not None and V["bedfile"] is not None:
     if V["bamfile"] is not None:
+        V['infile'] = V['out'] + ".in.xz"
+        if isfile(V["infile"]) and not force_bam:
+            raise ValueError("""infile exists. Use this or set --force-bam to 
+                             regenerate""")
         print("creating input from bam file")
-        process_bam(outfile=V['out'] + ".in.xz",
+        process_bam(outfile=V['infile'],
                     bamfile=V.pop('bamfile'),
                     ref=V['ref_file'],
                     #bedfile=V.pop('bedfile'),
                     deam_cutoff=V.pop('deam_cutoff'),
                     length_bin_size=V.pop('length_bin_size')
                     )
-        V['infile'] = V['out'] + ".in.xz"
 
     out = V.pop("out")
 
