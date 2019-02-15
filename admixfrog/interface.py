@@ -214,13 +214,15 @@ def run():
 
     if V["infile"] is not None and V["bamfile"] is not None:
         raise ValueError("cant specify csv and bam input")
-    elif V["bamfile"] is not None and V["bedfile"] is None:
-        raise ValueError("require bed file to create input from bam")
-    if V["bamfile"] is not None and V["bedfile"] is not None:
+    #elif V["bamfile"] is not None and V["bedfile"] is None:
+    #    raise ValueError("require bed file to create input from bam")
+    #if V["bamfile"] is not None and V["bedfile"] is not None:
+    if V["bamfile"] is not None:
         print("creating input from bed file")
         process_bam(outfile=V['out'] + ".in.xz",
                     bamfile=V.pop('bamfile'),
-                    bedfile=V.pop('bedfile'),
+                    ref=V['ref_file'],
+                    #bedfile=V.pop('bedfile'),
                     deam_cutoff=V.pop('deam_cutoff'),
                     length_bin_size=V.pop('length_bin_size')
                     )
@@ -229,7 +231,11 @@ def run():
     out = V.pop("out")
 
     bins, snps, cont, pars, ll = run_hmm_bb(**vars(args))
-    bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
-    cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
-    pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
-    snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
+    #bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
+    #cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
+    #pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
+    #snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
+    bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
+    cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
+    pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")
+    snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
