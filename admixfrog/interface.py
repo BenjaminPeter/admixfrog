@@ -8,8 +8,8 @@ def add_bam_parse_group(parser):
     g = parser.add_argument_group("bam parsing")
     g.add_argument("--bamfile", "--bam",
                    help="Bam File to process")
-    g.add_argument("--bedfile", "--bed",
-                   help="Bed file with anc/der allele to restrict to")
+    #g.add_argument("--bedfile", "--bed",
+    #               help="Bed file with anc/der allele to restrict to")
     g.add_argument("--deam-cutoff", type=int, default=3,
                    help="""reads with deamination in positions < deam-cutoff are
                    considered separately""")

@@ -68,7 +68,7 @@ class RefIter:
 
     def __iter__(self):
         for ix, row in self.ref.iterrows():
-            yield 0, (row.chrom, row.pos, row.ref, row.alt)
+            yield 0, (row.chrom, row.pos-1, row.ref, row.alt)
 
 def process_bam(outfile, bamfile, ref, deam_cutoff, length_bin_size, **kwargs):
     print(kwargs)
