@@ -218,7 +218,7 @@ def run():
     #    raise ValueError("require bed file to create input from bam")
     #if V["bamfile"] is not None and V["bedfile"] is not None:
     if V["bamfile"] is not None:
-        print("creating input from bed file")
+        print("creating input from bam file")
         process_bam(outfile=V['out'] + ".in.xz",
                     bamfile=V.pop('bamfile'),
                     ref=V['ref_file'],
