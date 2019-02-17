@@ -3,6 +3,7 @@ from .introgression_bb import run_hmm_bb
 from pprint import pprint
 from .bam import process_bam
 from os.path import isfile
+import admixfrog
 
 
 def add_bam_parse_group(parser):
@@ -43,6 +44,12 @@ def run():
         description="Infer admixture frogments from low-coverage and contaminated genomes"
         #        formatter_class=argparse.RawTextHelpFormatter
     )
+
+
+    parser.add_argument('-v', '--version', action='version',
+                        version='%(prog)s ' + admixfrog.__version__)
+
+
     parser.add_argument(
         "--infile",
         help="""Sample input file (csv). Contains individual specific data, obtained from
@@ -241,6 +248,10 @@ def run():
                     deam_cutoff=V.pop('deam_cutoff'),
                     length_bin_size=V.pop('length_bin_size')
                     )
+    else:
+        del V['bamfile']
+        del V['deam_cutoff']
+        del V['length_bin_size']
 
     out = V.pop("out")
 
