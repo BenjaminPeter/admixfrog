@@ -255,11 +255,12 @@ def run():
 
     out = V.pop("out")
 
-    bins, snps, cont, pars, ll = run_hmm_bb(**vars(args))
+    bins, snps, cont, pars, rle = run_hmm_bb(**vars(args))
     #bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     #cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
     #pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
     #snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
+    rle.to_csv("%s.rle.xz" % out, float_format="%.6f", index=False, compression="xz")
     bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
     cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
     pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")

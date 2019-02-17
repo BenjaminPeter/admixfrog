@@ -5,7 +5,7 @@ import lzma
 
 default_filter = {
     "deam_only" : False,
-    "pos_in_read_cutoff" : 0,
+    "pos_in_read_cutoff" : 2,
     "min_length" : 35,
     "max_length" : 1000,
     "minq" : 25
