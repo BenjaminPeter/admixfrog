@@ -218,7 +218,7 @@ def run():
         in a run"""
     )
     parser.add_argument(
-        "--rle-maxgap", type=float, default=0.9, help="""max number of bins not
+        "--rle-maxgap", type=float, default=3, help="""max number of bins not
         in run allowed"""
     )
     parser.add_argument(
