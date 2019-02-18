@@ -9,6 +9,7 @@ from .distributions import gt_homo_dist
 from .hmm_updates import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .posterior_geno import post_geno_py, update_F
+from .rle import get_rle
 
 np.set_printoptions(suppress=True, precision=4)
 
@@ -198,6 +199,7 @@ def run_hmm_bb(
     F0=0,
     e0=1e-2,
     c0=1e-2,
+    rle_cutoff=0.9,
     **kwargs
 ):
 
@@ -288,4 +290,6 @@ def run_hmm_bb(
     for i in range(len(pars.F)):
         df_pars.loc[i, "F"] = pars.F[i]
 
-    return df, snp_df, df_libs, df_pars, ll
+    df_rle = get_rle(df, state_ids, rle_cutoff)
+
+    return df, snp_df, df_libs, df_pars, df_rle

@@ -24,7 +24,8 @@ def data2probs(
     if ancestral is None:
         pa, pb = cont_prior
     else:
-        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        #anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        anc_ref, anc_alt = ancestral + "_ref", "ancestral" + "_alt"
         pa = data[anc_alt] + cont_prior[0] * (1 - 2 * np.sign(data[anc_alt]))
         pb = data[anc_ref] + cont_prior[1] * (1 - 2 * np.sign(data[anc_ref]))
     cont = "%s_alt" % cont_id, "%s_ref" % cont_id

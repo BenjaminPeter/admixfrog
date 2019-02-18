@@ -4,6 +4,7 @@ from .snp import SNP
 from .io import FastaFile, VCFFile, BamFile
 from .sample import *
 from collections import defaultdict
+import pdb
 
 
 class SampleSet(object):
@@ -69,10 +70,10 @@ class SampleSet(object):
         end=100000000000000,
         mode=0,
     ):
-        if type(bed) is BedTool:
-            self.bed = bed
-        else:
-            self.bed = BedTool(bed)
+        #if type(bed) is BedTool:
+        self.bed = bed
+        #else:
+        #    self.bed = BedTool(bed)
         self.samples = samples
         if files is None:
             self.files = set(s.file for s in self.samples)
@@ -174,8 +175,11 @@ class SampleSet(object):
             iterator yielding tuple (chrom, pos) for each position to be parsed
         """
         if chrom is None:
-            pos = (zip(itertools.cycle([b.chrom]), range(b.start, b.end)) for b in bed)
-            snp_iterator = itertools.chain.from_iterable(pos)
+            if 'pos' in bed: # custom file with chrom pos
+                snp_iterator = zip(bed.chrom.astype(str), bed.pos-1)
+            else:
+                pos = (zip(itertools.cycle([b.chrom]), range(b.start, b.end)) for b in bed)
+                snp_iterator = itertools.chain.from_iterable(pos)
         else:
             chrom = str(chrom)
 
