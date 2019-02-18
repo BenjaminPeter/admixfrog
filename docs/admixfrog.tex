@@ -185,8 +185,22 @@ We thus optimize
 using (\ref{eq:em:G}) and (\ref{eq:ll:geno}).
 \subsection{Estimationg Transitions and Initial State}
 $T$ is estimated using standard Baum-welch, $\alpha_0$ is set to the stationary distribution of $T$.
+\subsubsection{Transitions(HWE)}
+$$\hat{T}_{ij} = \frac{\sum_l P(X_l=i, X_{l+1}=j| \theta', O)}{ P(O | \theta')}$$
+However, the two haplotypes might change ancestry independently from each other. If the transitions from haploid states $H_{ab}$ is known, then 
+$$T_i(j) = T_{i_1, i_2}(j_1, j_2) = \frac{H_{i_1}(j_1)H_{i_2}(j_2) + H_{i_1}(j_2)H_{i_2}(j_1)}{2}$$
+i.e. there are always two possible transitions. We can introduce another inbreeding parameter $f$, so that when $i_1=i_2, j_1=j_2$ 
+$T_i(j) = f H_i(j) + (1-f) H_i(j)^2$. Conversely, if there is only a single introgressed lineage, we would only ever expect haploid introgressed segments:
 
 
+
+Compared to standard BW
+$$\xi_{ij}(t) \propto P(O_{[1\dots l]}, Z_l | \theta') T_{ij}  P(O_{[l+2\dots L]}|Z_{l+1}, \theta') P(O_{l+1}|Z_{l+1}=k)$$
+
+\begin{align}
+P(H_l = N, H_{l+1} = A, O |\theta) &=  P(O_{[1\dots l]}, H_l | \theta') P(H_{l+1} | H_l) P(O_{[l+2\dots L]}|H_{l+1}, \theta') P(O_{l+1}|H_{l+1})\\
+&=P(AN \to NN) + P(AA \to AN) + P(AA \to NN)
+\end{align}
 
 \section{Prior}
 There are a few options for priors. For computational reasons, a beta prior is most suitable.
