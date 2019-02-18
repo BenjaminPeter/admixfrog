@@ -200,6 +200,7 @@ def run_hmm_bb(
     e0=1e-2,
     c0=1e-2,
     rle_cutoff=0.9,
+    rle_maxgap=3,
     **kwargs
 ):
 
@@ -290,6 +291,6 @@ def run_hmm_bb(
     for i in range(len(pars.F)):
         df_pars.loc[i, "F"] = pars.F[i]
 
-    df_rle = get_rle(df, state_ids, rle_cutoff)
+    df_rle = get_rle(df, state_ids, rle_cutoff, rle_maxgap)
 
     return df, snp_df, df_libs, df_pars, df_rle

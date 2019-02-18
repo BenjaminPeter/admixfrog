@@ -38,7 +38,7 @@ def get_rle(data, states, cutoff=0.8, lmin=3):
         x = data.reset_index().groupby(["target", "block"])["index"].apply(len)
         x = x.reset_index().sort_values('block').reset_index(drop=True)
         x = x.rename({"index": "len"}, axis="columns")
-        x['gap'] = (x.len < lmin) & np.logical_not(x.target)
+        x['gap'] = (x.len <= lmin) & np.logical_not(x.target)
         x = data.merge(x, on=['block', 'target'])
         x.loc[x.gap, 'target'] = True
         print("closing gaps of size %s" % sum(x.gap))

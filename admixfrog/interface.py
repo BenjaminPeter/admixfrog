@@ -214,6 +214,14 @@ def run():
         "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
     )
     parser.add_argument(
+        "--rle-cutoff", type=float, default=0.9, help="""cutoff for being called
+        in a run"""
+    )
+    parser.add_argument(
+        "--rle-maxgap", type=float, default=0.9, help="""max number of bins not
+        in run allowed"""
+    )
+    parser.add_argument(
         "--ancestral",
         "-a",
         type=str,
