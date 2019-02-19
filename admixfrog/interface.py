@@ -2,41 +2,89 @@ import argparse
 from .introgression_bb import run_hmm_bb
 from pprint import pprint
 from .bam import process_bam
+from .rle import get_rle
 from os.path import isfile
 import admixfrog
 
 
 def add_bam_parse_group(parser):
     g = parser.add_argument_group("bam parsing")
-    g.add_argument("--bamfile", "--bam",
-                   help="""Bam File to process. Choose this or infile. 
+    g.add_argument(
+        "--bamfile",
+        "--bam",
+        help="""Bam File to process. Choose this or infile. 
                    The resulting input file will be writen in {out}.in.xz,
                    so it doesn't need to be regenerated.
                    If the input file exists, an error is generated unless
                    --force-bam is set
-                   """)
-    g.add_argument("--force-bam",
-                   default=False,
-                   action="store_true")
-    #g.add_argument("--bedfile", "--bed",
+                   """,
+    )
+    g.add_argument("--force-bam", default=False, action="store_true")
+    # g.add_argument("--bedfile", "--bed",
     #               help="Bed file with anc/der allele to restrict to")
-    g.add_argument("--deam-cutoff", type=int, default=3,
-                   help="""reads with deamination in positions < deam-cutoff are
-                   considered separately""")
-    g.add_argument("--length-bin-size", type=int, default=None,
-                   help="""if set, reads are binned by length for contamination estimation""")
+    g.add_argument(
+        "--deam-cutoff",
+        type=int,
+        default=3,
+        help="""reads with deamination in positions < deam-cutoff are
+                   considered separately""",
+    )
+    g.add_argument(
+        "--length-bin-size",
+        type=int,
+        default=None,
+        help="""if set, reads are binned by length for contamination estimation""",
+    )
+
+
+def add_rle_parse_group(parser):
+    g = parser.add_argument_group("bam parsing")
+    g.add_argument(
+        "--rle-cutoff",
+        type=float,
+        default=0.9,
+        help="""cutoff for being called
+        in a run""",
+    )
+    g.add_argument(
+        "--rle-maxgap",
+        type=float,
+        default=3,
+        help="""max number of bins not
+        in run allowed""",
+    )
+
 
 def bam():
-    parser = argparse.ArgumentParser(
-        description="Parse bam file for admixfrog"
-    )
-    parser.add_argument("--outfile", "--out",
-                   help="output file name (xz-zipped)")
+    parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
+    parser.add_argument("--outfile", "--out", help="output file name (xz-zipped)")
     args = parser.parse_args()
     add_bam_parse_group(parser)
     pprint(vars(args))
 
     process_bam(**vars(args))
+
+
+def do_rle():
+    parser = argparse.ArgumentParser(description="Do RLE encoding")
+    parser.add_argument(
+        "--outfile", "--out", required=True, help="output file name (xz-zipped)"
+    )
+    parser.add_argument(
+        "--infile", "--in", required=True, help="input file name *.bin.xz"
+    )
+    parser.add_argument("--states",
+        nargs="*",
+                        required=True, help="states to look at")
+    add_rle_parse_group(parser)
+    args = parser.parse_args()
+    pprint(vars(args))
+    import pandas as pd
+
+    data = pd.read_csv(args.infile)
+
+    rle =get_rle(data, args.states, args.rle_cutoff, args.rle_maxgap)
+    rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
 
 def run():
@@ -45,10 +93,9 @@ def run():
         #        formatter_class=argparse.RawTextHelpFormatter
     )
 
-
-    parser.add_argument('-v', '--version', action='version',
-                        version='%(prog)s ' + admixfrog.__version__)
-
+    parser.add_argument(
+        "-v", "--version", action="version", version="%(prog)s " + admixfrog.__version__
+    )
 
     parser.add_argument(
         "--infile",
@@ -64,7 +111,8 @@ def run():
                         - talt: number of alt reads observed""",
     )
     parser.add_argument(
-        "--ref-file", "--ref",
+        "--ref-file",
+        "--ref",
         help="""refernce input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
@@ -81,6 +129,7 @@ def run():
     )
     parser.add_argument(
         "--state-ids",
+        "--states",
         nargs="*",
         default=["AFR", "VIN", "DEN"],
         help="""the allowed sources. The target will be made of a mix of all homozygous
@@ -160,6 +209,7 @@ def run():
     )
     parser.add_argument(
         "--cont-id",
+        "--cont",
         default="AFR",
         help="""the source of contamination. Must be specified in ref file""",
     )
@@ -214,14 +264,6 @@ def run():
         "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
     )
     parser.add_argument(
-        "--rle-cutoff", type=float, default=0.9, help="""cutoff for being called
-        in a run"""
-    )
-    parser.add_argument(
-        "--rle-maxgap", type=float, default=3, help="""max number of bins not
-        in run allowed"""
-    )
-    parser.add_argument(
         "--ancestral",
         "-a",
         type=str,
@@ -231,43 +273,46 @@ def run():
         """,
     )
     add_bam_parse_group(parser)
+    add_rle_parse_group(parser)
 
     args = parser.parse_args()
     pprint(vars(args))
     V = vars(args)
     force_bam = V.pop("force_bam")
 
-
     if V["infile"] is not None and V["bamfile"] is not None:
         raise ValueError("cant specify csv and bam input")
-    #elif V["bamfile"] is not None and V["bedfile"] is None:
+    # elif V["bamfile"] is not None and V["bedfile"] is None:
     #    raise ValueError("require bed file to create input from bam")
-    #if V["bamfile"] is not None and V["bedfile"] is not None:
+    # if V["bamfile"] is not None and V["bedfile"] is not None:
     if V["bamfile"] is not None:
-        V['infile'] = V['out'] + ".in.xz"
+        V["infile"] = V["out"] + ".in.xz"
         if isfile(V["infile"]) and not force_bam:
-            raise ValueError("""infile exists. Use this or set --force-bam to 
-                             regenerate""")
+            raise ValueError(
+                """infile exists. Use this or set --force-bam to 
+                             regenerate"""
+            )
         print("creating input from bam file")
-        process_bam(outfile=V['infile'],
-                    bamfile=V.pop('bamfile'),
-                    ref=V['ref_file'],
-                    #bedfile=V.pop('bedfile'),
-                    deam_cutoff=V.pop('deam_cutoff'),
-                    length_bin_size=V.pop('length_bin_size')
-                    )
+        process_bam(
+            outfile=V["infile"],
+            bamfile=V.pop("bamfile"),
+            ref=V["ref_file"],
+            # bedfile=V.pop('bedfile'),
+            deam_cutoff=V.pop("deam_cutoff"),
+            length_bin_size=V.pop("length_bin_size"),
+        )
     else:
-        del V['bamfile']
-        del V['deam_cutoff']
-        del V['length_bin_size']
+        del V["bamfile"]
+        del V["deam_cutoff"]
+        del V["length_bin_size"]
 
     out = V.pop("out")
 
     bins, snps, cont, pars, rle = run_hmm_bb(**vars(args))
-    #bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
-    #cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
-    #pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
-    #snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
+    # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
+    # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
+    # pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
+    # snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
     rle.to_csv("%s.rle.xz" % out, float_format="%.6f", index=False, compression="xz")
     bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
     cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
