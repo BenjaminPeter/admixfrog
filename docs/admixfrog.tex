@@ -236,8 +236,22 @@ P(f | a, d, N) &\sim Beta(d + \eta, a+1 - \eta)\\
 \end{align}
 for the unfolded and folded case, respectively.
 		
+\subsection{Track lengths}
+To a first approximation, the length of introgressed fragment is 
+$L \sim Exp[r t ]$, where $r$ is a recombination rate and $t$ is the time since the fragment introgressed. However, tracks may overlap or be adjacent in a diploid genome. A simple model to correct for this is to assume that after a track finishes, with some probability $p$ a new introgressed track with the same distribution starts. Let us call this probability $m$. Then
 
-
-
+\begin{equation}
+L \sim Exp[(1-m)rt]
+\end{equation}
+writing $K = \frac{1-is}{rt}$, the characteristic function of $L$ is
+\begin{align}
+C(s) &= E[\exp(si [(1-m)L + (1-m)m (L+L')+ \dots  ] )]\nonumber\\
+&=(1-m) K^{-1} + (1-m)m K^{-2} +(1-m)m^2 K^{-3} + \dots\nonumber\\
+&=\frac{(1-m)}{K} \sum_{i=0}^\infty \left(\frac{m}{K}\right)^{i} \nonumber\\
+&= \frac{(1-m)}{K} \frac{1}{1 - m/K}\nonumber\\
+&= \frac{1-m}{K-m}\nonumber\\
+&= \frac{rt(1-m)}{rt (1-m) - is}\nonumber
+\end{align}
+which is the characteristic function of an exponential distribution with parameter $rt(1-m)$.
 
 \end{document}

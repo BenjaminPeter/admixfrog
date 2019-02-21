@@ -73,17 +73,16 @@ def do_rle():
     parser.add_argument(
         "--infile", "--in", required=True, help="input file name *.bin.xz"
     )
-    parser.add_argument("--states",
-        nargs="*",
-                        required=True, help="states to look at")
     add_rle_parse_group(parser)
     args = parser.parse_args()
     pprint(vars(args))
     import pandas as pd
 
     data = pd.read_csv(args.infile)
+    states = list(data.columns)[8:]
+    homo = [s for s in states if sum(s in ss for ss in states) > 1]
 
-    rle =get_rle(data, args.states, args.rle_cutoff, args.rle_maxgap)
+    rle =get_rle(data, homo, args.rle_cutoff, args.rle_maxgap)
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
 
