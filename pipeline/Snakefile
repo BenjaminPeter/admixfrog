@@ -16,6 +16,8 @@ rule admixfrog_sample_input:
         ref = "ref/ref_{snpset}.csv.xz",
         bam = "bams/{snpset}/{sample}.bam",
         bai = "bams/{snpset}/{sample}.bam.bai"
+        #bam = "bams/{sample}.bam",
+        #bai = "bams/{sample}.bam.bai"
     params:
         cutoff = 3,
         length_bin = 35
@@ -80,7 +82,8 @@ rule plot_hmm_sample_overview:
         pmax = 0.7, #state with avg posterior larger than this is omitted
         pmin = 1e-3 #states with avg posterior lower than this are omitted
     output:
-        png = "figures/{states}/{sample}_overview_{bin_size, \d+}_{snpset}.png",
+        posplot = "figures/{states}/{sample}_overview_pos_{bin_size, \d+}_{snpset}.png",
+        mapplot = "figures/{states}/{sample}_overview_map_{bin_size, \d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_overview.R"
 
@@ -91,6 +94,8 @@ rule plot_hmm_sample_multitrack:
         script_ = "scripts/plotting/hmm_overview.R"
     output:
         png = "figures/{states}/{sample}_mt{TRACK}__{bin_size, \d+}_{snpset}.png",
+        posplot = "figures/{states}/{sample}_mtpos{TRACK}__{bin_size, \d+}_{snpset}.png",
+        mapplot = "figures/{states}/{sample}_mtmap{TRACK}__{bin_size, \d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_overview.R"
 
@@ -129,7 +134,8 @@ rule plot_hmm_panel_region:
         pmax = 0.7,
         pmin = 1e-4
     output:
-        plot = "figures_region/{region}/{states}/{panel}_{bin_size,\d+}_{snpset}.png",
+        posplot = "figures_region/{region}/{states}/{panel}_{bin_size,\d+}_{snpset}_pos.png",
+        mapplot = "figures_region/{region}/{states}/{panel}_{bin_size,\d+}_{snpset}_map.png",
     script:
         "scripts/plotting/hmm_region.R"
 
@@ -162,7 +168,8 @@ rule plot_hmm_panel_rle:
 def _panel_all_cont(wc):
     s1= expand("figures/{{states}}/{sample}_cont_{{bin_size,\d+}}_{{snpset}}.png",
         sample = config['panels'][wc.panel])
-    s2= expand("figures/{{states}}/{sample}_overview_{{bin_size,\d+}}_{{snpset}}.png",
+    s2= expand("figures/{{states}}/{sample}_overview_{coords}_{{bin_size, \d+}}_{{snpset}}.png",
+	coords=['map', 'pos'],
         sample = config['panels'][wc.panel])
     return s1 + s2
 rule plot_hmm_panel_all:

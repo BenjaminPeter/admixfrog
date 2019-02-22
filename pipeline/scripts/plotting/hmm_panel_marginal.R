@@ -1,10 +1,12 @@
-source("~/programs/admixfrog/plotting/comparison_plot.R")
+source("scripts/plotting/lib.R")
+library(reshape2)
 
 #save.image(".rdebug")
 infiles = snakemake@input$bins
 panel = snakemake@wildcards$panel
 names = snakemake@config$panels[[panel]]
-data = load_data(infiles, names)
+data = load_bin_data(infiles, names, widths=F)
+n_samples = length(names)
 
 posterior = data %>% group_by(sample) %>% 
     select(-1:-9) %>%
@@ -28,18 +30,14 @@ df = full_join(posterior, max) %>%
 P = ggplot(df, aes(x=variable, y=value, fill=state)) + 
     geom_col() + 
     facet_grid(~sample)  + 
-    coord_cartesian(ylim=c(0, 1))  + 
+    THEME + col_scale() +
     theme(legend.position="bottom")
 
 
+P1 = P + coord_cartesian(ylim=c(0, 1))  
+P2 = P + coord_cartesian(ylim=c(0, .15)) 
 
-n_samples = length(names)
-ggsave(snakemake@output$plot, width=.8 * n_samples, height=4, limitsize=F)
-P = ggplot(df, aes(x=variable, y=value, fill=state)) + 
-    geom_col() + 
-    facet_grid(~sample)  + 
-    coord_cartesian(ylim=c(0, .15))  + 
-    theme(legend.position="bottom")
-ggsave(snakemake@output$plot2, width=.8 * n_samples, height=4, limitsize=F)
+ggsave(snakemake@output$plot, P, width=.8 * n_samples, height=4, limitsize=F)
+ggsave(snakemake@output$plot2, P2, width=.8 * n_samples, height=4, limitsize=F)
 
 
