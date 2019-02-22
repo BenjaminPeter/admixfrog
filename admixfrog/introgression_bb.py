@@ -87,8 +87,9 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-200):
         GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
 
     snp_emissions = np.sum(GT * gt_emissions[:, np.newaxis, :], 2)
-    scaling = np.max(snp_emissions, 1)
-    snp_emissions = snp_emissions / scaling
+    scaling = np.max(snp_emissions, 1)[:, np.newaxis]
+    pdb.set_trace()
+    snp_emissions /= scaling
     assert np.allclose(np.max(snp_emissions, 1), 1)
     log_scaling = np.sum(np.log(scaling))
 
