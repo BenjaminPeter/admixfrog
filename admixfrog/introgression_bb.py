@@ -151,6 +151,11 @@ def bw_bb(
             pg, _, _ = post_geno_py(P, cont, F, IX, error)
             break
 
+        if np.any(np.isnan(Z)):
+            raise ValueError("nan observed in state posterior")
+        if np.any(np.isnan(E)):
+            raise ValueError("nan observed in emissions")
+
         # update stuff
         trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n, sex)
         alpha0 = np.linalg.matrix_power(trans_mat, 10000)[0]
