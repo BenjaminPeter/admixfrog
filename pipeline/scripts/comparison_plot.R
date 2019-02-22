@@ -5,9 +5,6 @@ require(reshape2)
 #source("lomax.R")
 
 
-read_binout <- function(fname){
-    a <- read_csv(fname) %>% mutate(chrom=factor(chrom, levels=unique(chrom)))
-}
 read_snpout <- function(fname){
     a <- read_csv(fname) %>% select(-X1) %>% mutate(chrom=as.integer(chrom_id+1))
 }
@@ -34,18 +31,7 @@ get_rle <- function(cond, smooth=30000/bin_size){
     return(df)
 }
 
-load_data <- function(infiles, name){
-    a <- lapply(infiles, read_binout)
-    names(a) <- name
-    a <- bind_rows(a, .id="sample")
-}
 
-get_long_data <- function(data){
-    b <- data %>% 
-        select(-id, -chrom_id, -hap, -n_snps) %>%
-        melt(id.vars=c("sample", "chrom", "map", "pos", "pwidth",  "viterbi")) %>% 
-        as_tibble 
-}
 
 basic_plot <- function(a, b, lvl=NULL, p_max = .5, p_min = 5e-3){
     if(is.null(lvl)){
