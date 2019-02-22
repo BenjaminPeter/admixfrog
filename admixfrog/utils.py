@@ -189,12 +189,15 @@ def load_ref(ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_on
     if "REF" in states:
         ref["REF_ref"] = 1
         ref["REF_alt"] = 0
-    if "ALT" in states:
-        ref["ALT_ref"] = 0
-        ref["ALT_alt"] = 1
+    if "NRE" in states:
+        ref["NRE_ref"] = 0
+        ref["NRE_alt"] = 1
     if "ZERO" in states:
         ref["ZERO_ref"] = 1e-8 - prior
         ref["ZERO_alt"] = 1e-8 - prior
+    if "SFS" in states:
+        ref["SFS_ref"] = prior
+        ref["SFS_alt"] = prior
     if "HALF" in states:
         ref["SFS_ref"] = 0.5 - prior
         ref["SFS_alt"] = 0.5 - prior

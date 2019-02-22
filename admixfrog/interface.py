@@ -155,7 +155,8 @@ def run():
         tested and are not recommended. Must be present in the ref file, with a few
         additional ones:
         - REF : always reference allele
-        - ALT : always alternate allele
+        - NRE : always non-ref allele
+        - SFS : allele frequencies are drawn from a  Beta(prior, prior) distribution
         - UNIF : allele frequencies are drawn from a uniform / Beta(1, 1) distribution
         - HALF : allele frequencies are drawn from a  Beta(0.5, 0.5) distribution
         - ZERO : allele frequencies are drawn from a  Beta(0, 0) distribution
