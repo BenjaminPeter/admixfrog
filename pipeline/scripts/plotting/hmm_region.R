@@ -1,6 +1,6 @@
 source("scripts/comparison_plot.R")
 
-save.image(".rdebug")
+save.image("rdebug")
 
 bin_size = as.integer(snakemake@wildcards$bin_size)
 infile = snakemake@input$bin
@@ -13,6 +13,7 @@ chrom_ = as.integer(R$chrom)
 start = as.numeric(R$start)
 end = as.numeric(R$end)
 n_samples = length(names)
+colors = readRDS(snakemake@input$colors)
 
 if(is.null(start)){
 stop("region not found. check config/regions.yaml")
@@ -28,6 +29,9 @@ if(!is.null(snakemake@wildcards$TRACK )){
 }
 
 data = load_data(infile, names) %>%
+    arrange(sample, chrom, pos, map) %>%
+    mutate( pwidth = diff(c(pos, max(pos)))) %>%
+    ungroup  %>%
     filter(chrom==chrom_, pos < end, pos > start)
 if(is.null(TRACK)){
     v <- data %>% 
@@ -42,13 +46,14 @@ print(TRACK)
 print(c(p_max, p_min))
 
 
-d2 = get_long_data(data) %>% filter( variable %in% TRACK) 
+d2 = get_long_data(data) %>% 
+	filter( variable %in% TRACK, value>1e-2) 
 
-P =  ggplot() + 
+P =  ggplot(data=d2, mapping=aes(x=(pos+pwidth/2)/1e6, y=value, fill=variable, width=pwidth/1e6)) +  
 	#geom_line(data=d2, aes(x=bin_pos/1e6, y=value, color=variable, fill=variable), lwd=.3) + 
-	geom_col(data=d2, mapping=aes(x=pos/1e6, y=value, fill=variable), width=bin_size/1e6) + 
+	geom_col() +
 #	geom_point(data=snps, mapping=aes(x=pos/1e6, y=as.numeric(deam)), pch=".", size=.1) +
         facet_wrap(~sample, ncol=1, strip.position="left") +
-        ggtitle(sprintf("[%s]%d-%d : %s", chrom_, start, end, region))
+        ggtitle(sprintf("[%s]%d-%d : %s", chrom_, start, end, region)) + colors
 
 ggsave(snakemake@output$plot, width=10, height=1 * (n_samples + 1), limitsize=F)
