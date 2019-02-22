@@ -87,6 +87,10 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-200):
         GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
 
     snp_emissions = np.sum(GT * gt_emissions[:, np.newaxis, :], 2)
+    scaling = np.max(snp_emissions, 1)
+    snp_emissions = snp_emissions / scaling
+    assert np.allclose(np.max(snp_emissions, 1), 1)
+    log_scaling = np.sum(np.log(scaling))
 
     E[:] = 1  # reset
     for bin_, snp in zip(IX.SNP2BIN, snp_emissions):
@@ -97,6 +101,8 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-200):
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     print("bad bins", sum(bad_bins))
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
+
+    return log_scaling
 
 
 def bw_bb(
@@ -124,18 +130,19 @@ def bw_bb(
     gamma, emissions = [], []
     row0 = 0
     for r in IX.bin_sizes:
-        gamma.append(Z[row0 : (row0 + r)])
-        emissions.append(E[row0 : (row0 + r)])
+        gamma.append(Z[row0: (row0 + r)])
+        emissions.append(E[row0: (row0 + r)])
         row0 += r
 
-    update_emissions(E, P, IX, cont, F, error)
-    n_seqs = len(emissions)
+    e_scaling = update_emissions(E, P, IX, cont, F, error)
+    print("e-scaling:", e_scaling)
 
     for it in range(max_iter):
 
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
-        ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll
+        ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll + e_scaling
         assert np.allclose(np.sum(Z, 1), 1)
+        assert not np.isnan(ll)
         tpl = (
             IX.n_reads / 1000,
             IX.n_obs / 1000,
@@ -174,7 +181,7 @@ def bw_bb(
         if cond_cont:
             delta = update_contamination(cont, error, P, Z, pg, IX, libs)
             if delta < 1e-5:  # when we converged, do not update contamination
-                est_contamination, cond_contamination = False, False
+                est_contamination, cond_cont = False, False
                 print("stopping contamination updates")
         if cond_F:
             delta = update_F(F, Z, pg, P, IX)
@@ -182,7 +189,8 @@ def bw_bb(
                 est_F, cond_F = False, False
                 print("stopping F updates")
         if cond_F or cond_cont:
-            update_emissions(E, P, IX, cont, F, error)
+            e_scaling = update_emissions(E, P, IX, cont, F, error)
+            print("e-scaling:", e_scaling)
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
     return Z, pg, pars, ll, emissions
