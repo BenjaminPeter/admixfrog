@@ -1,0 +1,101 @@
+rule admixfrog_panel_input:
+    input:
+        bed = "bed/rec/{snpset}.bed",
+        vcfs = expand("vcfs/asc/{{snpset}}/{panel}.vcf.gz",
+            panel=["archhc", "sgdpeur", "sgdpafr"]),
+    output:
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        ALT = "AltaiNeandertal",
+        CHA = "Chagyrskaya-Phalanx",
+        VIN = "Vindija33.19",
+        DEN = "Denisova",
+        PAN = "panTro4",
+        recmap = "AA_Map",
+    script:
+        "scripts/prep_hmm_vcf.R"
+"""VCF STUFF"""
+rule restrict2asc:
+    input:
+        vcf="vcfs/merged/{vcf}.vcf.gz",
+        vcftbi="vcfs/merged/{vcf}.vcf.gz.tbi",
+        bed="bed/sorted/{asc}.bed",
+    output:
+        vcf = "vcfs/asc/{asc}/{vcf}.vcf.gz"
+    shell : "bcftools view -R {input.bed} {input.vcf} -O z -o {output.vcf}"
+
+rule tinyvcf_chrom:
+    input: 
+        ref=config["vcf"]["giantvcf"] 
+    output:
+        vcf="vcfs/by_chrom/{sampleset}/{CHROM}.vcf.gz"
+    run:
+        samples = ",".join(config["sampleset"][wildcards.sampleset])
+        s = "bcftools view {input.ref} -s {samples} -Oz -o {output.vcf}"
+        shell(s)
+
+rule tinyvcf:
+    input: 
+        vcfs=expand("vcfs/by_chrom/{{sampleset}}/{CHROM}.vcf.gz",
+            CHROM =CHROMS)
+    output:
+        vcfs="vcfs/merged/{sampleset}.vcf.gz"
+    shell:
+        "bcftools concat {input.vcfs} -Oz -o {output.vcfs}"
+
+rule tabix:
+    input: "{name}.vcf.gz"
+    output: "{name}.vcf.gz.tbi"
+    shell: "tabix -p vcf {input}"
+
+""" BED STUFF"""
+def get_asc(wildcards):
+    return config["bed"]["unsorted_ascertainment"][wildcards.asc]
+rule sort_bed:
+    input: 
+        bed=get_asc
+    output: "bed/sorted_nonpolarized/{asc}.bed"
+    run:
+        if input.bed.endswith("gz"):
+            s = "zcat {input.bed} | sort -V > {output}"
+        else:
+            s ="sort -V {input.bed} > {output}"
+        shell(s)
+
+rule polarize_bed:
+    input: 
+        bed = "bed/sorted_nonpolarized/{name}.bed",
+        fa = config["fa"],
+    output: 
+        bed = "bed/sorted/{name}.bed"
+    run:
+        from pysam import FastaFile
+        from pybedtools import BedTool
+        f = FastaFile(input.fa)
+        bed = BedTool(input.bed)
+        with open(output.bed, "w") as o:
+            for b in bed:
+                ref = f.fetch(b.chrom, b.start, b.end)
+                if b.score.upper() == ref.upper():
+                    tpl = b.chrom, b.start, b.end, b.score, b.name
+                elif b.name.upper() == ref.upper():
+                    tpl = b.chrom, b.start, b.end, b.name, b.score
+                else:
+                    print("ERROR:", b.chrom, b.start, b.name, b.score, ref)
+                    #raise ValueError("don't know allele", b.chrom, b.start)
+                print(*tpl, sep="\t", file=o)
+
+rule get_rec_pos:                     
+    input:                            
+        bed="bed/sorted/{snpset}.bed",
+        rec="recs/maps_b37.tar.gz",
+        script_="scripts/bedrec.R"    
+    output:                           
+        bed="bed/rec/{snpset}.bed"    
+    script: "scripts/bedrec.R"        
+
+rule download_rec:
+    output:
+        rec=protected("recs/maps_b37.tar.gz")
+    shell: "cd recs && wget https://www.well.ox.ac.uk/~anjali/AAmap/maps_b37.tar.gz && tar xzvf maps_b37.tar.gz"
+

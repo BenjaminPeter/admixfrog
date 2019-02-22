@@ -242,6 +242,7 @@ def run_hmm_bb(
     )
     P = data2probs(data, ref, state_ids, cont_id, (prior, prior))
     assert ref.shape[0] == P.alpha.shape[0]
+    del ref
 
     pars = init_pars(state_ids, sex, F0, e0, c0)
 
@@ -268,15 +269,17 @@ def run_hmm_bb(
     snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
 
     df_libs = pd.DataFrame(pars.cont.items(), columns=["lib", "cont"])
-    rgs, deams = [], []
+    rgs, deams, len_bins = [], [], []
     for l in df_libs.lib:
         try:
-            rg, deam = l.split("_")
+            rg, len_bin, deam = l.split("_")
         except ValueError:
-            rg, deam = l, "NA"
+            rg, len_bin, deam = l, 0, "NA"
         rgs.append(rg)
         deams.append(deam)
+        len_bins.append(len_bin)
     df_libs["rg"] = rgs
+    df_libs["len_bin"] = len_bins
     df_libs["deam"] = deams
     CC = Counter(data.lib)
     snp = pd.DataFrame([CC[l] for l in df_libs.lib], columns=["n_snps"])

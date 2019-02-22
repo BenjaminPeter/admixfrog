@@ -1,0 +1,11 @@
+figures/
+stats/
+samples/
+admixfrog/
+ref/
+figures_region/
+benchmarks/
+bams/
+*rdebug
+.*
+

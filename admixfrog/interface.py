@@ -57,12 +57,31 @@ def add_rle_parse_group(parser):
 
 def bam():
     parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
-    parser.add_argument("--outfile", "--out", help="output file name (xz-zipped)")
-    args = parser.parse_args()
+    parser.add_argument("--outfile", "--out", required=True, help="output file name (xz-zipped)")
+    parser.add_argument(
+        "--ref",
+        "--ref-file",
+        help="""refernce input file (csv). 
+                    - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
+                        - chrom: chromosome
+                        - pos : physical position (int)
+                        - ref : refrence allele
+                        - alt : alternative allele
+                        - map : rec position (float)
+                        - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
+                        these are used later in --cont-id and --state-id flags
+                        """,
+    )
     add_bam_parse_group(parser)
-    pprint(vars(args))
+    args = vars(parser.parse_args())
+    pprint(args)
+    force_bam =  args.pop('force_bam')
+    if isfile(args['outfile']) and not force_bam:
+        raise ValueError(
+            """infile exists. set --force-bam to regenerate"""
+        )
 
-    process_bam(**vars(args))
+    process_bam(**args)
 
 
 def do_rle():

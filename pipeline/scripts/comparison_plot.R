@@ -43,7 +43,7 @@ load_data <- function(infiles, name){
 get_long_data <- function(data){
     b <- data %>% 
         select(-id, -chrom_id, -hap, -n_snps) %>%
-        melt(id.vars=c("sample", "chrom", "map", "pos",  "viterbi")) %>% 
+        melt(id.vars=c("sample", "chrom", "map", "pos", "pwidth",  "viterbi")) %>% 
         as_tibble 
 }
 

@@ -11,14 +11,15 @@ a = a %>% filter(n_snps > MIN) %>% select(-lib)
 a = a %>% arrange(-n_snps) %>% mutate(rg=factor(rg, unique(rg)))
 b = a %>% mutate(contam.=n_snps*cont, endogenous =n_snps-contam.)  %>% 
     select(-n_snps, -cont)                      
-b %>% melt(id.vars=c("rg", "deam")) %>% 
-    ggplot(aes(x=deam, y=value, fill=variable)) + 
+b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>% 
+    ggplot(aes(x=len_bin, y=value, fill=variable)) + 
     geom_col() + 
-    facet_wrap(~rg, ncol=1, strip.position="left") +
+    #facet_wrap(~rg * len_bin, ncol=1, strip.position="left") +
+    facet_grid(rg ~deam) +
     coord_flip() + 
     theme(panel.spacing = unit(0, "lines")) +
     theme_grey(12) + 
-    ylab("# reads") + xlab("library") +
+    xlab("length bin") + ylab("# reads") +
     ggtitle(snakemake@wildcards$sample)
 
 
