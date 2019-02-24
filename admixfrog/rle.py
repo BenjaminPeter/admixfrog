@@ -3,21 +3,22 @@ import numpy as np
 from itertools import accumulate
 
 
-def get_runs(target, penalty=0.5):
+def get_runs(targetid, penalty=0.5):
+    target, id_ = targetid.target, np.array(targetid.id)
     p = np.array(np.log(target + penalty))
     p = [k for k in accumulate(p, lambda x, y: max(x + y, 0))]
-    end = 0
-    L = len(p)
+    frag_score = 0
     frags = []
 
-    for i, score in enumerate(reversed(p)):
-        if score > 0 and score > end:
-            end_pos, end = i, score
-        if score == 0 and end > 0:
-            frags.append((L - i, L - end_pos, end))
-            end = 0
-    if end > 0:
-        frags.append((0, L - end_pos, end))
+    for i, score in zip(reversed(id_), reversed(p)):
+        if score > 0 and score > frag_score:
+            end_pos, frag_score = i, score
+        if score == 0 and frag_score > 0:
+            if i != end_pos:
+                frags.append((i, end_pos, frag_score))
+            frag_score = 0
+    if frag_score > 0 and i != end_pos:
+        frags.append((i, end_pos, frag_score))
     return pd.DataFrame(frags, columns=['start', 'end', 'score'])
 
 
@@ -53,7 +54,7 @@ def get_rle(data, states, penalty=0.5):
         print(target)
 
         data['target'] = np.sum(data[target], 1)
-        runs = data[['chrom', 'target']].groupby('chrom').apply(get_runs,penalty=penalty).reset_index()
+        runs = data[['chrom', 'target', 'id']].groupby('chrom').apply(get_runs,penalty=penalty).reset_index()
         del data['target']
         if 'level_1' in runs:
             del runs['level_1']
@@ -66,6 +67,21 @@ def get_rle(data, states, penalty=0.5):
     res.score = res.score.astype(float)
     res.start = res.start.astype(int)
     res.end = res.end.astype(int)
+
+    coords = data[['chrom', 'map', 'pos', 'id']]
+    res = res.merge(coords,
+                    left_on=['chrom', 'start'], 
+                    right_on=['chrom', 'id'], 
+                    how='left')
+    res = res.merge(coords,
+                    left_on=['chrom', 'end'], 
+                    right_on=['chrom', 'id'], 
+                    how='left',
+                    suffixes=('', '_end'))
+
+
     res['len'] = res.end - res.start
+    res['map_len'] = res.map_end - res.map
+    res['pos_len'] = res.pos_end - res.pos
     res['nscore'] = res.score / res.len
     return res
