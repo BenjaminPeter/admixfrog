@@ -116,6 +116,43 @@ Hence we have an excess of homozygous emissions. The probability for $G=0$ is ob
 \begin{equation}
 P(G=1 | A,D) = \frac{2AD(1-F)}{(A+D)(A+D+1)}
 \end{equation} 
+
+\paragraph{Drift to reference / subdivided source}
+We further assume that we do not have a sample from the source directly, but instead from a population loosely related to it. Let $f$ now denote the frequency of that subdivided population, and $\tau$ a measure of the population structure. 
+
+$$P(f| A, D, \tau) \sim Beta (A\tau, B\tau)$$
+
+\begin{align}
+P(G=2 | A,D) &= \int P(G|f) P(f | A, D, \tau) df\nonumber\\
+&= \int \left[ F f + (1-F) f^2\right] P(f | A, D, \tau) df\nonumber\\
+&= F E[f|A, D] + (1-F)  E[f^2|A, D, \tau]\nonumber\\
+&= F \frac{D}{A+D} + (1-F)  \frac{D (D\tau+1)}{(A+D)(A\tau+D\tau+1)}\nonumber\\
+&= \frac{\tau D^2 + D + ADF\tau}{(A+D)(\tau A+\tau D+1)}
+\end{align}
+Hence we have an excess of homozygous emissions. The probability for $G=0$ is obtained by switching $A$ and $D$, and for $G=1$ by subtracting them from one:
+\begin{equation}
+P(G=1 | A,D) = \frac{2AD(1-F)\tau}{(A+D)(\tau A+\tau D+1)}
+\end{equation} 
+
+In the limit as $\tau=1$, we have the same as without subdivision. In the 
+other limit as $\tau=0$, we get
+\begin{equation}
+P(G=2|A, D, \tau) = D / (A+D)
+\end{equation}
+
+\paragraph{Drift to reference / subdivided source / prior}
+We further assume that there is a uniform prior allele frequency
+
+$$P(f| A, D, \tau) \sim Beta (A\tau + \eta, B\tau + \eta)$$
+
+\begin{align}
+P(G=2 | A,D, \tau, \eta) &= \int P(G|f) P(f | A, D, \tau, \eta) df\nonumber\\
+&= \int \left[ F f + (1-F) f^2\right] P(f | A, D, \tau, \eta) df\nonumber\\
+&= F E[f|A, D, \eta] + (1-F)  E[f^2|A, D, \tau, \eta]\nonumber\\
+&= F \frac{D + \eta}{A+D + 2\eta} + (1-F)  \frac{(D+\eta) (D\tau+1 + \eta)}{(A+D + 2\eta)(A\tau+D\tau+1+2\eta)}\nonumber
+\end{align}
+Thus in contrast to other parameters, $\eta$ does not cancel out for a single sample, which means that 
+
 \subsubsection{Heterozygous States}
 For a heterozygous state, we know the allele frequencies in the two source pops, and we know they contribute one haplotype each.
 \begin{align}

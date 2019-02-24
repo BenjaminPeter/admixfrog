@@ -40,18 +40,11 @@ def add_bam_parse_group(parser):
 def add_rle_parse_group(parser):
     g = parser.add_argument_group("bam parsing")
     g.add_argument(
-        "--rle-cutoff",
+        "--run-penalty",
         type=float,
-        default=0.9,
-        help="""cutoff for being called
-        in a run""",
-    )
-    g.add_argument(
-        "--rle-maxgap",
-        type=float,
-        default=3,
-        help="""max number of bins not
-        in run allowed""",
+        default=0.5,
+        help="""penalty for runs. Lower value means runs are called more
+        stringently (default 0.5)"""
     )
 
 
@@ -101,7 +94,7 @@ def do_rle():
     states = list(data.columns)[8:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
 
-    rle =get_rle(data, homo, args.rle_cutoff, args.rle_maxgap)
+    rle =get_rle(data, homo, args.run_penalty)
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
 

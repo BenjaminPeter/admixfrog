@@ -16,18 +16,18 @@ class _IX:
 
 
 def data2probs(
-    data, ref, state_ids, cont_id, state_priors=(0.5, 0.5), cont_prior=(1e-8, 1e-8),
+    data, ref, state_ids, cont_id, state_priors=(1e-5, 1e-5), cont_prior=(1e-8, 1e-8),
     ancestral=None
 ):
     alpha_ix = ["%s_alt" % s for s in state_ids]
     beta_ix = ["%s_ref" % s for s in state_ids]
     if ancestral is None:
-        pa, pb = cont_prior
+        pa, pb = state_priors
     else:
         #anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
         anc_ref, anc_alt = ancestral + "_ref", "ancestral" + "_alt"
-        pa = data[anc_alt] + cont_prior[0] * (1 - 2 * np.sign(data[anc_alt]))
-        pb = data[anc_ref] + cont_prior[1] * (1 - 2 * np.sign(data[anc_ref]))
+        pa = data[anc_alt] + state_priors[0] * (1 - 2 * np.sign(data[anc_alt]))
+        pb = data[anc_ref] + state_priors[1] * (1 - 2 * np.sign(data[anc_ref]))
     cont = "%s_alt" % cont_id, "%s_ref" % cont_id
     ca, cb = cont_prior
 
@@ -193,8 +193,8 @@ def load_ref(ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_on
         ref["NRE_ref"] = 0
         ref["NRE_alt"] = 1
     if "ZERO" in states:
-        ref["ZERO_ref"] = 1e-8 - prior
-        ref["ZERO_alt"] = 1e-8 - prior
+        ref["ZERO_ref"] = 1e-7 - prior
+        ref["ZERO_alt"] = 1e-7 - prior
     if "SFS" in states:
         ref["SFS_ref"] = prior
         ref["SFS_alt"] = prior

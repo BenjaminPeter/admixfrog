@@ -43,7 +43,7 @@ def get_po_given_c_py(c, e, O, N, P_cont, G, pg, IX):
     return ll
 
 
-def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-200):
+def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
     n_homo_states = P.alpha.shape[1]
     n_het_states = int(n_homo_states * (n_homo_states - 1) / 2)
     n_states = n_homo_states + n_het_states
@@ -87,8 +87,8 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-200):
         GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
 
     snp_emissions = np.sum(GT * gt_emissions[:, np.newaxis, :], 2)
+    #pdb.set_trace()
     scaling = np.max(snp_emissions, 1)[:, np.newaxis]
-    pdb.set_trace()
     snp_emissions /= scaling
     assert np.allclose(np.max(snp_emissions, 1), 1)
     log_scaling = np.sum(np.log(scaling))
@@ -100,8 +100,13 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-200):
     E[IX.HAPBIN, n_homo_states:] = 0
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
-    print("bad bins", sum(bad_bins))
+    if sum(bad_bins) > 0:
+        print("bad bins", sum(bad_bins))
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
+
+    e_scaling = np.max(E, 1)[:, np.newaxis]
+    E /= e_scaling
+    log_scaling += np.sum(np.log(e_scaling))
 
     return log_scaling
 
@@ -136,13 +141,15 @@ def bw_bb(
         row0 += r
 
     e_scaling = update_emissions(E, P, IX, cont, F, error)
-    print("e-scaling:", e_scaling)
+    #print("e-scaling:", e_scaling)
 
     for it in range(max_iter):
 
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
-        ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]), ll + e_scaling
+        ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]) + e_scaling, ll
         assert np.allclose(np.sum(Z, 1), 1)
+        if np.isnan(ll):
+            pdb.set_trace()
         assert not np.isnan(ll)
         tpl = (
             IX.n_reads / 1000,
