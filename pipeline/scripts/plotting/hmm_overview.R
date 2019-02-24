@@ -1,4 +1,5 @@
 source("scripts/plotting/lib.R")
+save.image(sprintf(".%s.rdebug", basename(snakemake@output$mapplot)))
 
 
 

@@ -18,7 +18,7 @@ b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>%
     facet_grid(rg ~deam) +
     coord_flip() + 
     theme(panel.spacing = unit(0, "lines")) +
-    theme_grey(12) + 
+    theme_classic(7) + 
     xlab("length bin") + ylab("# reads") +
     ggtitle(snakemake@wildcards$sample)
 

@@ -80,12 +80,28 @@ rule plot_hmm_sample_overview:
         script_ = "scripts/plotting/hmm_overview.R"
     params:
         pmax = 0.7, #state with avg posterior larger than this is omitted
-        pmin = 1e-3 #states with avg posterior lower than this are omitted
+        pmin = 1e-4 #states with avg posterior lower than this are omitted
     output:
         posplot = "figures/{states}/{sample}_overview_pos_{bin_size, \d+}_{snpset}.png",
         mapplot = "figures/{states}/{sample}_overview_map_{bin_size, \d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_overview.R"
+
+rule plot_hmm_sample_runs:
+    input:
+        rle = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        script_ = "scripts/plotting/hmm_runs.R"
+    params:
+        pmax = 0.7, #state with avg posterior larger than this is omitted
+        pmin = 1e-4, #states with avg posterior lower than this are omitted
+	lmin = 0.1,
+	lmax = 1,
+	maxgap = .1,
+    output:
+        #posplot = "figures/{states}/{sample}_overview_pos_{bin_size, \d+}_{snpset}.png",
+        mapplot = "figures/{states}/{sample}_runs_map_{bin_size, \d+}_{snpset}.png",
+    script:
+        "scripts/plotting/hmm_runs.R"
 
 rule plot_hmm_sample_multitrack:
     input:
@@ -110,6 +126,13 @@ rule plot_hmm_sample_cont:
 
 def _panel_bin(wc):
     l = expand("admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        bin_size=["{bin_size}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel])
+    return l
+def _panel_rle(wc):
+    l = expand("admixfrog/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         bin_size=["{bin_size}"],
         states=["{states}"],
         snpset=["{snpset}"],
@@ -141,13 +164,13 @@ rule plot_hmm_panel_region:
 
 rule plot_hmm_panel_pw:
     input:
-        bins = _panel_bin,
+        rle = _panel_rle,
         script_ = "scripts/plotting/hmm_panel_pw.R"
     params:
-        lengths= [0, 500, 1000, 1500] # in kb
+        lengths= [.33, .66, 1, 1.33, 1.66, 2] # in cM
     output:
-        pwplot="figures/{states}/{TRACK}/C{cutoff}/{panel}_pwall_{bin_size,\d+}_{snpset}.png",
-        trackplot="figures/{states}/{TRACK}/C{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
+        pwplot="figures/{states}/{type}_{target}/{panel}_pwall_{bin_size,\d+}_{snpset}.png",
+        trackplot="figures/{states}/{type}_{target}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_panel_pw.R"
 
@@ -165,17 +188,17 @@ rule plot_hmm_panel_rle:
         "scripts/plotting/hmm_rle.R"
 
 """CONTROLLERS"""
-def _panel_all_cont(wc):
+def _panel_all_by_obs(wc):
     s1= expand("figures/{{states}}/{sample}_cont_{{bin_size,\d+}}_{{snpset}}.png",
         sample = config['panels'][wc.panel])
-    s2= expand("figures/{{states}}/{sample}_overview_{coords}_{{bin_size, \d+}}_{{snpset}}.png",
-	coords=['map', 'pos'],
+    s2= expand("figures/{{states}}/{sample}_{coords}_{{bin_size, \d+}}_{{snpset}}.png",
+	coords=['overview_map', 'overview_pos', 'runs_map'],
         sample = config['panels'][wc.panel])
     return s1 + s2
 rule plot_hmm_panel_all:
     input:
         marg = "figures/{states}/{panel}_marginal_{bin_size,\d+}_{snpset}.png",
-        bysample = _panel_all_cont,
+        bysample = _panel_all_by_obs,
     output:
         touch("controller/{states}/{panel}_{bin_size,\d+}_{snpset}.figs")
 

@@ -1,26 +1,22 @@
-source("scripts/comparison_plot.R")
+source("scripts/plotting/lib.R")
 library(corrplot)
 library(viridis)
+save.image(".rdebug4")
 
 bin_size = as.integer(snakemake@wildcards$bin_size)
 panel = snakemake@wildcards$panel
-infile = snakemake@input$bin
+infiles = snakemake@input$rle
 snpfile = snakemake@input$snp
 names = snakemake@config$panels[[panel]]
 cutoff = as.numeric(snakemake@wildcards$cutoff)
-l_cutoffs = snakemake@params$lengths / bin_size * 1000
+state = snakemake@wildcards$target
+type_ = snakemake@wildcards$type
 
 
+data = load_rle_data(infile, names) %>%
+    filter(target==state, type==type_)
 
-TRACK = strsplit(snakemake@wildcards$TRACK, "_")[[1]]
-data = load_data(infile, names) 
-if(cutoff > 0){
-    data$TRACK = rowSums(data[,TRACK]) > cutoff
-}else{
-    data$TRACK = rowSums(data[,TRACK]) <  (-cutoff)
-}
-
-coords <- data %>% select(chrom, pos, map, id)
+coords <- data %>% select(chrom, pos, map)
 mycov = function(...)cov(...) %>% cov2cor %>% replace_na(0)
 
 #save.image(".rdebug")
