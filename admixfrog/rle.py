@@ -23,6 +23,7 @@ def get_runs(targetid, penalty=0.5):
 
 
 def get_rle(data, states, penalty=0.5):
+    coords = data[['chrom', 'map', 'pos', 'id']]
     n_states = len(states)
 
     het_targets = []  # only heterozygous state
@@ -68,7 +69,6 @@ def get_rle(data, states, penalty=0.5):
     res.start = res.start.astype(int)
     res.end = res.end.astype(int)
 
-    coords = data[['chrom', 'map', 'pos', 'id']]
     res = res.merge(coords,
                     left_on=['chrom', 'start'], 
                     right_on=['chrom', 'id'], 

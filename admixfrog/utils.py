@@ -6,8 +6,8 @@ from scipy.stats import binom
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
 Pars = namedtuple(
     "Pars", ("alpha0", "trans_mat", "cont", "e0", "F", "gamma_names", "sex")
-)
-HAPX = (2699520, 155260560)  # start, end of haploid region
+) # for returning from varios functions
+HAPX = (2699520, 155260560)  # start, end of haploid region on X
 
 
 class _IX:

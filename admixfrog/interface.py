@@ -284,6 +284,14 @@ def run():
         ancestral allele is unknown
         """,
     )
+    parser.add_argument(
+        "--n-post-replicates",
+        type=int,
+        default=100,
+        help="""Number of replicates that are sampled from posterior. Useful for
+        parameter estimation and bootstrapping
+        """,
+    )
     add_bam_parse_group(parser)
     add_rle_parse_group(parser)
 
@@ -320,11 +328,13 @@ def run():
 
     out = V.pop("out")
 
-    bins, snps, cont, pars, rle = run_hmm_bb(**vars(args))
+    print("REZ mode2")
+    bins, snps, cont, pars, rle, res = run_hmm_bb(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
     # pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
     # snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
+    res.to_csv("%s.res.xz" % out, float_format="%.6f", index=False, compression="xz")
     rle.to_csv("%s.rle.xz" % out, float_format="%.6f", index=False, compression="xz")
     bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
     cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")

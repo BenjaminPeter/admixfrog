@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 import pandas as pd
 from collections import  defaultdict, Counter
 from scipy.stats import binom
@@ -10,6 +11,7 @@ from .hmm_updates import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .posterior_geno import post_geno_py, update_F
 from .rle import get_rle
+from .decode import pred_sims
 
 np.set_printoptions(suppress=True, precision=4)
 
@@ -146,7 +148,12 @@ def bw_bb(
     for it in range(max_iter):
 
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
-        ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]) + e_scaling, ll
+        if sex == "m":
+            print("male ll doens't take x into account", end='\t')
+            ll, old_ll = np.sum([np.sum(np.log(n_i)) for _, n_i in
+                                 zip(range(22), n)]) + e_scaling, ll
+        else:
+            ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]) + e_scaling, ll
         assert np.allclose(np.sum(Z, 1), 1)
         if np.isnan(ll):
             pdb.set_trace()
@@ -201,7 +208,7 @@ def bw_bb(
             print("e-scaling:", e_scaling)
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
-    return Z, pg, pars, ll, emissions
+    return Z, pg, pars, ll, emissions, (alpha, beta, n)
 
 
 def run_hmm_bb(
@@ -221,6 +228,7 @@ def run_hmm_bb(
     e0=1e-2,
     c0=1e-2,
     run_penalty=0.9,
+    n_posterior_replicates=100,
     **kwargs
 ):
 
@@ -268,9 +276,19 @@ def run_hmm_bb(
 
     print("done loading data")
 
-    Z, G, pars, ll, emissions = bw_bb(P, IX, pars, **kwargs)
+    Z, G, pars, ll, emissions, (alpha, beta, n) = bw_bb(P, IX, pars, **kwargs)
+
+    pickle.dump((alpha, beta, n, emissions, pars), open('dump.pickle', 'wb'))
 
     viterbi_path = viterbi(pars, emissions)
+
+    df_pred = pred_sims(trans=pars.trans_mat,
+                        emissions=emissions,
+                        beta=beta,
+                        alpha0=pars.alpha0,
+                        n=n,
+                        n_homo=len(state_ids),
+                        n_sims = n_posterior_replicates)
 
     # output formating from here
     V = np.array(pars.gamma_names)[np.hstack(viterbi_path)]
@@ -316,4 +334,4 @@ def run_hmm_bb(
 
     df_rle = get_rle(df, state_ids, run_penalty)
 
-    return df, snp_df, df_libs, df_pars, df_rle
+    return df, snp_df, df_libs, df_pars, df_rle, df_pred

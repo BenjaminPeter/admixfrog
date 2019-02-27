@@ -177,3 +177,5 @@ def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f")
                 new_trans_mat[i, i] - 1.0
 
     return new_trans_mat
+
+
