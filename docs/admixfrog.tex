@@ -141,35 +141,36 @@ P(G=2|A, D, \tau) = D / (A+D)
 \end{equation}
 
 \paragraph{Drift to reference / subdivided source / prior}
-We further assume that there is a uniform prior allele frequency
 
-$$P(f| A, D, \tau) \sim Beta (A\tau + \eta, B\tau + \eta)$$
 
 \begin{align}
-P(G=2 | A,D, \tau, \eta) &= \int P(G|f) P(f | A, D, \tau, \eta) df\nonumber\\
-&= \int \left[ F f + (1-F) f^2\right] P(f | A, D, \tau, \eta) df\nonumber\\
-&= F E[f|A, D, \eta] + (1-F)  E[f^2|A, D, \tau, \eta]\nonumber\\
-&= F \frac{D + \eta}{A+D + 2\eta} + (1-F)  \frac{(D+\eta) (D\tau+1 + \eta)}{(A+D + 2\eta)(A\tau+D\tau+1+2\eta)}\nonumber
+P(G=2 | A,D, \tau, N) &= \int P(G|f) P(f | A, D, \tau, N) df\nonumber\\
+&= \int \left[ F f + (1-F) f^2\right] P(f | A, D, \tau, N) df\nonumber\\
+&= F E[f|A, D, N] + (1-F)  E[f^2|A, D, \tau, N]\nonumber\\
+&= K(a\tau,d\tau,N) \left[F \frac{D }{A+D} + (1-F) \frac{(D) (D\tau+1)}{(A+D )(A\tau+D\tau+1)}\right]
 \end{align}
-Thus in contrast to other parameters, $\eta$ does not cancel out for a single sample, which means that 
+Thus the probability will be decreased by a factor that depends on $a\tau, d\tau$ and $N$, but not $F$.
 
 \subsubsection{Heterozygous States}
 For a heterozygous state, we know the allele frequencies in the two source pops, and we know they contribute one haplotype each.
 \begin{align}
 P(G=1 | F, a, b) &= Betabinom( n=1, a F, b F)\nonumber\\
 % &=&\binom{n, k) \frac{\Gamma(k+a)\Gamma(n-k+b)}{\Gamma(n+a+b)}\frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}\\
-&=\frac{\Gamma(1+a F))\Gamma(b F)}{\Gamma(1+F(a+b))}
-\frac{\Gamma(F(a+b))}{\Gamma(F a)\Gamma(F b)}\nonumber\\
+&=\int f P(f| a, b, N, F \tau) df\nonumber\\
+&= E[f| a, b, N, F \tau]\nonumber\\
 &=\frac{F a}{(Fa+Fb)}\nonumber\\
 &=\frac{a}{a+b}.\label{eq:ll:het}
 \end{align}
 Intuitively, this is because if we just sample one allele from a population, that population's allele frequency is the best guess for the state of our sample. The distance increases our uncertainty, but not the mean estimate.
 Thus
 \begin{align*}
-P(G=0) &= \frac{b_1}{a_1+b_1}\frac{b_2}{a_2 + b_2}\\
-P(G=1) &= \frac{a_1 b_2 + a_2 b_1}{ (a_1+b_1)(a_2+b_2)}\\
-P(G=2) &= \frac{a_1}{a_1+b_1}\frac{a_2}{a_2 + b_2}
+P(G=0) &= K_1' K_2'\frac{b_1}{a_1+b_1}\frac{b_2}{a_2 + b_2}\\
+P(G=1) &=  \frac{K_1K_2'a_1b_2 + K_1'K_2a_2b_1}{(a_1+b_1)(a_2+b_2)}\\
+P(G=2) &= K_1 K_2\frac{a_1}{a_1+b_1}\frac{a_2}{a_2 + b_2}
 \end{align*}
+
+
+
 \subsubsection{Haploid States}
 On the sex chromosome, or when inbreeding is present, we further encounter haploid regions. Here, the heterozygous states have emission probability 0, and we just have one allele of the heterozygous case: $F_{ST}$ does not matter.
 \begin{align}
@@ -205,6 +206,18 @@ P(G,Z| O) &= P(G|Z, O)P(Z|O)\nonumber\\
 &= \frac{P(O_i | G) P(G|Z)}{P(O_i | Z)} P(Z|O)
 \end{align}
 as $G_i | Z_i$ is independent of all observations except $O_i$ and Bayes theorem.
+\subsection{Estimating K}
+As for $F$,
+\begin{equation}
+\hat{K} =\operatorname*{argmax}_K \left[ \sum_k\sum_{g=0}^2\sum_{l=1}^L \log P(G_t | Z_l=k, A_{lk}, B_{lk}, F)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta') 
+\right]
+\end{equation}
+\begin{equation}
+\hat{K} =\operatorname*{argmax}_K \left[ \sum_k\sum_{g=0}^2\sum_{l=1}^L \log K(A_{lk}, B_{lk}, n)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta') 
+\right]
+\end{equation}
+
+but we need to optimize over all homo- and heterozygous states containing a particular $K$.
 
 
 
@@ -264,14 +277,22 @@ P(f | a, d) &\propto P(f) P(a, d|f) \nonumber\\
 &\sim Beta(d, a)
 \end{align}
 
-In a finite population, alleles enter a population at a frequency of $2N^{-1}$. Writing
+In a finite population, alleles enter a population at a frequency of $\frac{1}{2N}$, and will become fixed if at frequency $1-\frac{1}{2N}$. Writing
 $$\eta(N) = \frac{1}{2N \sum_{i=1}^{2N-1}1/i}$$
-We find that the SFS is well approximated by 
+We find that the shape of the SFS is well approximated by 
 \begin{align}
 P(f | a, d, N) &\sim Beta(d + \eta, a+1 - \eta)\\
 &\sim Beta(d + \eta, a + \eta)
 \end{align}
-for the unfolded and folded case, respectively.
+for the unfolded and folded case, respectively. As the frequency cannot exceed the limits, we need to truncate this distribution:
+\begin{align}
+E(f | a, d, N) &= \frac{B[\frac{1}{2N}, a+1, d]-B[1-\frac{1}{2N}, a+1, d]}{B[\frac{1}{2N}, a, d]-B[1-\frac{1}{2N}, a, d]}\nonumber\\
+&= \frac{a}{a+d} \frac{\int_\epsilon^{1-\epsilon} t^a(1-t)^{d-1}dt}
+{\int_\epsilon^{1-\epsilon} t^{a-1}(1-t)^{d-1}dt}\nonumber\\
+&= V \frac{a}{a+d}\\
+E(1-f | a, d, N)&= 1-V\frac{a}{a+d} = \left[1 + \frac{a}{d} (1-V)\right] \frac{d}{a+d}\\
+\end{align}
+The term in the squared parentheses is also denoted as $V'$
 		
 \subsection{Track lengths}
 To a first approximation, the length of introgressed fragment is 
