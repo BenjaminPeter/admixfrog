@@ -1,36 +1,35 @@
 import numpy as np
-from scipy.stats import binom
 from scipy.optimize import minimize, minimize_scalar
 import pdb
 from .distributions import gt_homo_dist
+from .read_emissions import p_reads_given_gt
 
 from numba import njit
 
 
-def p_reads_given_gt(P, c, error):
-    """calculates probabilty of anc/derived reads given genotype
+
+def _p_gt_homo(s, P, F, res=None):
+    """Pr(G | Z) for homozygous hidden states
+
+    the basic version of the homozygous genotype emission. Assumes
+    infinite reference population size
     """
-    read_emissions = np.ones((P.O.shape[0], 3))
-    for g in range(3):
-        p = c * P.P_cont + (1 - c) * g / 2
-        p = p * (1 - error) + (1 - p) * error
-        read_emissions[:, g] = binom.pmf(P.O, P.N, p)
-
-    return read_emissions
-
-
-def _p_gt_homo_py(s, P, F):
     n_snps = P.alpha.shape[0]
-    gt = np.ones((n_snps, 3)) + 21
+    gt = np.ones((n_snps, 3)) if res is None else res
     gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, n_snps=n_snps, res=gt)
     assert np.allclose(np.sum(gt, 1), 1)
     return np.minimum(np.maximum(gt, 0), 1)  # rounding error
 
 
 @njit
-def _p_gt_het_py(a1, b1, a2, b2):
+def _p_gt_het(a1, b1, a2, b2, res=None):
+    """Pr(G | Z) for heterozygous hidden states
+
+    the basic version of the heterozygous genotype emission. Assumes
+    infinite reference population size
+    """
     n_snps = len(a1)
-    gt = np.empty((n_snps, 3))
+    gt = np.empty((n_snps, 3)) if res is None else res
     D = (a1 + b1) * (a2 + b2)
 
     gt[:, 0] = b1 * b2 / D
@@ -61,7 +60,7 @@ def post_geno_py(P, cont, F, IX, error):
 
     # P(G | Z, homo)
     for s in range(n_homo):
-        prior_geno = _p_gt_homo_py(s, P, F[s])
+        prior_geno = _p_gt_homo(s, P, F[s])
         prior_geno[IX.HAPSNP, 0] = P.beta[IX.HAPSNP, s] / (
             P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
@@ -70,10 +69,11 @@ def post_geno_py(P, cont, F, IX, error):
             P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
         pg[:, s] = ll_snp * prior_geno
+
     for s1 in range(n_homo):
         for s2 in range(s1 + 1, n_homo):
             s += 1
-            prior_geno = _p_gt_het_py(
+            prior_geno = _p_gt_het(
                 P.alpha[:, s1], P.beta[:, s1], P.alpha[:, s2], P.beta[:, s2]
             )
             pg[:, s] = ll_snp * prior_geno
@@ -91,7 +91,7 @@ def update_F(F, Z, pg, P, IX):
 
         def f(t):
             x = (
-                np.log(_p_gt_homo_py(s, P, t[0]) + 1e-10)  # avoid underflow
+                np.log(_p_gt_homo(s, P, t[0]) + 1e-10)  # avoid underflow
                 * Z[IX.SNP2BIN, s][:, np.newaxis]
                 * pg[:, s, :]
             )
@@ -113,3 +113,40 @@ def update_F(F, Z, pg, P, IX):
         F[s] = OO.x[0]
 
     return delta
+
+
+def geno_emissions(P, IX, F):
+    """P(G | Z) for each SNP
+    build table giving the probabilities of 
+
+    """
+    n_snps = P.alpha.shape[0]
+    n_homo_states = P.alpha.shape[1]
+    n_het_states = int(n_homo_states * (n_homo_states - 1) / 2)
+    n_states = n_homo_states + n_het_states
+
+    GT = np.zeros((n_snps, n_states, 3)) + 300
+    # P(GT | Z)
+    for s in range(n_homo_states):
+        for g in range(3):
+            _p_gt_homo(s=1, P=P, F=F, res=GT[:, s, :])
+
+    s = n_homo_states
+    for s1 in range(n_homo_states):
+        for s2 in range(s1 + 1, n_homo_states):
+            _p_gt_het(P.alpha[:, s1],
+                      P.beta[:, s1],
+                      P.alpha[:, s2],
+                      P.beta[:, s2],
+                      res=GT[:, s])
+            s += 1
+    assert np.allclose(np.sum(GT, 2), 1)
+
+    GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
+    GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
+    for s in range(n_homo_states):
+        a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
+        GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
+        GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
+
+    pass

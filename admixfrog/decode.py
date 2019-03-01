@@ -1,4 +1,4 @@
-from numba import njit, jit
+from numba import njit
 import pandas as pd
 from collections import Counter
 import numpy as np
@@ -95,8 +95,6 @@ def decode_runs_single(seq, n_homo):
     return runs
 
 
-
-
 @njit
 def nb_choice(n, p):
     u = random()
@@ -152,13 +150,20 @@ def pred_sims_single(trans, emissions, beta, alpha0, n, n_homo, n_sims=100, deco
 
 
 def pred_sims(trans, emissions, beta, alpha0, n, n_homo, n_sims=100, decode=True):
-    l = []
+    """simulate runs through the model using posterior parameter.
+
+    uses the algorithm of Nielsen, Skov et al. to generate track-length
+    distribution. Could be extended to also give positions of stuff...
+
+    """
+    output = []
     for i, (e, b, n_) in enumerate(zip(emissions, beta, n)):
         df = pred_sims_single(trans, e, b, alpha0, n_, n_homo, n_sims, decode)
         df['chrom'] = i
-        l.append(df)
-        print("Posterior Simulating chromosome %s"% i)
-    return pd.concat(l)
+        output.append(df)
+        print("Posterior Simulating chromosome %s" % i)
+    return pd.concat(output)
+
 
 def test():
     beta = np.ones((100000, 6))    

@@ -2,14 +2,13 @@ import numpy as np
 import pickle
 import pandas as pd
 from collections import  defaultdict, Counter
-from scipy.stats import binom
 import pdb
-from .utils import bins_from_bed, data2probs, init_pars, Pars, load_data, load_ref
-from .utils import posterior_table
+from .utils import bins_from_bed, data2probs, init_pars, Pars
+from .utils import posterior_table, load_data, load_ref
 from .distributions import gt_homo_dist
-from .hmm_updates import update_contamination
+from .read_emissions import update_contamination, p_reads_given_gt
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-from .posterior_geno import post_geno_py, update_F, p_reads_given_gt
+from .genotype_emissions import post_geno_py, update_F, geno_emissions
 from .rle import get_rle
 from .decode import pred_sims
 
@@ -17,48 +16,22 @@ np.set_printoptions(suppress=True, precision=4)
 
 
 def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
+    """main function to calculate emission probabilities
+
+    """
     n_homo_states = P.alpha.shape[1]
-    n_het_states = int(n_homo_states * (n_homo_states - 1) / 2)
-    n_states = n_homo_states + n_het_states
-    n_obs = P.O.shape[0]
     n_snps = P.alpha.shape[0]
     c = np.array([cont[l] for l in P.lib])
 
+    # first, get P(Reads | G) for each read group
     read_emissions = p_reads_given_gt(P, c, error)
     read_emissions[IX.HAPOBS, 1] = 0.0  # convention is that middle gt is set to zero
-    # P(SNP | GT)
+    # P(SNP | GT) is obtained by summing over all read groups
     snp_emissions = np.ones((n_snps, 3))
     for i, row in enumerate(IX.OBS2SNP):
         snp_emissions[row] *= read_emissions[i]
 
-    GT = np.zeros((n_snps, n_states, 3)) + 300
-    # P(GT | Z)
-    for s in range(n_homo_states):
-        for g in range(3):
-            gt_homo_dist(
-                a=P.alpha[:, s], b=P.beta[:, s], n_snps=n_snps, F=F[s], res=GT[:, s, :]
-            )
-
-    s = n_homo_states
-    fa, fb = (P.alpha).T, (P.beta).T
-    pp = fa / (fa + fb)  # if fa + fb > 0 else .5
-    qq = 1 - pp
-    for s1 in range(n_homo_states):
-        for s2 in range(s1 + 1, n_homo_states):
-            for g in range(3):
-                GT[:, s, 0] = qq[s1] * qq[s2]
-                GT[:, s, 2] = pp[s1] * pp[s2]
-                GT[:, s, 1] = 1 - GT[:, s, 0] - GT[:, s, 2]
-            s += 1
-    assert np.allclose(np.sum(GT, 2), 1)
-
-    GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
-    GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
-    for s in range(n_homo_states):
-        a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
-        GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
-        GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
-
+    GT = geno_emissions(P, IX, F)
     snp_emissions = np.sum(GT * snp_emissions[:, np.newaxis, :], 2)
     scaling = np.max(snp_emissions, 1)[:, np.newaxis]
     snp_emissions /= scaling
@@ -113,7 +86,6 @@ def bw_bb(
         row0 += r
 
     e_scaling = update_emissions(E, P, IX, cont, F, error)
-    #print("e-scaling:", e_scaling)
 
     for it in range(max_iter):
 

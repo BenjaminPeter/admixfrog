@@ -11,6 +11,7 @@ from libc.stdio cimport printf
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import betaln
 from .distributions cimport *
+from scipy.stats import binom
 
 
 
@@ -73,9 +74,9 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
                                  P_cont=P.P_cont,
                                  Z=Z,
                                  pg=pg,
-                                  rg2obs = IX.RG2OBS[lib],
-                                  obs2snp = IX.OBS2SNP,
-                                  obs2bin = IX.OBS2BIN)
+                                 rg2obs = IX.RG2OBS[lib],
+                                 obs2snp = IX.OBS2SNP,
+                                 obs2bin = IX.OBS2BIN)
             return -prob
 
 
@@ -93,3 +94,13 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
 
     return delta
 
+def p_reads_given_gt(P, c, error):
+    """calculates probabilty of anc/derived reads given genotype
+    """
+    read_emissions = np.ones((P.O.shape[0], 3))
+    for g in range(3):
+        p = c * P.P_cont + (1 - c) * g / 2
+        p = p * (1 - error) + (1 - p) * error
+        read_emissions[:, g] = binom.pmf(P.O, P.N, p)
+
+    return read_emissions
