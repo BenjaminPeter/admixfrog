@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.stats import binom
 from scipy.optimize import minimize, minimize_scalar
-from math import exp, log
 import pdb
 from .distributions import gt_homo_dist
 
@@ -9,6 +8,8 @@ from numba import njit
 
 
 def p_reads_given_gt(P, c, error):
+    """calculates probabilty of anc/derived reads given genotype
+    """
     read_emissions = np.ones((P.O.shape[0], 3))
     for g in range(3):
         p = c * P.P_cont + (1 - c) * g / 2

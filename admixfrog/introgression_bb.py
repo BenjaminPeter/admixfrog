@@ -9,40 +9,11 @@ from .utils import posterior_table
 from .distributions import gt_homo_dist
 from .hmm_updates import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-from .posterior_geno import post_geno_py, update_F
+from .posterior_geno import post_geno_py, update_F, p_reads_given_gt
 from .rle import get_rle
 from .decode import pred_sims
 
 np.set_printoptions(suppress=True, precision=4)
-
-
-def p_reads_given_gt(P, n_obs, c, error):
-    read_emissions = np.ones((n_obs, 3))
-    for g in range(3):
-        p = c * P.P_cont + (1 - c) * g / 2
-        p = p * (1 - error) + (1 - p) * error
-        read_emissions[:, g] = binom.pmf(P.O, P.N, p)
-
-    return read_emissions
-
-
-def get_po_given_c_py(c, e, O, N, P_cont, G, pg, IX):
-
-    ll = 0.0
-    n_states = pg.shape[1]
-    for i in range(IX.n_obs):
-        chrom, bin_ = IX.OBS2BIN[i]
-        snp = IX.OBS2SNP[i]
-        for s in range(n_states):
-            for g in range(3):
-                p = c * P_cont[i] + (1.0 - c) * g / 2.0
-                p = p * (1 - e) + (1 - p) * e
-                ll += (
-                    G[chrom][bin_, s]
-                    * pg[snp, s, g]
-                    * (O[i] * log(p) + (N[i] - O[i]) * log(1 - p))
-                )
-    return ll
 
 
 def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
@@ -53,12 +24,12 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
     n_snps = P.alpha.shape[0]
     c = np.array([cont[l] for l in P.lib])
 
-    read_emissions = p_reads_given_gt(P, n_obs, c, error)
+    read_emissions = p_reads_given_gt(P, c, error)
     read_emissions[IX.HAPOBS, 1] = 0.0  # convention is that middle gt is set to zero
     # P(SNP | GT)
-    gt_emissions = np.ones((n_snps, 3))
+    snp_emissions = np.ones((n_snps, 3))
     for i, row in enumerate(IX.OBS2SNP):
-        gt_emissions[row] *= read_emissions[i]
+        snp_emissions[row] *= read_emissions[i]
 
     GT = np.zeros((n_snps, n_states, 3)) + 300
     # P(GT | Z)
@@ -88,8 +59,7 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
         GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
         GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
 
-    snp_emissions = np.sum(GT * gt_emissions[:, np.newaxis, :], 2)
-    #pdb.set_trace()
+    snp_emissions = np.sum(GT * snp_emissions[:, np.newaxis, :], 2)
     scaling = np.max(snp_emissions, 1)[:, np.newaxis]
     snp_emissions /= scaling
     assert np.allclose(np.max(snp_emissions, 1), 1)
@@ -228,7 +198,7 @@ def run_hmm_bb(
     e0=1e-2,
     c0=1e-2,
     run_penalty=0.9,
-    n_posterior_replicates=100,
+    n_post_replicates=100,
     **kwargs
 ):
 
@@ -288,7 +258,7 @@ def run_hmm_bb(
                         alpha0=pars.alpha0,
                         n=n,
                         n_homo=len(state_ids),
-                        n_sims = n_posterior_replicates)
+                        n_sims = n_post_replicates)
 
     # output formating from here
     V = np.array(pars.gamma_names)[np.hstack(viterbi_path)]

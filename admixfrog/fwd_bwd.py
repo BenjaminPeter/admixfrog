@@ -115,7 +115,7 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
     n_steps, n_states = emissions.shape
 
     ll = np.ones_like(emissions)
-    backtrack = np.zeros_like(emissions, int)
+    backtrack = np.zeros_like(emissions, np.int8)
 
     log_e = np.log(emissions)
     log_t = np.log(trans_mat)
@@ -128,7 +128,7 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
         ll[i] = np.max(aux_mat, 1)
         backtrack[i] = np.argmax(aux_mat, 1)
 
-    path = np.empty(n_steps, int)
+    path = np.empty(n_steps, np.int8)
     cursor = np.argmax(ll[-1])
     for i in range(n_steps - 1, -1, -1):
         cursor = backtrack[i, cursor]
@@ -138,11 +138,11 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
 
 
 def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f"):
+    new_trans_mat = np.zeros_like(old_trans_mat)
+    n_states = old_trans_mat.shape[0]
     if sex == "m" and len(alpha) > 22:
         """ this is a hack, I just remove last chromosome and no checks are done"""
         print("update hack")
-        new_trans_mat = np.zeros_like(old_trans_mat)
-        n_states = old_trans_mat.shape[0]
         # update transition
         for i in range(n_states):
             for j in range(n_states):
@@ -155,8 +155,6 @@ def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f")
         new_trans_mat /= gamma_sum[:, np.newaxis]
         assert np.allclose(np.sum(new_trans_mat, 1), 1)
     else:
-        new_trans_mat = np.zeros_like(old_trans_mat)
-        n_states = old_trans_mat.shape[0]
         # update transition
         for i in range(n_states):
             for j in range(n_states):
@@ -177,5 +175,3 @@ def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f")
                 new_trans_mat[i, i] - 1.0
 
     return new_trans_mat
-
-

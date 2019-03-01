@@ -52,8 +52,8 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
     update emissions by maximizing contamination parameter
 
     cont: dict of contamination rates (by library)
-    gamma : Pr(Z | O)
-    postg: Pr(G | Z, O)
+    Z : Pr(Z | O)
+    pg: Pr(G | Z, O)
 
 
 
