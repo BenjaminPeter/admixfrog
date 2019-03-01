@@ -1,11 +1,11 @@
 colors:
-    AFR: "#dedede"
+    AFR: "#ffffff"
     OCE: "#ffdede"
     EAS: "#fafccf"
     EUR: "#eaffe5"
     UST: "#ffcf87"
     VIN: "#13007c"
     CHA: "#72009b"
-    ALT: "#004a59"
+    ALT: "#00af3d"
     DEN: "#F98400"
     ZERO: "#111111"

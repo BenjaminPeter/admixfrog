@@ -1,4 +1,4 @@
-source("~/programs/admixfrog/plotting/comparison_plot.R")
+source("scripts/plotting/lib.R")
 library(corrplot)
 library(viridis)
 

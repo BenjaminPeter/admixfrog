@@ -1,26 +1,49 @@
-source("~/programs/admixfrog/plotting/comparison_plot.R")
+suppressPackageStartupMessages({
+#source("~/programs/admixfrog/plotting/comparison_plot.R")
+library(tidyverse)
+source("scripts/plotting/lib.R")
+})
 
 
-save(".rdebug")
-bin_size = as.integer(snakemake@wildcards$bin_size)
-infile = snakemake@input$bin
+rle_files = snakemake@input$rle
 panel = snakemake@wildcards$panel
 names = snakemake@config$panels[[panel]]
-cutoff = as.numeric(snakemake@wildcards$cutoff)
 n_samples = length(names)
+target_ = snakemake@wildcards$target
 
-TRACK = strsplit(snakemake@wildcards$TRACK, "_")[[1]]
+trunc = as.numeric(snakemake@wildcards$trunc)
+#trunc = snakemake@params$trunc
+xmax = snakemake@params$xmax
+gtime = snakemake@params$generation_time
+type_ = snakemake@params$type
+ages = read_table2(snakemake@input$ages, 
+		   col_names=c('sample', 'age'))
 
-data = load_data(infile, names)
-data$TRACK = rowSums(data[,TRACK]) > cutoff
 
-R = rle_fit_pars(data)
-P = rle_fit_plot(data, R) + ggtitle(snakemake@output$rleplot)
-P + facet_wrap(~sample, scale="free", strip.position="left")
-ggsave(snakemake@output$rleplot, width=20, height=10)
+data = load_rle_data(rle_files, names) %>%
+	filter(target==target_, type==type_)
 
-P3= P + scale_y_log10()
+
+SCALING = 100 * gtime #* 2
+R = rle_fit_pars(data) %>%
+	left_join(ages) %>%
+	mutate(age=replace_na(age, 0)) %>%
+	mutate(sage=age / SCALING) %>%
+	mutate(semean = emean + age / SCALING, 
+	       slmean = lmean + age / SCALING) %>%
+        arrange(semean) %>% 
+        mutate(sample=factor(sample, levels=unique(sample)))
+write_csv(R, snakemake@output$fit)
+save.image("rdebug7")
+
+P2 =  plot_m_gamma(R, gtime) + ggtitle(snakemake@output$rleplot)
+ggsave(snakemake@output$gammaplot, width=10, height=1 + (n_samples)  * .8, limitsize=F)
+
+data = data %>% mutate(sample=factor(sample, levels=levels(R$sample)))
+P = rle_fit_plot(data, R, trunc, xmax) + ggtitle(snakemake@output$rleplot)
 ggsave(snakemake@output$rlelogplot, width=20, height=10)
 
-P2 =  plot_m_gamma(R, bin_size, 29) + ggtitle(snakemake@output$rleplot)
-ggsave(snakemake@output$gammaplot, width=10, height=1 + (n_samples)  * .8, limitsize=F)
+P3= P + scale_y_continuous(name="") + ggtitle(snakemake@output$rleplot)
+ggsave(snakemake@output$rleplot, width=20, height=10)
+
+

@@ -1,5 +1,8 @@
+suppressPackageStartupMessages({
 library(tidyverse)
+library(VGAM)
 source("scripts/plotting/meancol.R")
+})
 get_track <- function(bin_data, TRACK, p_min, p_max){
     if(!is.null(TRACK)){
         TRACK = strsplit(TRACK, "_")[[1]]
@@ -34,16 +37,13 @@ read_binout <- function(fname){
 }
 
 read_rle <- function(fname){
-    read_csv(fname, col_types=cols(chrom=col_factor())) %>%
+    read_csv(fname, col_types=cols(chrom=readr::col_factor())) %>%
         mutate(pos = as.integer(pos), 
                chrom = sort_chroms(chrom),
                pos_end = as.integer(pos_end),
-               n_snps = as.integer(n_snps),
-               gap = as.integer(gap),
                len = as.integer(len),
                type=as.factor(type),
-               target=as.factor(target),
-               block = as.integer(block)) 
+               target=as.factor(target))
 }
 
 make_chrom_limits <- function(){
@@ -64,8 +64,20 @@ bg_chrom <- function(ref=NULL, map="AA_Map"){
 
 }
 
+read_run <- function(rfile){
+    read_csv(rfile, col_types='ddddd') %>%
+	    group_by(state, len) %>%
+	    summarize(n=sum(n))
+}
+
+load_runs_data <- function(files, name){
+    a <- lapply(files, read_run)
+    names(a) <- name
+    a <- bind_rows(a, .id="sample")
+}
+
 load_rle_data <- function(rlefiles, name){
-    a <- lapply(infiles, read_rle)
+    a <- lapply(rlefiles, read_rle)
     names(a) <- name
     a <- bind_rows(a, .id="sample")
 }
@@ -115,18 +127,140 @@ bin_colplot_pos <- function(d2){
         col_scale() + THEME
 }
 
-rle_plot_map <- function(data, minlen=0.1, maxlen=1, bin_size=1){
+rle_plot_map <- function(data, minlen=0.1, maxlen=1){
     data %>%
-	mutate(len = len * bin_size) %>%
+	filter(map_len > minlen) %>%
 	ggplot() +
 	bg_chrom(data) + 
 	geom_tile(aes(x =(map +map_end)/ 2, width = map_end - map, 
-		   y=target, height=1, fill=pmin(len,maxlen))) + 
+		   y=0.5, height=1, fill=target, alpha=pmin(map_len,maxlen))) + 
 	facet_wrap(~chrom, ncol=1, strip='left') + 
 	THEME + 
-	scale_fill_distiller(type='seq',limits=c(minlen, maxlen), na.value="#ffffff", palette='OrRd', direction=1, name='Length(cM)') + 
-	#scale_fill_viridis_c(limits=c(minlen, maxlen), na.value="#ffffff", option='A', direction=-1, name='Length(cM)') + 
+	col_scale() +
+	scale_alpha_continuous(range=c(0.3,1), limits=c(minlen, maxlen), name='Length(cM)') + 
 	scale_x_continuous(expand=c(0,0), name='Position (cM)') + 
 	scale_y_discrete(expand=c(0,0), name='state')
 }
 
+
+fit_lomax=function(l, trunc=0.01){
+    try({
+    o = tlomax_opt2(l[l>trunc], trunc)
+    res = optim(c(4, 4), o, method="L-BFGS-B", lower=c(1e-5, 1))
+    pars = res$par
+    return(data.frame(scale=pars[1], shape=pars[2], ll_lomax=res$value))
+    })
+    return(data.frame(scale=NA, shape=NA, ll_lomax=NA))
+}
+
+fit_exp=function(l, trunc=4){
+    try({
+    o = texp_opt(l, trunc)
+    res = optim(c(-1), o, method="L-BFGS-B")
+    par =exp(res$par)
+    return(data.frame(rate=par, ll_exp = res$value))
+    })
+    return(data.frame(rate=NA, ll_exp=NA))
+}
+#' lomax copy stufff 
+dtlomax <- function(x, scale, shape, trunc, log=T){
+    if(log){
+        k <- VGAM::dlomax(x, scale=scale, shape=shape, log=T) - 
+        VGAM::plomax(trunc, scale=scale, shape=shape, lower=F, log=T)
+        k[x<trunc] <- -Inf
+        return(k)
+    } else {
+        print("lomax normal")
+        k <- VGAM::dlomax(x, scale=scale, shape=shape, log=F) / 
+        VGAM::plomax(trunc, scale=scale, shape=shape, lower=F, log=F)
+        k[x<trunc] <- NA#0
+        return(k)
+    }
+}
+
+texp_opt <- function(x, trunc=3){
+    f <- function(par){
+        -sum(dtexp(x, exp(par[1]), trunc=trunc))
+    }
+    return(f)
+}
+dtexp <- function(x, rate=1, trunc=0, log=T){
+    x = x[x>=trunc]
+    if(log){
+	dexp(x, rate, log=T) - pexp(trunc, rate, lower=F, log=T)
+    } else {
+	dexp(x, rate, log=F) / pexp(trunc, rate, lower=F, log=F)
+    }
+}
+tlomax_opt2 <- function(x, trunc=0){
+    f <- function(par){
+        x = x[x>=trunc]
+        a=-sum(dtlomax(x, scale=par[1], shape=par[2], trunc=trunc))
+	return(a)
+    }
+}
+
+rle_fit_pars <- function(data, trunc=0.05){
+    df <- data %>% group_by(sample) 
+
+    x1 = df %>% do( p2=fit_exp(.$map_len, trunc=trunc)) %>% 
+	    unnest(p2) %>%
+	    mutate(emean=rate)
+    x2 = df %>% do( p2=fit_lomax(.$map_len, trunc=trunc)) %>% 
+	    unnest(p2) %>%
+	    mutate(lmean=(shape-1)/scale)
+
+    return(inner_join(x1, x2) %>% mutate(delta_ll = ll_lomax - ll_exp))
+}
+
+rle_fit_plot <- function(data, R, trunc=0.049, xmax=6){
+    data2 = data %>% filter(map_len > trunc)
+    P = data2 %>%
+        ggplot(aes(x=map_len, group=sample)) +
+        geom_point(aes(y=1-..y..), stat='ecdf', pad=F) +
+        scale_y_log10(expand=expand_scale(0,0), name='Quantile') +
+        scale_x_continuous(expand=expand_scale(0,0), name = "Length (cM)") +
+        coord_cartesian(xlim=c(trunc, xmax), ylim=c(1e-3, 1)) +
+        facet_wrap(~sample, scale='free') 
+
+    s = seq(trunc, max(data$map_len), .01)
+    lpred = R %>% rowwise %>% 
+        do(l = data.frame(lengths=s, 
+			  lomax=plomax(s, shape=.$shape, scale=.$scale, lower=F)/
+                  plomax(trunc, shape=.$shape, scale=.$scale, lower=F)))
+    epred = R %>% rowwise %>% 
+        do(e = data.frame(lengths=s, 
+			  exp=exp(-(s - trunc) * .$rate)))
+
+    pred = inner_join(unnest(bind_cols(R, lpred)), unnest(bind_cols(R, epred))) %>%
+        select(lengths, sample, lomax, exp) %>%
+        gather(k, v, lomax, exp)
+
+     
+    P + geom_path(data=pred, mapping=aes(color=k, x=lengths, y=v, group=sample))
+}
+plot_m_gamma <- function(R, generation_time){
+    SCALING = generation_time * 100 #* 2
+    tmax = pmin(150000 / SCALING, max(R$semean, R$slmean, na.rm=T))
+    t <- seq(0, tmax, 0.01)
+    n_samples = length(unique(R$sample))
+
+
+    gpred = R %>% 
+        rowwise %>% 
+        do(l = data.frame(time=t+.$sage, 
+			  mig=dgamma(t, shape=.$shape, scale=1/.$scale))) %>%
+        bind_cols(R) %>% 
+        filter(!is.na(lmean + emean), slmean < tmax * 1.1) %>%
+        unnest(l) 
+
+    M = gpred %>%
+        ggplot( aes(x=time*SCALING, y=mig)) + 
+        geom_line(lty=2) + 
+        #coord_cartesian(ylim=c(0,20), xlim=c(0,1000)) + xlab("time (gen)") + 
+        scale_x_continuous(name="time (y)", expand=expand_scale(0,0)) + 
+        coord_cartesian(xlim=c(0, tmax * SCALING)) + 
+        geom_vline(aes(xintercept=semean * SCALING), data=gpred) + 
+        facet_wrap(~sample, scale="free_y", ncol=1, strip.position="left") +
+        geom_rect(aes(xmin=0, ymin=0, ymax=Inf, xmax=age), fill='white')
+}
