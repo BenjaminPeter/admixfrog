@@ -7,7 +7,6 @@ from numba import njit
 from scipy.special import betainc
 
 
-
 def _p_gt_homo(s, P, F, res=None):
     """Pr(G | Z) for homozygous hidden states
 
@@ -49,11 +48,19 @@ def e_tbeta(N, alpha, beta, M=1, tau=1.):
 
     UNTESTED / UNUSED
     """
-    return (betainc(alpha*tau + M, beta*tau, 1 - (1 / 2 / N)) -
-            betainc(alpha*tau + M, beta*tau, (1 / 2 / N))) / \
-        (betainc(alpha*tau, beta*tau, 1 - (1 / 2 / N)) -
-         betainc(alpha*tau, beta*tau, (1 / 2 / N))) * \
-        alpha*tau / (alpha*tau + beta*tau)
+    return (
+        (
+            betainc(alpha * tau + M, beta * tau, 1 - (1 / 2 / N))
+            - betainc(alpha * tau + M, beta * tau, (1 / 2 / N))
+        )
+        / (
+            betainc(alpha * tau, beta * tau, 1 - (1 / 2 / N))
+            - betainc(alpha * tau, beta * tau, (1 / 2 / N))
+        )
+        * alpha
+        * tau
+        / (alpha * tau + beta * tau)
+    )
 
 
 def _p_gt_het_finite(a1, b1, a2, b2, N1, N2, tau1=1, tau2=1, res=None):
@@ -92,7 +99,7 @@ def update_post_geno(PG, SNP, Z, IX):
     """
     PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
-    PG[np.isnan(PG)] = 0. # 1.0 / 3. / Z.shape[1]
+    PG[np.isnan(PG)] = 0.  # 1.0 / 3. / Z.shape[1]
     PG = np.minimum(np.maximum(PG, 0), 1)  # rounding error
     try:
         assert np.all(PG >= 0)
@@ -101,7 +108,7 @@ def update_post_geno(PG, SNP, Z, IX):
     except AssertionError:
         pdb.set_trace()
 
-    return  PG
+    return PG
 
 
 def update_F(F, Z, PG, P, IX):
@@ -110,10 +117,7 @@ def update_F(F, Z, PG, P, IX):
     for s in range(n_states):
 
         def f(t):
-            x = (
-                np.log(_p_gt_homo(s, P, t[0]) + 1e-10)  # avoid underflow
-                * PG[:, s, :]
-            )
+            x = np.log(_p_gt_homo(s, P, t[0]) + 1e-10) * PG[:, s, :]  # avoid underflow
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -166,7 +170,7 @@ def update_geno_emissions(GT, P, IX, F, n_states):
     """
     n_snps, n_homo_states = P.alpha.shape
 
-    #GT = np.zeros((n_snps, n_states, 3)) + 300
+    # GT = np.zeros((n_snps, n_states, 3)) + 300
     # P(G | Z)
     for s in range(n_homo_states):
         for g in range(3):
@@ -175,19 +179,20 @@ def update_geno_emissions(GT, P, IX, F, n_states):
     s = n_homo_states
     for s1 in range(n_homo_states):
         for s2 in range(s1 + 1, n_homo_states):
-            _p_gt_het(P.alpha[:, s1],
-                      P.beta[:, s1],
-                      P.alpha[:, s2],
-                      P.beta[:, s2],
-                      res=GT[:, s])
+            _p_gt_het(
+                P.alpha[:, s1],
+                P.beta[:, s1],
+                P.alpha[:, s2],
+                P.beta[:, s2],
+                res=GT[:, s],
+            )
             s += 1
     assert np.allclose(np.sum(GT, 2), 1)
 
-    GT[IX.HAPSNP, :, 1] = 0.0            # no het emissions
+    GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
     GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
     for s in range(n_homo_states):
         a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
         GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
         GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
     return GT
-

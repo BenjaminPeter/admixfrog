@@ -3,7 +3,7 @@ from scipy.optimize import minimize, minimize_scalar
 from numba import njit
 from math import lgamma, log, exp
 
-#@njit(fastmath=True)
+# @njit(fastmath=True)
 def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
     ll = np.zeros(1)
     BIN = obs2bin[rg2obs]
@@ -15,6 +15,7 @@ def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
         ll += np.sum(Z[BIN] * pg[SNP, :, g] * p[:, np.newaxis])
     return ll
 
+
 @njit(fastmath=True)
 def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
     n_obs = len(rg2obs)
@@ -23,8 +24,8 @@ def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
     for i in range(n_obs):
         obs = rg2obs[i]
         bin_ = obs2bin[obs]
-        #BIN = obs2bin[rg2obs[i]]
-        #SNP = obs2snp[rg2obs[i]]
+        # BIN = obs2bin[rg2obs[i]]
+        # SNP = obs2snp[rg2obs[i]]
         snp = obs2snp[obs]
         for g in range(3):
             p = c * P_cont[obs] + (1. - c) * g / 2.
@@ -33,6 +34,7 @@ def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
             for s in range(n_states):
                 ll += Z[bin_, s] * pg[snp, s, g] * p
     return ll
+
 
 def update_contamination(cont, error, P, Z, pg, IX, libs):
     """
@@ -53,39 +55,43 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
         #  assert all(lib == P.lib[f_])
 
         def get_po_given_c_all(cc):
-            prob = get_po_given_c2(c=cc,
-                                 e=error,
-                                 O=P.O,
-                                 N=P.N,
-                                 P_cont=P.P_cont,
-                                 Z=Z,
-                                 pg=pg,
-                                 rg2obs = IX.RG2OBS[lib],
-                                 obs2snp = IX.OBS2SNP,
-                                 obs2bin = IX.OBS2BIN)
+            prob = get_po_given_c2(
+                c=cc,
+                e=error,
+                O=P.O,
+                N=P.N,
+                P_cont=P.P_cont,
+                Z=Z,
+                pg=pg,
+                rg2obs=IX.RG2OBS[lib],
+                obs2snp=IX.OBS2SNP,
+                obs2bin=IX.OBS2BIN,
+            )
             return -prob
-
 
         p0 = get_po_given_c_all(cont[lib])
 
-        #OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
-        #print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+        # OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
+        # print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
         #                                                           cont[lib], OO.x, p0-OO.fun))
-        #cont[lib] = OO.x
-        OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
-        print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-                                                                   cont[lib], OO.x[0], p0-OO.fun))
+        # cont[lib] = OO.x
+        OO = minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1 - 1e-10)])
+        print(
+            "[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f"
+            % (lib, len(f_), cont[lib], OO.x[0], p0 - OO.fun)
+        )
         delta += abs(cont[lib] - OO.x[0])
         cont[lib] = OO.x[0]
 
     return delta
 
+
 @njit(fastmath=True)
 def binom_pmf(O, N, p):
-    res = np.power(p, O) * np.power(1.-p, N-O)
+    res = np.power(p, O) * np.power(1. - p, N - O)
     for i, (o, n) in enumerate(zip(O, N)):
-        if o >0 and n>1:
-            res[i] *= exp(lgamma(n+1) - lgamma(o+1) - lgamma(n-o+1))
+        if o > 0 and n > 1:
+            res[i] *= exp(lgamma(n + 1) - lgamma(o + 1) - lgamma(n - o + 1))
     return res
 
 

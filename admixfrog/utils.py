@@ -6,7 +6,7 @@ from scipy.stats import binom
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
 Pars = namedtuple(
     "Pars", ("alpha0", "trans_mat", "cont", "e0", "F", "gamma_names", "sex")
-) # for returning from varios functions
+)  # for returning from varios functions
 HAPX = (2699520, 155260560)  # start, end of haploid region on X
 
 
@@ -16,15 +16,20 @@ class _IX:
 
 
 def data2probs(
-    data, ref, state_ids, cont_id, state_priors=(1e-5, 1e-5), cont_prior=(1e-8, 1e-8),
-    ancestral=None
+    data,
+    ref,
+    state_ids,
+    cont_id,
+    state_priors=(1e-5, 1e-5),
+    cont_prior=(1e-8, 1e-8),
+    ancestral=None,
 ):
     alpha_ix = ["%s_alt" % s for s in state_ids]
     beta_ix = ["%s_ref" % s for s in state_ids]
     if ancestral is None:
         pa, pb = state_priors
     else:
-        #anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        # anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
         anc_ref, anc_alt = ancestral + "_ref", "ancestral" + "_alt"
         pa = data[anc_alt] + state_priors[0] * (1 - 2 * np.sign(data[anc_alt]))
         pb = data[anc_ref] + state_priors[1] * (1 - 2 * np.sign(data[anc_ref]))
@@ -41,7 +46,7 @@ def data2probs(
         ),
         alpha=np.array(ref[alpha_ix]) + pa,
         beta=np.array(ref[beta_ix]) + pb,
-        lib=np.array(data.lib)
+        lib=np.array(data.lib),
     )
     return P
 
@@ -57,7 +62,7 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     if pos_mode:
         bed.map = bed.pos
     chroms = pd.unique(bed.chrom)
-    snp = data[["chrom", "pos", 'map']].drop_duplicates()
+    snp = data[["chrom", "pos", "map"]].drop_duplicates()
     n_snps = snp.shape[0]
     snp["snp_id"] = range(n_snps)
     snp["hap"] = False
@@ -174,7 +179,9 @@ def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2):
     return Pars(alpha0, trans_mat, cont, e0, F, gamma_names, sex=sex)
 
 
-def load_ref(ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False):
+def load_ref(
+    ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
+):
     if ancestral is None:
         states = list(set(list(state_ids) + [cont_id]))
     else:

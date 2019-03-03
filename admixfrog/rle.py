@@ -19,11 +19,11 @@ def get_runs(targetid, penalty=0.5):
             frag_score = 0
     if frag_score > 0 and i != end_pos:
         frags.append((i, end_pos, frag_score))
-    return pd.DataFrame(frags, columns=['start', 'end', 'score'])
+    return pd.DataFrame(frags, columns=["start", "end", "score"])
 
 
 def get_rle(data, states, penalty=0.5):
-    coords = data[['chrom', 'map', 'pos', 'id']]
+    coords = data[["chrom", "map", "pos", "id"]]
     n_states = len(states)
 
     het_targets = []  # only heterozygous state
@@ -54,13 +54,18 @@ def get_rle(data, states, penalty=0.5):
     for target, type_ in zip(targets, types):
         print(target)
 
-        data['target'] = np.sum(data[target], 1)
-        runs = data[['chrom', 'target', 'id']].groupby('chrom').apply(get_runs,penalty=penalty).reset_index()
-        del data['target']
-        if 'level_1' in runs:
-            del runs['level_1']
-        runs['target'] = target[0]
-        runs['type'] = type_
+        data["target"] = np.sum(data[target], 1)
+        runs = (
+            data[["chrom", "target", "id"]]
+            .groupby("chrom")
+            .apply(get_runs, penalty=penalty)
+            .reset_index()
+        )
+        del data["target"]
+        if "level_1" in runs:
+            del runs["level_1"]
+        runs["target"] = target[0]
+        runs["type"] = type_
 
         res.append(runs)
 
@@ -69,19 +74,19 @@ def get_rle(data, states, penalty=0.5):
     res.start = res.start.astype(int)
     res.end = res.end.astype(int)
 
-    res = res.merge(coords,
-                    left_on=['chrom', 'start'], 
-                    right_on=['chrom', 'id'], 
-                    how='left')
-    res = res.merge(coords,
-                    left_on=['chrom', 'end'], 
-                    right_on=['chrom', 'id'], 
-                    how='left',
-                    suffixes=('', '_end'))
+    res = res.merge(
+        coords, left_on=["chrom", "start"], right_on=["chrom", "id"], how="left"
+    )
+    res = res.merge(
+        coords,
+        left_on=["chrom", "end"],
+        right_on=["chrom", "id"],
+        how="left",
+        suffixes=("", "_end"),
+    )
 
-
-    res['len'] = res.end - res.start
-    res['map_len'] = res.map_end - res.map
-    res['pos_len'] = res.pos_end - res.pos
-    res['nscore'] = res.score / res.len
+    res["len"] = res.end - res.start
+    res["map_len"] = res.map_end - res.map
+    res["pos_len"] = res.pos_end - res.pos
+    res["nscore"] = res.score / res.len
     return res

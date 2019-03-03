@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 import pandas as pd
-from collections import  defaultdict, Counter
+from collections import defaultdict, Counter
 import pdb
 from numba import njit
 from .utils import bins_from_bed, data2probs, init_pars, Pars
@@ -26,7 +26,6 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-150):
 
     """
     n_homo_states = P.alpha.shape[1]
-
 
     # P(O|Z) = sum_G P(O, G | Z)
     snp_emissions = np.sum(SNP, 2)
@@ -70,30 +69,33 @@ def bw_bb(
     n_states = len(alpha0)
 
     # create arrays for posterior, emissions
-    Z = np.zeros((sum(IX.bin_sizes), n_states)) # P(Z | O)
+    Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
-    #GT = np.ones((IX.n_snps, n_states, 3))      # P(G | Z)
-    #OBS = np.ones((IX.n_snps, 3))               # P(O | G)
-    SNP = np.ones((IX.n_snps, n_states, 3))     # P(O, G | Z)
-    PG = np.ones((IX.n_snps, n_states, 3))     # P(G Z | O)
+    # GT = np.ones((IX.n_snps, n_states, 3))      # P(G | Z)
+    # OBS = np.ones((IX.n_snps, 3))               # P(O | G)
+    SNP = np.ones((IX.n_snps, n_states, 3))  # P(O, G | Z)
+    PG = np.ones((IX.n_snps, n_states, 3))  # P(G Z | O)
 
     gamma, emissions = [], []
     row0 = 0
     for r in IX.bin_sizes:
-        gamma.append(Z[row0: (row0 + r)])
-        emissions.append(E[row0: (row0 + r)])
+        gamma.append(Z[row0 : (row0 + r)])
+        emissions.append(E[row0 : (row0 + r)])
         row0 += r
 
-    update_snp_prob(SNP, P, IX, cont, error, F) # P(O, G | Z)
-    e_scaling = update_emissions(E, SNP, P, IX) # P(O | Z)
+    update_snp_prob(SNP, P, IX, cont, error, F)  # P(O, G | Z)
+    e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
 
     for it in range(max_iter):
 
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
         if sex == "m":
-            print("male ll doens't take x into account", end='\t')
-            ll, old_ll = np.sum([np.sum(np.log(n_i)) for _, n_i in
-                                 zip(range(22), n)]) + e_scaling, ll
+            print("male ll doens't take x into account", end="\t")
+            ll, old_ll = (
+                np.sum([np.sum(np.log(n_i)) for _, n_i in zip(range(22), n)])
+                + e_scaling,
+                ll,
+            )
         else:
             ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]) + e_scaling, ll
         assert np.allclose(np.sum(Z, 1), 1)
@@ -145,8 +147,8 @@ def bw_bb(
                 est_F, cond_F = False, False
                 print("stopping F updates")
         if cond_F or cond_cont:
-            update_snp_prob(SNP, P, IX, cont, error, F) # P(O, G | Z)
-            e_scaling = update_emissions(E, SNP, P, IX) # P(O | Z)
+            update_snp_prob(SNP, P, IX, cont, error, F)  # P(O, G | Z)
+            e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
             print("e-scaling:", e_scaling)
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
@@ -220,17 +222,19 @@ def run_admixfrog(
 
     Z, G, pars, ll, emissions, (alpha, beta, n) = bw_bb(P, IX, pars, **kwargs)
 
-    pickle.dump((alpha, beta, n, emissions, pars), open('dump.pickle', 'wb'))
+    pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
 
     viterbi_path = viterbi(pars, emissions)
 
-    df_pred = pred_sims(trans=pars.trans_mat,
-                        emissions=emissions,
-                        beta=beta,
-                        alpha0=pars.alpha0,
-                        n=n,
-                        n_homo=len(state_ids),
-                        n_sims = n_post_replicates)
+    df_pred = pred_sims(
+        trans=pars.trans_mat,
+        emissions=emissions,
+        beta=beta,
+        alpha0=pars.alpha0,
+        n=n,
+        n_homo=len(state_ids),
+        n_sims=n_post_replicates,
+    )
 
     # output formating from here
     V = np.array(pars.gamma_names)[np.hstack(viterbi_path)]

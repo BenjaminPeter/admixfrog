@@ -44,13 +44,15 @@ def add_rle_parse_group(parser):
         type=float,
         default=0.5,
         help="""penalty for runs. Lower value means runs are called more
-        stringently (default 0.5)"""
+        stringently (default 0.5)""",
     )
 
 
 def bam():
     parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
-    parser.add_argument("--outfile", "--out", required=True, help="output file name (xz-zipped)")
+    parser.add_argument(
+        "--outfile", "--out", required=True, help="output file name (xz-zipped)"
+    )
     parser.add_argument(
         "--ref",
         "--ref-file",
@@ -68,11 +70,9 @@ def bam():
     add_bam_parse_group(parser)
     args = vars(parser.parse_args())
     pprint(args)
-    force_bam =  args.pop('force_bam')
-    if isfile(args['outfile']) and not force_bam:
-        raise ValueError(
-            """infile exists. set --force-bam to regenerate"""
-        )
+    force_bam = args.pop("force_bam")
+    if isfile(args["outfile"]) and not force_bam:
+        raise ValueError("""infile exists. set --force-bam to regenerate""")
 
     process_bam(**args)
 
@@ -94,7 +94,7 @@ def do_rle():
     states = list(data.columns)[8:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
 
-    rle =get_rle(data, homo, args.run_penalty)
+    rle = get_rle(data, homo, args.run_penalty)
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
 
@@ -329,6 +329,7 @@ def run():
     out = V.pop("out")
 
     from . import __version__
+
     print("admixfrog ", __version__)
     bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
@@ -342,8 +343,10 @@ def run():
     pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")
     snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
 
+
 def profile():
     import cProfile
     import pstats
-    cProfile.runctx('run()', globals(), locals(), filename='profile.txt')
-    pstats.Stats('profile.txt').strip_dirs().sort_stats(1).print_stats(200)
+
+    cProfile.runctx("run()", globals(), locals(), filename="profile.txt")
+    pstats.Stats("profile.txt").strip_dirs().sort_stats(1).print_stats(200)
