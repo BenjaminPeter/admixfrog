@@ -2,9 +2,9 @@ import numpy as np
 from scipy.optimize import minimize, minimize_scalar
 import pdb
 from .distributions import gt_homo_dist
-from .read_emissions import p_reads_given_gt
-
+from .read_emissions2 import p_snps_given_gt
 from numba import njit
+from scipy.special import betainc
 
 
 
@@ -38,6 +38,41 @@ def _p_gt_het(a1, b1, a2, b2, res=None):
     return gt
 
 
+def e_tbeta(N, alpha, beta, M=1, tau=1.):
+    """calculate how much the beta distribution needs to be truncated to 
+    take the finite reference population size into account
+
+    N : effective size
+    M : M-th moment
+    alpha, beta: number of derived/ancestral observations
+    tau: fst-like population subdivision parameter
+    """
+    return (betainc(alpha*tau + M, beta*tau, 1 - (1 / 2 / N)) -
+            betainc(alpha*tau + M, beta*tau, (1 / 2 / N))) / \
+        (betainc(alpha*tau, beta*tau, 1 - (1 / 2 / N)) -
+         betainc(alpha*tau, beta*tau, (1 / 2 / N))) * \
+        alpha*tau / (alpha*tau + beta*tau)
+
+
+
+def _p_gt_het_finite(a1, b1, a2, b2, N1, N2, tau1=1, tau2=1, res=None):
+    """Pr(G | Z, V) for heterozygous hidden states
+
+    emissions including a parameter Ne that measures how large the pop is...
+    and a parameter tau measuring the population structure
+    """
+    v1, v2 = e_tbeta(N1, a1, b1, tau=tau1), e_tbeta(N2, a2, b2, tau=tau2)
+    w1, w2 = 1 - v1, 1 - v2
+
+    n_snps = len(a1)
+    gt = np.empty((n_snps, 3)) if res is None else res
+    gt[:, 0] = w1 * w2
+    gt[:, 2] = v1 * v2
+    gt[:, 1] = 1 - gt[:, 0] - gt[:, 2]
+    return gt
+
+
+
 def post_geno_py(P, cont, F, IX, error):
     """
     calculate the probability of genotype given 
@@ -52,36 +87,34 @@ def post_geno_py(P, cont, F, IX, error):
     pg = np.zeros((n_snps, n_states, 3))
 
     # P(O | G)
-    ll_read = p_reads_given_gt(P, cflat, error)
-    ll_snp = np.ones((IX.n_snps, 3))
-    for snp, obs in zip(IX.OBS2SNP, ll_read):
-        ll_snp[snp] *= obs
+    ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX.OBS2SNP)
     ll_snp[IX.HAPSNP, 1] = 0.0
 
     # P(G | Z, homo)
     for s in range(n_homo):
-        prior_geno = _p_gt_homo(s, P, F[s])
-        prior_geno[IX.HAPSNP, 0] = P.beta[IX.HAPSNP, s] / (
+        _p_gt_homo(s, P, F[s], res=pg[:, s])
+        pg[IX.HAPSNP, s, 0] = P.beta[IX.HAPSNP, s] / (
             P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
-        prior_geno[IX.HAPSNP, 1] = 0
-        prior_geno[IX.HAPSNP, 2] = P.alpha[IX.HAPSNP, s] / (
+        pg[IX.HAPSNP, s, 1] = 0
+        pg[IX.HAPSNP, s, 2] = P.alpha[IX.HAPSNP, s] / (
             P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
-        pg[:, s] = ll_snp * prior_geno
+        pg[:, s] *= ll_snp
 
     for s1 in range(n_homo):
         for s2 in range(s1 + 1, n_homo):
             s += 1
-            prior_geno = _p_gt_het(
-                P.alpha[:, s1], P.beta[:, s1], P.alpha[:, s2], P.beta[:, s2]
+            _p_gt_het(
+                P.alpha[:, s1], P.beta[:, s1], P.alpha[:, s2], P.beta[:, s2],
+                res = pg[:, s]
             )
-            pg[:, s] = ll_snp * prior_geno
+            pg[:, s] *= ll_snp
             pg[IX.HAPSNP, s] = 0
 
     pg = pg / np.sum(pg, 2)[:, :, np.newaxis]
     pg[np.isnan(pg)] = 1.0 / 3  # n_states
-    return np.minimum(np.maximum(pg, 0), 1), ll_snp, prior_geno  # rounding error
+    return np.minimum(np.maximum(pg, 0), 1)  # rounding error
 
 
 def update_F(F, Z, pg, P, IX):
@@ -129,7 +162,7 @@ def geno_emissions(P, IX, F):
     # P(GT | Z)
     for s in range(n_homo_states):
         for g in range(3):
-            _p_gt_homo(s=1, P=P, F=F, res=GT[:, s, :])
+            _p_gt_homo(s=s, P=P, F=F[s], res=GT[:, s, :])
 
     s = n_homo_states
     for s1 in range(n_homo_states):
@@ -148,5 +181,5 @@ def geno_emissions(P, IX, F):
         a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
         GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
         GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
+    return GT
 
-    pass

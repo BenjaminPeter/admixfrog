@@ -328,7 +328,8 @@ def run():
 
     out = V.pop("out")
 
-    print("REZ mode2")
+    from . import __version__
+    print("admixfrog ", __version__)
     bins, snps, cont, pars, rle, res = run_hmm_bb(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")

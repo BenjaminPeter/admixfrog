@@ -3,16 +3,26 @@ import pickle
 import pandas as pd
 from collections import  defaultdict, Counter
 import pdb
+from numba import njit
 from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_data, load_ref
 from .distributions import gt_homo_dist
-from .read_emissions import update_contamination, p_reads_given_gt
+from .read_emissions2 import update_contamination, p_snps_given_gt
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import post_geno_py, update_F, geno_emissions
 from .rle import get_rle
 from .decode import pred_sims
 
 np.set_printoptions(suppress=True, precision=4)
+
+
+
+@njit(fastmath=True)
+def read2snp_emissions(read_emissions, ix):
+    snp_emissions = np.ones((n_snps, 3))
+    for i, row in enumerate(ix):
+        snp_emissions[row] *= read_emissions[i]
+
 
 
 def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
@@ -23,13 +33,10 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
     n_snps = P.alpha.shape[0]
     c = np.array([cont[l] for l in P.lib])
 
-    # first, get P(Reads | G) for each read group
-    read_emissions = p_reads_given_gt(P, c, error)
-    read_emissions[IX.HAPOBS, 1] = 0.0  # convention is that middle gt is set to zero
-    # P(SNP | GT) is obtained by summing over all read groups
-    snp_emissions = np.ones((n_snps, 3))
-    for i, row in enumerate(IX.OBS2SNP):
-        snp_emissions[row] *= read_emissions[i]
+    # first, get P(snps | G) for each read group
+    snp_emissions = p_snps_given_gt(P, c, error, n_snps, IX.OBS2SNP)
+    snp_emissions[IX.HAPSNP, 1] = 0.0  # convention is that middle gt is set to zero
+
 
     GT = geno_emissions(P, IX, F)
     snp_emissions = np.sum(GT * snp_emissions[:, np.newaxis, :], 2)
@@ -112,7 +119,7 @@ def bw_bb(
         )
         print("[%dk|%dk|%dk|%dk]: iter:%d |p95:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
         if ll - old_ll < ll_tol:
-            pg, _, _ = post_geno_py(P, cont, F, IX, error)
+            pg = post_geno_py(P, cont, F, IX, error)
             break
 
         if np.any(np.isnan(Z)):
@@ -131,7 +138,7 @@ def bw_bb(
         cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
         cond_F = est_F and (it % freq_F == 0 or it < 3)
         if cond_F or cond_cont:
-            pg, x, y = post_geno_py(P, cont, F, IX, error)
+            pg = post_geno_py(P, cont, F, IX, error)
             assert np.all(pg >= 0)
             assert np.all(pg <= 1)
             assert np.allclose(np.sum(pg, 2), 1)
