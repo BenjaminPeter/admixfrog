@@ -7,7 +7,8 @@ from random import random
 
 
 @njit  # ('i8(i8, i8)')
-def get_hap_from_diploid(n_states, n_homo=2):
+def get_hap_from_diploid(n_states, n_homo, haploid=False):
+    n_states = n_states + n_homo if haploid else n_states
     het2homo = np.zeros((n_states, 2), np.int8)
     for s in range(n_homo):
         het2homo[s] = s
@@ -15,12 +16,17 @@ def get_hap_from_diploid(n_states, n_homo=2):
         for s2 in range(s1 + 1, n_homo):
             s += 1
             het2homo[s] = [s1, s2]
+    if haploid:
+        for i in range(n_homo):
+            s += 1
+            het2homo[s] = -i
+        
     return het2homo
 
 
 @njit
-def decode_runs(seq, n_homo, n_het):
-    D2H = get_hap_from_diploid(n_homo + n_het, n_homo)
+def decode_runs(seq, n_homo, n_het, haploid=False):
+    D2H = get_hap_from_diploid(n_homo + n_het, n_homo, haploid)
     # print(D2H)
 
     # init list of ints, numba needs typing
@@ -84,8 +90,8 @@ def decode_runs(seq, n_homo, n_het):
 
 
 @njit
-def decode_runs_single(seq, n_homo):
-    runs = [[i for i in range(0)] for i in range(n_homo)]
+def decode_runs_single(seq, n_states):
+    runs = [[i for i in range(0)] for i in range(n_states)]
     for i in range(len(seq)):
         # print(r1, r2, l1, l2)
         if i == 0:
@@ -120,7 +126,7 @@ def post_trans(trans, emissions, beta, beta_prev, n):
 
 
 @njit
-def pred_sims_rep(trans, emissions, beta, alpha0, n, n_homo, decode=True):
+def pred_sims_rep(trans, emissions, beta, alpha0, n, n_homo, decode=True, haploid=False):
     n_steps, n_states = emissions.shape
 
     seq = np.zeros(n_steps, dtype=np.int64)
@@ -133,23 +139,23 @@ def pred_sims_rep(trans, emissions, beta, alpha0, n, n_homo, decode=True):
                 emissions=emissions[i],
                 beta=beta[i],
                 beta_prev=beta[i - 1, state],
-                n=n[i],
+                n=n[i]
             )
             state = nb_choice(n_states, p)
             seq[i] = state
     if decode:
-        runs = decode_runs(seq, n_homo, n_states - n_homo)
+        runs = decode_runs(seq, n_homo, n_states - n_homo, haploid)
     else:
-        runs = decode_runs_single(seq, n_homo)
+        runs = decode_runs_single(seq, n_states=max(seq)+1)
     return runs
 
 
 def pred_sims_single(
-    trans, emissions, beta, alpha0, n, n_homo, n_sims=100, decode=True
+    trans, emissions, beta, alpha0, n, n_homo, n_sims=100, decode=True, haploid=False
 ):
     sims = []
     for it in range(n_sims):
-        runs = pred_sims_rep(trans, emissions, beta, alpha0, n, n_homo, decode)
+        runs = pred_sims_rep(trans, emissions, beta, alpha0, n, n_homo, decode, haploid)
         for i, run in enumerate(runs):
             df = pd.DataFrame(Counter(run).items(), columns=("len", "n"))
             df["state"] = i
@@ -158,7 +164,7 @@ def pred_sims_single(
     return pd.concat(sims)
 
 
-def pred_sims(trans, emissions, beta, alpha0, n, n_homo, n_sims=100, decode=True):
+def pred_sims(trans, emissions, beta, alpha0, n, n_homo, n_sims=100, decode=True, haploid=False):
     """simulate runs through the model using posterior parameter.
 
     uses the algorithm of Nielsen, Skov et al. to generate track-length
@@ -167,7 +173,7 @@ def pred_sims(trans, emissions, beta, alpha0, n, n_homo, n_sims=100, decode=True
     """
     output = []
     for i, (e, b, n_) in enumerate(zip(emissions, beta, n)):
-        df = pred_sims_single(trans, e, b, alpha0, n_, n_homo, n_sims, decode)
+        df = pred_sims_single(trans, e, b, alpha0, n_, n_homo, n_sims, decode, haploid)
         df["chrom"] = i
         output.append(df)
         print("Posterior Simulating chromosome %s" % i)

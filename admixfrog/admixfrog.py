@@ -15,7 +15,7 @@ from .decode import pred_sims
 np.set_printoptions(suppress=True, precision=4)
 
 
-def bw_bb(
+def baum_welch(
     P,
     IX,
     pars,
@@ -119,8 +119,7 @@ def bw_bb(
             e_scaling = update_emissions(E, SNP, P, IX, haploid)  # P(O | Z)
             print("e-scaling:", e_scaling)
 
-    pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex,
-                haploid)
+    pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
 
@@ -190,7 +189,7 @@ def run_admixfrog(
     print(pars.alpha0)
     print("done loading data")
 
-    Z, G, pars, ll, emissions, (alpha, beta, n) = bw_bb(P, IX, pars,
+    Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(P, IX, pars,
                                                         haploid=haploid, **kwargs)
 
     pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
@@ -205,6 +204,7 @@ def run_admixfrog(
         n=n,
         n_homo=len(state_ids),
         n_sims=n_post_replicates,
+        haploid=haploid
     )
 
     # output formating from here
