@@ -4,6 +4,7 @@ from scipy.optimize import minimize, minimize_scalar
 from scipy.special import betaln
 from scipy.stats import binom
 from numba import njit
+import pdb
 
 
 @njit(fastmath=True)
@@ -20,8 +21,8 @@ def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
             p = p * (1 - e) + (1 - p) * e
             p = O[obs] * np.log(p) + (N[obs] - O[obs]) * np.log(1 - p)
             for s in range(n_states):
-                v = Z[bin_, s] * pg[snp, s, g] * p
-                print(v)
+                print(Z.shape, pg.shape)
+                print(Z[bin_, s])
                 ll += Z[bin_, s] * pg[snp, s, g] * p
     return ll
 
