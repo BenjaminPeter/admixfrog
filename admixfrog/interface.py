@@ -341,3 +341,9 @@ def run():
     cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
     pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")
     snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
+
+def profile():
+    import cProfile
+    import pstats
+    cProfile.run('run()', 'profile.txt')
+    pstats.Stats('profile.txt').strip_dirs().sort_stats(-1).print_stats()

@@ -134,7 +134,7 @@ def update_F(F, Z, PG, P, IX):
     return delta
 
 
-def get_snp_prob(SNP, P, IX, cont, error, F):
+def update_snp_prob(SNP, P, IX, cont, error, F):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
     """

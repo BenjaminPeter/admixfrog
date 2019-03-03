@@ -8,7 +8,7 @@ from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_data, load_ref
 from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-from .genotype_emissions import update_post_geno, update_F, get_snp_prob
+from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .rle import get_rle
 from .decode import pred_sims
 
@@ -84,7 +84,7 @@ def bw_bb(
         emissions.append(E[row0: (row0 + r)])
         row0 += r
 
-    get_snp_prob(SNP, P, IX, cont, error, F) # P(O, G | Z)
+    update_snp_prob(SNP, P, IX, cont, error, F) # P(O, G | Z)
     e_scaling = update_emissions(E, SNP, P, IX) # P(O | Z)
 
     for it in range(max_iter):
@@ -145,12 +145,12 @@ def bw_bb(
                 est_F, cond_F = False, False
                 print("stopping F updates")
         if cond_F or cond_cont:
-            get_snp_prob(SNP, P, IX, cont, error, F) # P(O, G | Z)
+            update_snp_prob(SNP, P, IX, cont, error, F) # P(O, G | Z)
             e_scaling = update_emissions(E, SNP, P, IX) # P(O | Z)
             print("e-scaling:", e_scaling)
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
-    return Z, pg, pars, ll, emissions, (alpha, beta, n)
+    return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
 
 def run_hmm_bb(

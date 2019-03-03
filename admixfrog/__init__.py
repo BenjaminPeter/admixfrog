@@ -1,5 +1,5 @@
 from .introgression_bb import run_hmm_bb
-from .interface import run, bam, do_rle
+from .interface import run, bam, do_rle, profile
 from pkg_resources import get_distribution, DistributionNotFound
 
 try:
