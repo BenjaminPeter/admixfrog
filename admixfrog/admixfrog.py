@@ -3,51 +3,16 @@ import pickle
 import pandas as pd
 from collections import defaultdict, Counter
 import pdb
-from numba import njit
 from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_data, load_ref
 from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
+from .genotype_emissions import update_emissions
 from .rle import get_rle
 from .decode import pred_sims
 
 np.set_printoptions(suppress=True, precision=4)
-
-
-@njit(fastmath=True)
-def snp2bin(e_out, e_in, ix):
-    for i, row in enumerate(ix):
-        e_out[row] *= e_in[i]
-
-
-def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-150):
-    """main function to calculate emission probabilities
-
-    """
-    n_homo_states = P.alpha.shape[1]
-
-    # P(O|Z) = sum_G P(O, G | Z)
-    snp_emissions = np.sum(SNP, 2)
-    scaling = np.max(snp_emissions, 1)[:, np.newaxis]
-    snp_emissions /= scaling
-    assert np.allclose(np.max(snp_emissions, 1), 1)
-    log_scaling = np.sum(np.log(scaling))
-
-    E[:] = 1  # reset
-    snp2bin(E, snp_emissions, IX.SNP2BIN)
-    E[IX.HAPBIN, n_homo_states:] = 0
-
-    bad_bins = np.sum(E, 1) < bad_bin_cutoff
-    if sum(bad_bins) > 0:
-        print("bad bins", sum(bad_bins))
-    E[bad_bins] = bad_bin_cutoff / E.shape[1]
-
-    e_scaling = np.max(E, 1)[:, np.newaxis]
-    E /= e_scaling
-    log_scaling += np.sum(np.log(e_scaling))
-
-    return log_scaling
 
 
 def bw_bb(

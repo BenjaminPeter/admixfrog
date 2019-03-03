@@ -1,10 +1,45 @@
 import numpy as np
-from scipy.optimize import minimize, minimize_scalar
+from scipy.optimize import minimize
 import pdb
 from .distributions import gt_homo_dist
 from .read_emissions2 import p_snps_given_gt
 from numba import njit
 from scipy.special import betainc
+
+
+@njit(fastmath=True)
+def snp2bin(e_out, e_in, ix):
+    for i, row in enumerate(ix):
+        e_out[row] *= e_in[i]
+
+
+def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-150):
+    """main function to calculate emission probabilities
+
+    """
+    n_homo_states = P.alpha.shape[1]
+
+    # P(O|Z) = sum_G P(O, G | Z)
+    snp_emissions = np.sum(SNP, 2)
+    scaling = np.max(snp_emissions, 1)[:, np.newaxis]
+    snp_emissions /= scaling
+    assert np.allclose(np.max(snp_emissions, 1), 1)
+    log_scaling = np.sum(np.log(scaling))
+
+    E[:] = 1  # reset
+    snp2bin(E, snp_emissions, IX.SNP2BIN)
+    E[IX.HAPBIN, n_homo_states:] = 0
+
+    bad_bins = np.sum(E, 1) < bad_bin_cutoff
+    if sum(bad_bins) > 0:
+        print("bad bins", sum(bad_bins))
+    E[bad_bins] = bad_bin_cutoff / E.shape[1]
+
+    e_scaling = np.max(E, 1)[:, np.newaxis]
+    E /= e_scaling
+    log_scaling += np.sum(np.log(e_scaling))
+
+    return log_scaling
 
 
 def _p_gt_homo(s, P, F, res=None):
@@ -38,7 +73,7 @@ def _p_gt_het(a1, b1, a2, b2, res=None):
 
 
 def e_tbeta(N, alpha, beta, M=1, tau=1.):
-    """calculate how much the beta distribution needs to be truncated to 
+    """calculate how much the beta distribution needs to be truncated to
     take the finite reference population size into account
 
     N : effective size
@@ -117,7 +152,7 @@ def update_F(F, Z, PG, P, IX):
     for s in range(n_states):
 
         def f(t):
-            x = np.log(_p_gt_homo(s, P, t[0]) + 1e-10) * PG[:, s, :]  # avoid underflow
+            x = np.log(_p_gt_homo(s, P, t[0]) + 1e-10) * PG[:, s, :] 
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
