@@ -153,7 +153,7 @@ def bw_bb(
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
 
-def run_hmm_bb(
+def run_admixfrog(
     infile,
     ref_file,
     state_ids=("AFR", "VIN", "DEN"),

@@ -1,5 +1,5 @@
 import argparse
-from .introgression_bb import run_hmm_bb
+from .admixfrog import run_admixfrog
 from pprint import pprint
 from .bam import process_bam
 from .rle import get_rle
@@ -330,7 +330,7 @@ def run():
 
     from . import __version__
     print("admixfrog ", __version__)
-    bins, snps, cont, pars, rle, res = run_hmm_bb(**vars(args))
+    bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
     # pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
@@ -345,5 +345,5 @@ def run():
 def profile():
     import cProfile
     import pstats
-    cProfile.run('run()', 'profile.txt')
-    pstats.Stats('profile.txt').strip_dirs().sort_stats(-1).print_stats()
+    cProfile.runctx('run()', globals(), locals(), filename='profile.txt')
+    pstats.Stats('profile.txt').strip_dirs().sort_stats(1).print_stats(200)
