@@ -153,13 +153,16 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     return bins, IX  # , data_bin
 
 
-def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2):
+def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2, haploid=False):
     homo = [s for s in state_ids]
     het = []
     for i, s in enumerate(state_ids):
         for s2 in state_ids[i + 1 :]:
             het.append(s + s2)
     gamma_names = homo + het
+    if haploid:
+        gamma_names.extend(["h%s" % s for s in homo])
+
     n_states = len(gamma_names)
     n_homo = len(state_ids)
 
@@ -243,12 +246,10 @@ def load_data(infile, split_lib=True, downsample=1):
     return data
 
 
-def posterior_table(pg, Z, IX):
+def posterior_table(pg, Z, IX, haploid=False):
+    freq = np.array([0, 1, 2, 0, 1]) if haploid else np.arange(3)
     PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
-    mu = np.sum(PG * np.arange(3), 1)[:, np.newaxis] / 2
-    # musq = np.sum(PG * (np.arange(3))**2,1)[:, np.newaxis]
-    # ahat = (2 *mu - musq) / (2 * (mu / musq - mu - 1) + mu)
-    # bhat = (2 - mu)*(2- mu/musq) / (2 * (mu / musq - mu - 1) + mu)
+    mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
     PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(np.hstack((PG, mu)), columns=["G0", "G1", "G2", "p"])

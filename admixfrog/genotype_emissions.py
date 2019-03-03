@@ -13,7 +13,7 @@ def snp2bin(e_out, e_in, ix):
         e_out[row] *= e_in[i]
 
 
-def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-150):
+def update_emissions(E, SNP, P, IX, haploid=False, bad_bin_cutoff=1e-150):
     """main function to calculate emission probabilities
 
     """
@@ -28,7 +28,8 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-150):
 
     E[:] = 1  # reset
     snp2bin(E, snp_emissions, IX.SNP2BIN)
-    E[IX.HAPBIN, n_homo_states:] = 0
+    if not haploid:
+        E[IX.HAPBIN, n_homo_states:] = 0
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     if sum(bad_bins) > 0:
@@ -51,7 +52,10 @@ def _p_gt_homo(s, P, F, res=None):
     n_snps = P.alpha.shape[0]
     gt = np.ones((n_snps, 3)) if res is None else res
     gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, n_snps=n_snps, res=gt)
-    assert np.allclose(np.sum(gt, 1), 1)
+    try:
+        assert np.allclose(np.sum(gt, 1), 1)
+    except AssertionError:
+        pdb.set_trace()
     return np.minimum(np.maximum(gt, 0), 1)  # rounding error
 
 
@@ -72,48 +76,18 @@ def _p_gt_het(a1, b1, a2, b2, res=None):
     return gt
 
 
-def e_tbeta(N, alpha, beta, M=1, tau=1.):
-    """calculate how much the beta distribution needs to be truncated to
-    take the finite reference population size into account
+@njit
+def _p_gt_hap(a1, b1, res=None):
+    """Pr(G | Z) for haploid hidden states
 
-    N : effective size
-    M : M-th moment
-    alpha, beta: number of derived/ancestral observations
-    tau: fst-like population subdivision parameter
-
-    UNTESTED / UNUSED
+    the basic version of the haploid genotype emission. Assumes
+    infinite reference population size
     """
-    return (
-        (
-            betainc(alpha * tau + M, beta * tau, 1 - (1 / 2 / N))
-            - betainc(alpha * tau + M, beta * tau, (1 / 2 / N))
-        )
-        / (
-            betainc(alpha * tau, beta * tau, 1 - (1 / 2 / N))
-            - betainc(alpha * tau, beta * tau, (1 / 2 / N))
-        )
-        * alpha
-        * tau
-        / (alpha * tau + beta * tau)
-    )
-
-
-def _p_gt_het_finite(a1, b1, a2, b2, N1, N2, tau1=1, tau2=1, res=None):
-    """Pr(G | Z, V) for heterozygous hidden states
-
-    emissions including a parameter Ne that measures how large the pop is...
-    and a parameter tau measuring the population structure
-
-    UNTESTED / UNUSED
-    """
-    v1, v2 = e_tbeta(N1, a1, b1, tau=tau1), e_tbeta(N2, a2, b2, tau=tau2)
-    w1, w2 = 1 - v1, 1 - v2
-
     n_snps = len(a1)
-    gt = np.empty((n_snps, 3)) if res is None else res
-    gt[:, 0] = w1 * w2
-    gt[:, 2] = v1 * v2
-    gt[:, 1] = 1 - gt[:, 0] - gt[:, 2]
+    gt = np.empty((n_snps, 2)) if res is None else res
+
+    gt[:, 0] = b1 / (a1 + b1)
+    gt[:, 1] = a1 / (a1 + b1)
     return gt
 
 
@@ -173,7 +147,7 @@ def update_F(F, Z, PG, P, IX):
     return delta
 
 
-def update_snp_prob(SNP, P, IX, cont, error, F):
+def update_snp_prob(SNP, P, IX, cont, error, F, haploid=False):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
     """
@@ -184,50 +158,118 @@ def update_snp_prob(SNP, P, IX, cont, error, F):
     # get P(O | G)
     # save in the same array as SNP - size is the same, and
     # we do not need to allocate more memory
-    update_geno_emissions(SNP, P, IX, F, n_states=SNP.shape[1])
+    update_geno_emissions(SNP, P, IX, F, n_states=SNP.shape[1], haploid=haploid)
 
     # get P(G | Z)
-    ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
+    ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX, haploid)
 
     SNP *= ll_snp[:, np.newaxis, :]
 
     # haploidize x chrom
-    s = n_homo
-    for s1 in range(n_homo):
-        for s2 in range(s1 + 1, n_homo):
-            SNP[IX.HAPSNP, s] = 0
-            s += 1
+    if not haploid:
+        s = n_homo
+        for s1 in range(n_homo):
+            for s2 in range(s1 + 1, n_homo):
+                SNP[IX.HAPSNP, s] = 0
+                s += 1
 
 
-def update_geno_emissions(GT, P, IX, F, n_states):
+def update_geno_emissions(GT, P, IX, F, n_states, haploid=False):
     """P(G | Z) for each SNP
     build table giving the probabilities of P(G | Z)
     """
     n_snps, n_homo_states = P.alpha.shape
 
-    # GT = np.zeros((n_snps, n_states, 3)) + 300
+    GT[:] = 0.
     # P(G | Z)
     for s in range(n_homo_states):
         for g in range(3):
-            _p_gt_homo(s=s, P=P, F=F[s], res=GT[:, s, :])
+            _p_gt_homo(s=s, P=P, F=F[s], res=GT[:, s, :3])
 
-    s = n_homo_states
     for s1 in range(n_homo_states):
         for s2 in range(s1 + 1, n_homo_states):
+            s += 1
             _p_gt_het(
                 P.alpha[:, s1],
                 P.beta[:, s1],
                 P.alpha[:, s2],
                 P.beta[:, s2],
-                res=GT[:, s],
+                res=GT[:, s, :3],
             )
-            s += 1
-    assert np.allclose(np.sum(GT, 2), 1)
 
-    GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
-    GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
-    for s in range(n_homo_states):
-        a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
-        GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
-        GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
+    if haploid:
+        for i in range(n_homo_states):
+            _p_gt_hap(P.alpha[:, i], P.beta[:, i], res=GT[:, s+i+1, 3:])
+
+    try:
+        assert np.allclose(np.sum(GT, 2), 1)
+    except AssertionError:
+        pdb.set_trace()
+
+    if not haploid:
+        GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
+        GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
+        for s in range(n_homo_states):
+            a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
+            GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
+            GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
+
     return GT
+
+
+
+
+
+
+
+
+
+
+
+
+
+def e_tbeta(N, alpha, beta, M=1, tau=1.):
+    """calculate how much the beta distribution needs to be truncated to
+    take the finite reference population size into account
+
+    N : effective size
+    M : M-th moment
+    alpha, beta: number of derived/ancestral observations
+    tau: fst-like population subdivision parameter
+
+    UNTESTED / UNUSED
+    """
+    return (
+        (
+            betainc(alpha * tau + M, beta * tau, 1 - (1 / 2 / N))
+            - betainc(alpha * tau + M, beta * tau, (1 / 2 / N))
+        )
+        / (
+            betainc(alpha * tau, beta * tau, 1 - (1 / 2 / N))
+            - betainc(alpha * tau, beta * tau, (1 / 2 / N))
+        )
+        * alpha
+        * tau
+        / (alpha * tau + beta * tau)
+    )
+
+
+def _p_gt_het_finite(a1, b1, a2, b2, N1, N2, tau1=1, tau2=1, res=None):
+    """Pr(G | Z, V) for heterozygous hidden states
+
+    emissions including a parameter Ne that measures how large the pop is...
+    and a parameter tau measuring the population structure
+
+    UNTESTED / UNUSED
+    """
+    v1, v2 = e_tbeta(N1, a1, b1, tau=tau1), e_tbeta(N2, a2, b2, tau=tau2)
+    w1, w2 = 1 - v1, 1 - v2
+
+    n_snps = len(a1)
+    gt = np.empty((n_snps, 3)) if res is None else res
+    gt[:, 0] = w1 * w2
+    gt[:, 2] = v1 * v2
+    gt[:, 1] = 1 - gt[:, 0] - gt[:, 2]
+    return gt
+
+

@@ -26,7 +26,7 @@ cdef double get_po_given_c(
     double [:, :, :] PG,
     long [:] rg2obs,
     long [:] obs2snp,
-    bool haploid
+    bint haploid
     ) :
     cdef int i, s, g,
     cdef long n_obs, n_states, 

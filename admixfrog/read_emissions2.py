@@ -19,7 +19,8 @@ def p_reads_given_gt(O, N, Pcont, c, error, n_obs, haploid=False):
     per read group
 
     """
-    read_emissions = np.ones((n_obs, 3))
+    n_gt = 5 if haploid else 3
+    read_emissions = np.ones((n_obs, n_gt))
     for g in range(3):
         p = c * Pcont + (1 - c) * g / 2
         p = p * (1 - error) + (1 - p) * error
@@ -39,8 +40,9 @@ def p_reads_given_gt(O, N, Pcont, c, error, n_obs, haploid=False):
 
 
 @njit(fastmath=True)
-def read2snp_emissions(read_emissions, n_snps, ix):
-    snp_emissions = np.ones((n_snps, 3))
+def read2snp_emissions(read_emissions, n_snps, ix, haploid):
+    n_gt = 5 if haploid else 3
+    snp_emissions = np.ones((n_snps, n_gt))
     for i, row in enumerate(ix):
         snp_emissions[row] *= read_emissions[i]
     return snp_emissions
@@ -53,7 +55,7 @@ def p_snps_given_gt(P, c, error, n_snps, IX, haploid=False):
     read_emissions = p_reads_given_gt(P.O, P.N, P.P_cont, c, error, n_obs,
                                       haploid)
     read_emissions[IX.HAPSNP, 1] = 0.0
-    return read2snp_emissions(read_emissions, n_snps, IX.OBS2SNP)
+    return read2snp_emissions(read_emissions, n_snps, IX.OBS2SNP, haploid)
 
 
 

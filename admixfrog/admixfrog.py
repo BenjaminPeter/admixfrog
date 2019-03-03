@@ -25,7 +25,9 @@ def bw_bb(
     est_F=True,
     freq_contamination=1,
     freq_F=1,
+    haploid=False
 ):
+    n_gt = 5 if haploid else 3
 
     alpha0, trans_mat, cont, error, F, gamma_names, sex = pars
 
@@ -36,10 +38,10 @@ def bw_bb(
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
-    # GT = np.ones((IX.n_snps, n_states, 3))      # P(G | Z)
-    # OBS = np.ones((IX.n_snps, 3))               # P(O | G)
-    SNP = np.ones((IX.n_snps, n_states, 3))  # P(O, G | Z)
-    PG = np.ones((IX.n_snps, n_states, 3))  # P(G Z | O)
+    # GT = np.ones((IX.n_snps, n_states, n_gt))      # P(G | Z)
+    # OBS = np.ones((IX.n_snps, n_gt))               # P(O | G)
+    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
+    PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
 
     gamma, emissions = [], []
     row0 = 0
@@ -48,8 +50,8 @@ def bw_bb(
         emissions.append(E[row0 : (row0 + r)])
         row0 += r
 
-    update_snp_prob(SNP, P, IX, cont, error, F)  # P(O, G | Z)
-    e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
+    update_snp_prob(SNP, P, IX, cont, error, F, haploid)  # P(O, G | Z)
+    e_scaling = update_emissions(E, SNP, P, IX, haploid)  # P(O | Z)
 
     for it in range(max_iter):
 
@@ -87,7 +89,8 @@ def bw_bb(
             raise ValueError("nan observed in emissions")
 
         # update stuff
-        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n, sex)
+        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions,
+                                       n, sex, haploid)
         alpha0 = np.linalg.matrix_power(trans_mat, 10000)[0]
 
         if gamma_names is not None:
@@ -101,7 +104,7 @@ def bw_bb(
             update_post_geno(PG, SNP, Z, IX)
         if cond_cont:
             # need P(G, Z|O') =  P(Z | O') P(G | Z, O')
-            delta = update_contamination(cont, error, P, PG, IX, libs)
+            delta = update_contamination(cont, error, P, PG, IX, libs, haploid)
             if delta < 1e-5:  # when we converged, do not update contamination
                 est_contamination, cond_cont = False, False
                 print("stopping contamination updates")
@@ -112,11 +115,12 @@ def bw_bb(
                 est_F, cond_F = False, False
                 print("stopping F updates")
         if cond_F or cond_cont:
-            update_snp_prob(SNP, P, IX, cont, error, F)  # P(O, G | Z)
-            e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
+            update_snp_prob(SNP, P, IX, cont, error, F, haploid)  # P(O, G | Z)
+            e_scaling = update_emissions(E, SNP, P, IX, haploid)  # P(O | Z)
             print("e-scaling:", e_scaling)
 
-    pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
+    pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex,
+                haploid)
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
 
@@ -138,6 +142,7 @@ def run_admixfrog(
     c0=1e-2,
     run_penalty=0.9,
     n_post_replicates=100,
+    haploid=False,
     **kwargs
 ):
 
@@ -181,11 +186,12 @@ def run_admixfrog(
     assert ref.shape[0] == P.alpha.shape[0]
     del ref
 
-    pars = init_pars(state_ids, sex, F0, e0, c0)
-
+    pars = init_pars(state_ids, sex, F0, e0, c0, haploid)
+    print(pars.alpha0)
     print("done loading data")
 
-    Z, G, pars, ll, emissions, (alpha, beta, n) = bw_bb(P, IX, pars, **kwargs)
+    Z, G, pars, ll, emissions, (alpha, beta, n) = bw_bb(P, IX, pars,
+                                                        haploid=haploid, **kwargs)
 
     pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
 

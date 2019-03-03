@@ -292,6 +292,12 @@ def run():
         parameter estimation and bootstrapping
         """,
     )
+    parser.add_argument(
+        "--haploid", "--allow-haploid", "-H",
+        default=False,
+        action="store_true",
+        help="""allow  haploid (i.e. inbreed) stretches"""
+    )
     add_bam_parse_group(parser)
     add_rle_parse_group(parser)
 

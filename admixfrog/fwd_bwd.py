@@ -137,10 +137,11 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
     return path
 
 
-def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f"):
+def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f",
+                       haploid=False):
     new_trans_mat = np.zeros_like(old_trans_mat)
     n_states = old_trans_mat.shape[0]
-    if sex == "m" and len(alpha) > 22:
+    if sex == "m" and len(alpha) > 22 and not haploid:
         """ this is a hack, I just remove last chromosome and no checks are done"""
         print("update hack")
         # update transition
