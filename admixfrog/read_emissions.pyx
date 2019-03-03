@@ -25,8 +25,7 @@ cdef double get_po_given_c(
     double [:] P_cont,
     double [:, :, :] PG,
     long [:] rg2obs,
-    long [:] obs2snp,
-    bint haploid
+    long [:] obs2snp
     ) :
     cdef int i, s, g,
     cdef long n_obs, n_states, 
@@ -44,18 +43,9 @@ cdef double get_po_given_c(
             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
             for s in range(n_states):
                 ll += PG[snp, s, g] * p
-
-        if haploid:
-            for g in range(2):
-                p = c * P_cont[obs] + (1.-c) * g 
-                p = p * (1-e) + (1-p) * e
-                p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
-                for s in range(n_states):
-                    ll += PG[snp, s, g + 3] * p
-
     return ll
 
-def update_contamination(cont, error, P, PG, IX, libs, haploid=False):
+def update_contamination(cont, error, P, PG, IX, libs):
     """
     update emissions by maximizing contamination parameter
 
@@ -80,8 +70,7 @@ def update_contamination(cont, error, P, PG, IX, libs, haploid=False):
                                  P_cont=P.P_cont,
                                  PG=PG,
                                  rg2obs = IX.RG2OBS[lib],
-                                 obs2snp = IX.OBS2SNP,
-                                  haploid=haploid)
+                                 obs2snp = IX.OBS2SNP)
             return -prob
 
 

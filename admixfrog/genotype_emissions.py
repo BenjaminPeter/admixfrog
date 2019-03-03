@@ -87,7 +87,8 @@ def _p_gt_hap(a1, b1, res=None):
     gt = np.empty((n_snps, 2)) if res is None else res
 
     gt[:, 0] = b1 / (a1 + b1)
-    gt[:, 1] = a1 / (a1 + b1)
+    gt[:, 1] = 0.
+    gt[:, 2] = a1 / (a1 + b1)
     return gt
 
 
@@ -161,7 +162,7 @@ def update_snp_prob(SNP, P, IX, cont, error, F, haploid=False):
     update_geno_emissions(SNP, P, IX, F, n_states=SNP.shape[1], haploid=haploid)
 
     # get P(G | Z)
-    ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX, haploid)
+    ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
 
     SNP *= ll_snp[:, np.newaxis, :]
 
@@ -184,7 +185,7 @@ def update_geno_emissions(GT, P, IX, F, n_states, haploid=False):
     # P(G | Z)
     for s in range(n_homo_states):
         for g in range(3):
-            _p_gt_homo(s=s, P=P, F=F[s], res=GT[:, s, :3])
+            _p_gt_homo(s=s, P=P, F=F[s], res=GT[:, s, :])
 
     for s1 in range(n_homo_states):
         for s2 in range(s1 + 1, n_homo_states):
@@ -194,12 +195,12 @@ def update_geno_emissions(GT, P, IX, F, n_states, haploid=False):
                 P.beta[:, s1],
                 P.alpha[:, s2],
                 P.beta[:, s2],
-                res=GT[:, s, :3],
+                res=GT[:, s, :],
             )
 
     if haploid:
         for i in range(n_homo_states):
-            _p_gt_hap(P.alpha[:, i], P.beta[:, i], res=GT[:, s+i+1, 3:])
+            _p_gt_hap(P.alpha[:, i], P.beta[:, i], res=GT[:, s+i+1, :])
 
     try:
         assert np.allclose(np.sum(GT, 2), 1)

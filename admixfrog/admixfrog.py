@@ -27,7 +27,7 @@ def bw_bb(
     freq_F=1,
     haploid=False
 ):
-    n_gt = 5 if haploid else 3
+    n_gt = 3
 
     alpha0, trans_mat, cont, error, F, gamma_names, sex = pars
 
@@ -104,7 +104,7 @@ def bw_bb(
             update_post_geno(PG, SNP, Z, IX)
         if cond_cont:
             # need P(G, Z|O') =  P(Z | O') P(G | Z, O')
-            delta = update_contamination(cont, error, P, PG, IX, libs, haploid)
+            delta = update_contamination(cont, error, P, PG, IX, libs)
             if delta < 1e-5:  # when we converged, do not update contamination
                 est_contamination, cond_cont = False, False
                 print("stopping contamination updates")
