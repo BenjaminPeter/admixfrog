@@ -72,7 +72,6 @@ def _p_gt_het_finite(a1, b1, a2, b2, N1, N2, tau1=1, tau2=1, res=None):
     return gt
 
 
-
 def post_geno_py(P, cont, F, IX, error):
     """
     calculate the probability of genotype given 
@@ -84,7 +83,7 @@ def post_geno_py(P, cont, F, IX, error):
     n_states = n_homo + n_het
     cflat = np.array([cont[lib] for lib in P.lib])
 
-    pg = np.zeros((n_snps, n_states, 3))
+    GT = np.zeros((n_snps, n_states, 3))
 
     # P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX.OBS2SNP)
@@ -92,29 +91,29 @@ def post_geno_py(P, cont, F, IX, error):
 
     # P(G | Z, homo)
     for s in range(n_homo):
-        _p_gt_homo(s, P, F[s], res=pg[:, s])
-        pg[IX.HAPSNP, s, 0] = P.beta[IX.HAPSNP, s] / (
+        _p_gt_homo(s, P, F[s], res=GT[:, s])
+        GT[IX.HAPSNP, s, 0] = P.beta[IX.HAPSNP, s] / (
             P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
-        pg[IX.HAPSNP, s, 1] = 0
-        pg[IX.HAPSNP, s, 2] = P.alpha[IX.HAPSNP, s] / (
+        GT[IX.HAPSNP, s, 1] = 0
+        GT[IX.HAPSNP, s, 2] = P.alpha[IX.HAPSNP, s] / (
             P.alpha[IX.HAPSNP, s] + P.beta[IX.HAPSNP, s]
         )
-        pg[:, s] *= ll_snp
+        GT[:, s] *= ll_snp
 
     for s1 in range(n_homo):
         for s2 in range(s1 + 1, n_homo):
             s += 1
             _p_gt_het(
                 P.alpha[:, s1], P.beta[:, s1], P.alpha[:, s2], P.beta[:, s2],
-                res = pg[:, s]
+                res = GT[:, s]
             )
-            pg[:, s] *= ll_snp
-            pg[IX.HAPSNP, s] = 0
+            GT[:, s] *= ll_snp
+            GT[IX.HAPSNP, s] = 0
 
-    pg = pg / np.sum(pg, 2)[:, :, np.newaxis]
-    pg[np.isnan(pg)] = 1.0 / 3  # n_states
-    return np.minimum(np.maximum(pg, 0), 1)  # rounding error
+    GT = GT / np.sum(GT, 2)[:, :, np.newaxis]
+    GT[np.isnan(GT)] = 1.0 / 3  # n_states
+    return np.minimum(np.maximum(GT, 0), 1)  # rounding error
 
 
 def update_F(F, Z, pg, P, IX):
@@ -183,3 +182,35 @@ def geno_emissions(P, IX, F):
         GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
     return GT
 
+def update_geno_emissions(GT, P, IX, F):
+    """P(G | Z) for each SNP 
+
+    """
+    n_snps = P.alpha.shape[0]
+    n_homo_states = P.alpha.shape[1]
+    n_het_states = int(n_homo_states * (n_homo_states - 1) / 2)
+    n_states = n_homo_states + n_het_states
+
+    # P(GT | Z)
+    for s in range(n_homo_states):
+         for g in range(3):
+            _p_gt_homo(s=s, P=P, F=F[s], res=GT[:, s, :])
+
+    s = n_homo_states
+    for s1 in range(n_homo_states):
+        for s2 in range(s1 + 1, n_homo_states):
+            _p_gt_het(P.alpha[:, s1],
+                      P.beta[:, s1],
+                      P.alpha[:, s2],
+                      P.beta[:, s2],
+                      res=GT[:, s])
+            s += 1
+    assert np.allclose(np.sum(GT, 2), 1)
+
+    GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
+    GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
+    for s in range(n_homo_states):
+        a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
+        GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
+        GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
+    return GT

@@ -7,7 +7,8 @@ from numba import njit
 from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_data, load_ref
 from .distributions import gt_homo_dist
-from .read_emissions2 import update_contamination, p_snps_given_gt
+from .read_emissions2 import p_snps_given_gt
+from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import post_geno_py, update_F, geno_emissions
 from .rle import get_rle
@@ -16,13 +17,10 @@ from .decode import pred_sims
 np.set_printoptions(suppress=True, precision=4)
 
 
-
 @njit(fastmath=True)
-def read2snp_emissions(read_emissions, ix):
-    snp_emissions = np.ones((n_snps, 3))
+def snp2bin(e_out, e_in, ix):
     for i, row in enumerate(ix):
-        snp_emissions[row] *= read_emissions[i]
-
+        e_out[row] *= e_in[i]
 
 
 def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
@@ -46,9 +44,7 @@ def update_emissions(E, P, IX, cont, F, error, bad_bin_cutoff=1e-150):
     log_scaling = np.sum(np.log(scaling))
 
     E[:] = 1  # reset
-    for bin_, snp in zip(IX.SNP2BIN, snp_emissions):
-        E[bin_] *= snp
-
+    snp2bin(E, snp_emissions, IX.SNP2BIN)
     E[IX.HAPBIN, n_homo_states:] = 0
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
@@ -84,6 +80,7 @@ def bw_bb(
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))
     E = np.ones((sum(IX.bin_sizes), n_states))
+    G = np.ones((sum(IX.bin_sizes), n_states, 3))
 
     gamma, emissions = [], []
     row0 = 0
@@ -91,6 +88,8 @@ def bw_bb(
         gamma.append(Z[row0: (row0 + r)])
         emissions.append(E[row0: (row0 + r)])
         row0 += r
+
+    update_geno_emissions(G, P, IX, F)
 
     e_scaling = update_emissions(E, P, IX, cont, F, error)
 
