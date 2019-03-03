@@ -10,7 +10,6 @@ from libc.math cimport pow, log, exp
 from libc.stdio cimport printf
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import betaln
-from .distributions cimport *
 from scipy.stats import binom
 
 

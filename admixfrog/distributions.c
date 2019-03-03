@@ -6,7 +6,7 @@
         "depends": [],
         "name": "admixfrog.distributions",
         "sources": [
-            "admixfrog/distributions.pyx"
+            "/mnt/expressions/bpeter/admixfrog/src/admixfrog/admixfrog/distributions.pyx"
         ]
     },
     "module_name": "admixfrog.distributions"
@@ -837,7 +837,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "admixfrog/distributions.pyx",
+  "distributions.pyx",
   "stringsource",
 };
 /* MemviewSliceStruct.proto */
@@ -1794,7 +1794,7 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static void __pyx_f_9admixfrog_13distributions__gt_homo_dist(__Pyx_memviewslice, __Pyx_memviewslice, double, long, __Pyx_memviewslice); /*proto*/
+static void __pyx_f_9admixfrog_13distributions__gt_homo_dist_tau(__Pyx_memviewslice, __Pyx_memviewslice, double, double, long, __Pyx_memviewslice); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -1851,6 +1851,7 @@ static const char __pyx_k_id[] = "id";
 static const char __pyx_k_new[] = "__new__";
 static const char __pyx_k_obj[] = "obj";
 static const char __pyx_k_res[] = "res";
+static const char __pyx_k_tau[] = "tau";
 static const char __pyx_k_base[] = "base";
 static const char __pyx_k_dict[] = "__dict__";
 static const char __pyx_k_main[] = "__main__";
@@ -1906,6 +1907,7 @@ static const char __pyx_k_allocate_buffer[] = "allocate_buffer";
 static const char __pyx_k_dtype_is_object[] = "dtype_is_object";
 static const char __pyx_k_pyx_PickleError[] = "__pyx_PickleError";
 static const char __pyx_k_setstate_cython[] = "__setstate_cython__";
+static const char __pyx_k_distributions_pyx[] = "distributions.pyx";
 static const char __pyx_k_pyx_unpickle_Enum[] = "__pyx_unpickle_Enum";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_strided_and_direct[] = "<strided and direct>";
@@ -1917,7 +1919,6 @@ static const char __pyx_k_admixfrog_distributions[] = "admixfrog.distributions";
 static const char __pyx_k_contiguous_and_indirect[] = "<contiguous and indirect>";
 static const char __pyx_k_Cannot_index_with_type_s[] = "Cannot index with type '%s'";
 static const char __pyx_k_Invalid_shape_in_axis_d_d[] = "Invalid shape in axis %d: %d.";
-static const char __pyx_k_admixfrog_distributions_pyx[] = "admixfrog/distributions.pyx";
 static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cython.array";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
@@ -1960,7 +1961,6 @@ static PyObject *__pyx_n_s_ValueError;
 static PyObject *__pyx_n_s_View_MemoryView;
 static PyObject *__pyx_n_s_a;
 static PyObject *__pyx_n_s_admixfrog_distributions;
-static PyObject *__pyx_kp_s_admixfrog_distributions_pyx;
 static PyObject *__pyx_n_s_allocate_buffer;
 static PyObject *__pyx_n_s_b;
 static PyObject *__pyx_n_s_base;
@@ -1971,6 +1971,7 @@ static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_kp_s_contiguous_and_direct;
 static PyObject *__pyx_kp_s_contiguous_and_indirect;
 static PyObject *__pyx_n_s_dict;
+static PyObject *__pyx_kp_s_distributions_pyx;
 static PyObject *__pyx_n_s_dtype_is_object;
 static PyObject *__pyx_n_s_encode;
 static PyObject *__pyx_n_s_enumerate;
@@ -2023,12 +2024,13 @@ static PyObject *__pyx_kp_s_strided_and_direct_or_indirect;
 static PyObject *__pyx_kp_s_strided_and_indirect;
 static PyObject *__pyx_kp_s_stringsource;
 static PyObject *__pyx_n_s_struct;
+static PyObject *__pyx_n_s_tau;
 static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_kp_s_unable_to_allocate_array_data;
 static PyObject *__pyx_kp_s_unable_to_allocate_shape_and_str;
 static PyObject *__pyx_n_s_unpack;
 static PyObject *__pyx_n_s_update;
-static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_dist(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_a, __Pyx_memviewslice __pyx_v_b, double __pyx_v_F, long __pyx_v_n_snps, __Pyx_memviewslice __pyx_v_res); /* proto */
+static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_dist(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_a, __Pyx_memviewslice __pyx_v_b, double __pyx_v_F, double __pyx_v_tau, long __pyx_v_n_snps, __Pyx_memviewslice __pyx_v_res); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __pyx_array_obj *__pyx_v_self, PyObject *__pyx_v_shape, Py_ssize_t __pyx_v_itemsize, PyObject *__pyx_v_format, PyObject *__pyx_v_mode, int __pyx_v_allocate_buffer); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array_2__getbuffer__(struct __pyx_array_obj *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_array___pyx_pf_15View_dot_MemoryView_5array_4__dealloc__(struct __pyx_array_obj *__pyx_v_self); /* proto */
@@ -2124,7 +2126,7 @@ static double __pyx_f_9admixfrog_13distributions_dbinom_single(int __pyx_v_k, in
  * cdef double dbinom_single(int k, int N, double p) nogil:
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)             # <<<<<<<<<<<<<<
  * 
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):
  */
   __pyx_r = ((__pyx_f_5scipy_7special_14cython_special_binom(__pyx_v_N, __pyx_v_k, 0) * pow(__pyx_v_p, __pyx_v_k)) * pow((1. - __pyx_v_p), (__pyx_v_N - __pyx_v_k)));
   goto __pyx_L0;
@@ -2145,8 +2147,8 @@ static double __pyx_f_9admixfrog_13distributions_dbinom_single(int __pyx_v_k, in
 /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
- *     _gt_homo_dist(a, b, F, n_snps, res)
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
+ *     _gt_homo_dist_tau(a, b, F, tau, n_snps, res)
  * cdef void _gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
  */
 
@@ -2157,18 +2159,21 @@ static PyObject *__pyx_pw_9admixfrog_13distributions_1gt_homo_dist(PyObject *__p
   __Pyx_memviewslice __pyx_v_a = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_b = { 0, 0, { 0 }, { 0 }, { 0 } };
   double __pyx_v_F;
+  double __pyx_v_tau;
   long __pyx_v_n_snps;
   __Pyx_memviewslice __pyx_v_res = { 0, 0, { 0 }, { 0 }, { 0 } };
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("gt_homo_dist (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_a,&__pyx_n_s_b,&__pyx_n_s_F,&__pyx_n_s_n_snps,&__pyx_n_s_res,0};
-    PyObject* values[5] = {0,0,0,0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_a,&__pyx_n_s_b,&__pyx_n_s_F,&__pyx_n_s_tau,&__pyx_n_s_n_snps,&__pyx_n_s_res,0};
+    PyObject* values[6] = {0,0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+        CYTHON_FALLTHROUGH;
         case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
         CYTHON_FALLTHROUGH;
         case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
@@ -2191,31 +2196,37 @@ static PyObject *__pyx_pw_9admixfrog_13distributions_1gt_homo_dist(PyObject *__p
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_b)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 5, 5, 1); __PYX_ERR(0, 14, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 6, 6, 1); __PYX_ERR(0, 14, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_F)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 5, 5, 2); __PYX_ERR(0, 14, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 6, 6, 2); __PYX_ERR(0, 14, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
-        if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_n_snps)) != 0)) kw_args--;
+        if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_tau)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 5, 5, 3); __PYX_ERR(0, 14, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 6, 6, 3); __PYX_ERR(0, 14, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
-        if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_res)) != 0)) kw_args--;
+        if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_n_snps)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 5, 5, 4); __PYX_ERR(0, 14, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 6, 6, 4); __PYX_ERR(0, 14, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  5:
+        if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_res)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 6, 6, 5); __PYX_ERR(0, 14, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "gt_homo_dist") < 0)) __PYX_ERR(0, 14, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 5) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -2223,47 +2234,49 @@ static PyObject *__pyx_pw_9admixfrog_13distributions_1gt_homo_dist(PyObject *__p
       values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
       values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
       values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+      values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
     }
     __pyx_v_a = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_a.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
     __pyx_v_b = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_b.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
     __pyx_v_F = __pyx_PyFloat_AsDouble(values[2]); if (unlikely((__pyx_v_F == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
-    __pyx_v_n_snps = __Pyx_PyInt_As_long(values[3]); if (unlikely((__pyx_v_n_snps == (long)-1) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
-    __pyx_v_res = __Pyx_PyObject_to_MemoryviewSlice_dsds_double(values[4], PyBUF_WRITABLE); if (unlikely(!__pyx_v_res.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
+    __pyx_v_tau = __pyx_PyFloat_AsDouble(values[3]); if (unlikely((__pyx_v_tau == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
+    __pyx_v_n_snps = __Pyx_PyInt_As_long(values[4]); if (unlikely((__pyx_v_n_snps == (long)-1) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
+    __pyx_v_res = __Pyx_PyObject_to_MemoryviewSlice_dsds_double(values[5], PyBUF_WRITABLE); if (unlikely(!__pyx_v_res.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 14, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("gt_homo_dist", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 14, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("admixfrog.distributions.gt_homo_dist", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9admixfrog_13distributions_gt_homo_dist(__pyx_self, __pyx_v_a, __pyx_v_b, __pyx_v_F, __pyx_v_n_snps, __pyx_v_res);
+  __pyx_r = __pyx_pf_9admixfrog_13distributions_gt_homo_dist(__pyx_self, __pyx_v_a, __pyx_v_b, __pyx_v_F, __pyx_v_tau, __pyx_v_n_snps, __pyx_v_res);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_dist(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_a, __Pyx_memviewslice __pyx_v_b, double __pyx_v_F, long __pyx_v_n_snps, __Pyx_memviewslice __pyx_v_res) {
+static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_dist(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_a, __Pyx_memviewslice __pyx_v_b, double __pyx_v_F, double __pyx_v_tau, long __pyx_v_n_snps, __Pyx_memviewslice __pyx_v_res) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("gt_homo_dist", 0);
 
   /* "admixfrog/distributions.pyx":15
  * 
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
- *     _gt_homo_dist(a, b, F, n_snps, res)             # <<<<<<<<<<<<<<
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):
+ *     _gt_homo_dist_tau(a, b, F, tau, n_snps, res)             # <<<<<<<<<<<<<<
  * cdef void _gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
  *     cdef long i, g
  */
-  __pyx_f_9admixfrog_13distributions__gt_homo_dist(__pyx_v_a, __pyx_v_b, __pyx_v_F, __pyx_v_n_snps, __pyx_v_res);
+  __pyx_f_9admixfrog_13distributions__gt_homo_dist_tau(__pyx_v_a, __pyx_v_b, __pyx_v_F, __pyx_v_tau, __pyx_v_n_snps, __pyx_v_res);
 
   /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
- *     _gt_homo_dist(a, b, F, n_snps, res)
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
+ *     _gt_homo_dist_tau(a, b, F, tau, n_snps, res)
  * cdef void _gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
  */
 
@@ -2278,8 +2291,8 @@ static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_dist(CYTHON_UNUSED 
 }
 
 /* "admixfrog/distributions.pyx":16
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
- *     _gt_homo_dist(a, b, F, n_snps, res)
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):
+ *     _gt_homo_dist_tau(a, b, F, tau, n_snps, res)
  * cdef void _gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
  *     cdef long i, g
  *     for i in range(n_snps):
@@ -2380,6 +2393,7 @@ static void __pyx_f_9admixfrog_13distributions__gt_homo_dist(__Pyx_memviewslice 
  *         res[i, 2] =  (a[i]*a[i] + a[i] + a[i]*b[i]*F) / (a[i] + b[i]) / (a[i] + b[i] + 1)
  *         res[i, 1] =  (2.*a[i]*b[i]*(1-F)) / (a[i] + b[i]) / (a[i] + b[i] + 1)             # <<<<<<<<<<<<<<
  * 
+ * cdef void _gt_homo_dist_tau(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):
  */
     __pyx_t_26 = __pyx_v_i;
     __pyx_t_27 = __pyx_v_i;
@@ -2393,9 +2407,132 @@ static void __pyx_f_9admixfrog_13distributions__gt_homo_dist(__Pyx_memviewslice 
   }
 
   /* "admixfrog/distributions.pyx":16
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
- *     _gt_homo_dist(a, b, F, n_snps, res)
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):
+ *     _gt_homo_dist_tau(a, b, F, tau, n_snps, res)
  * cdef void _gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
+ *     cdef long i, g
+ *     for i in range(n_snps):
+ */
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+}
+
+/* "admixfrog/distributions.pyx":23
+ *         res[i, 1] =  (2.*a[i]*b[i]*(1-F)) / (a[i] + b[i]) / (a[i] + b[i] + 1)
+ * 
+ * cdef void _gt_homo_dist_tau(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
+ *     cdef long i, g
+ *     for i in range(n_snps):
+ */
+
+static void __pyx_f_9admixfrog_13distributions__gt_homo_dist_tau(__Pyx_memviewslice __pyx_v_a, __Pyx_memviewslice __pyx_v_b, double __pyx_v_F, double __pyx_v_tau, long __pyx_v_n_snps, __Pyx_memviewslice __pyx_v_res) {
+  long __pyx_v_i;
+  __Pyx_RefNannyDeclarations
+  long __pyx_t_1;
+  long __pyx_t_2;
+  long __pyx_t_3;
+  Py_ssize_t __pyx_t_4;
+  Py_ssize_t __pyx_t_5;
+  Py_ssize_t __pyx_t_6;
+  Py_ssize_t __pyx_t_7;
+  Py_ssize_t __pyx_t_8;
+  Py_ssize_t __pyx_t_9;
+  Py_ssize_t __pyx_t_10;
+  Py_ssize_t __pyx_t_11;
+  Py_ssize_t __pyx_t_12;
+  Py_ssize_t __pyx_t_13;
+  Py_ssize_t __pyx_t_14;
+  Py_ssize_t __pyx_t_15;
+  Py_ssize_t __pyx_t_16;
+  Py_ssize_t __pyx_t_17;
+  Py_ssize_t __pyx_t_18;
+  Py_ssize_t __pyx_t_19;
+  Py_ssize_t __pyx_t_20;
+  Py_ssize_t __pyx_t_21;
+  Py_ssize_t __pyx_t_22;
+  Py_ssize_t __pyx_t_23;
+  Py_ssize_t __pyx_t_24;
+  Py_ssize_t __pyx_t_25;
+  Py_ssize_t __pyx_t_26;
+  Py_ssize_t __pyx_t_27;
+  Py_ssize_t __pyx_t_28;
+  Py_ssize_t __pyx_t_29;
+  Py_ssize_t __pyx_t_30;
+  Py_ssize_t __pyx_t_31;
+  __Pyx_RefNannySetupContext("_gt_homo_dist_tau", 0);
+
+  /* "admixfrog/distributions.pyx":25
+ * cdef void _gt_homo_dist_tau(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):
+ *     cdef long i, g
+ *     for i in range(n_snps):             # <<<<<<<<<<<<<<
+ *         res[i, 0] =  (b[i]*b[i]*tau + b[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)
+ *         res[i, 2] =  (a[i]*a[i]*tau + a[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)
+ */
+  __pyx_t_1 = __pyx_v_n_snps;
+  __pyx_t_2 = __pyx_t_1;
+  for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
+    __pyx_v_i = __pyx_t_3;
+
+    /* "admixfrog/distributions.pyx":26
+ *     cdef long i, g
+ *     for i in range(n_snps):
+ *         res[i, 0] =  (b[i]*b[i]*tau + b[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)             # <<<<<<<<<<<<<<
+ *         res[i, 2] =  (a[i]*a[i]*tau + a[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)
+ *         res[i, 1] =  1 - res[i, 0] - res[i, 2] #(2.*a[i]*b[i]*(1-F) * (1-tau)) / (a[i] + b[i]) / (a[i] + b[i] + 1)
+ */
+    __pyx_t_4 = __pyx_v_i;
+    __pyx_t_5 = __pyx_v_i;
+    __pyx_t_6 = __pyx_v_i;
+    __pyx_t_7 = __pyx_v_i;
+    __pyx_t_8 = __pyx_v_i;
+    __pyx_t_9 = __pyx_v_i;
+    __pyx_t_10 = __pyx_v_i;
+    __pyx_t_11 = __pyx_v_i;
+    __pyx_t_12 = __pyx_v_i;
+    __pyx_t_13 = __pyx_v_i;
+    __pyx_t_14 = 0;
+    *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_res.data + __pyx_t_13 * __pyx_v_res.strides[0]) ) + __pyx_t_14 * __pyx_v_res.strides[1]) )) = (((((((*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_4 * __pyx_v_b.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_5 * __pyx_v_b.strides[0]) )))) * __pyx_v_tau) + (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_6 * __pyx_v_b.strides[0]) )))) + ((((*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_7 * __pyx_v_a.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_8 * __pyx_v_b.strides[0]) )))) * __pyx_v_F) * __pyx_v_tau)) / ((*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_9 * __pyx_v_a.strides[0]) ))) + (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_10 * __pyx_v_b.strides[0]) ))))) / (((__pyx_v_tau * (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_11 * __pyx_v_a.strides[0]) )))) + (__pyx_v_tau * (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_12 * __pyx_v_b.strides[0]) ))))) + 1.0));
+
+    /* "admixfrog/distributions.pyx":27
+ *     for i in range(n_snps):
+ *         res[i, 0] =  (b[i]*b[i]*tau + b[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)
+ *         res[i, 2] =  (a[i]*a[i]*tau + a[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)             # <<<<<<<<<<<<<<
+ *         res[i, 1] =  1 - res[i, 0] - res[i, 2] #(2.*a[i]*b[i]*(1-F) * (1-tau)) / (a[i] + b[i]) / (a[i] + b[i] + 1)
+ * 
+ */
+    __pyx_t_15 = __pyx_v_i;
+    __pyx_t_16 = __pyx_v_i;
+    __pyx_t_17 = __pyx_v_i;
+    __pyx_t_18 = __pyx_v_i;
+    __pyx_t_19 = __pyx_v_i;
+    __pyx_t_20 = __pyx_v_i;
+    __pyx_t_21 = __pyx_v_i;
+    __pyx_t_22 = __pyx_v_i;
+    __pyx_t_23 = __pyx_v_i;
+    __pyx_t_24 = __pyx_v_i;
+    __pyx_t_25 = 2;
+    *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_res.data + __pyx_t_24 * __pyx_v_res.strides[0]) ) + __pyx_t_25 * __pyx_v_res.strides[1]) )) = (((((((*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_15 * __pyx_v_a.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_16 * __pyx_v_a.strides[0]) )))) * __pyx_v_tau) + (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_17 * __pyx_v_a.strides[0]) )))) + ((((*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_18 * __pyx_v_a.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_19 * __pyx_v_b.strides[0]) )))) * __pyx_v_F) * __pyx_v_tau)) / ((*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_20 * __pyx_v_a.strides[0]) ))) + (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_21 * __pyx_v_b.strides[0]) ))))) / (((__pyx_v_tau * (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_22 * __pyx_v_a.strides[0]) )))) + (__pyx_v_tau * (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_23 * __pyx_v_b.strides[0]) ))))) + 1.0));
+
+    /* "admixfrog/distributions.pyx":28
+ *         res[i, 0] =  (b[i]*b[i]*tau + b[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)
+ *         res[i, 2] =  (a[i]*a[i]*tau + a[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)
+ *         res[i, 1] =  1 - res[i, 0] - res[i, 2] #(2.*a[i]*b[i]*(1-F) * (1-tau)) / (a[i] + b[i]) / (a[i] + b[i] + 1)             # <<<<<<<<<<<<<<
+ * 
+ */
+    __pyx_t_26 = __pyx_v_i;
+    __pyx_t_27 = 0;
+    __pyx_t_28 = __pyx_v_i;
+    __pyx_t_29 = 2;
+    __pyx_t_30 = __pyx_v_i;
+    __pyx_t_31 = 1;
+    *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_res.data + __pyx_t_30 * __pyx_v_res.strides[0]) ) + __pyx_t_31 * __pyx_v_res.strides[1]) )) = ((1.0 - (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_res.data + __pyx_t_26 * __pyx_v_res.strides[0]) ) + __pyx_t_27 * __pyx_v_res.strides[1]) )))) - (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_res.data + __pyx_t_28 * __pyx_v_res.strides[0]) ) + __pyx_t_29 * __pyx_v_res.strides[1]) ))));
+  }
+
+  /* "admixfrog/distributions.pyx":23
+ *         res[i, 1] =  (2.*a[i]*b[i]*(1-F)) / (a[i] + b[i]) / (a[i] + b[i] + 1)
+ * 
+ * cdef void _gt_homo_dist_tau(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
  *     cdef long i, g
  *     for i in range(n_snps):
  */
@@ -15921,7 +16058,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_View_MemoryView, __pyx_k_View_MemoryView, sizeof(__pyx_k_View_MemoryView), 0, 0, 1, 1},
   {&__pyx_n_s_a, __pyx_k_a, sizeof(__pyx_k_a), 0, 0, 1, 1},
   {&__pyx_n_s_admixfrog_distributions, __pyx_k_admixfrog_distributions, sizeof(__pyx_k_admixfrog_distributions), 0, 0, 1, 1},
-  {&__pyx_kp_s_admixfrog_distributions_pyx, __pyx_k_admixfrog_distributions_pyx, sizeof(__pyx_k_admixfrog_distributions_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_allocate_buffer, __pyx_k_allocate_buffer, sizeof(__pyx_k_allocate_buffer), 0, 0, 1, 1},
   {&__pyx_n_s_b, __pyx_k_b, sizeof(__pyx_k_b), 0, 0, 1, 1},
   {&__pyx_n_s_base, __pyx_k_base, sizeof(__pyx_k_base), 0, 0, 1, 1},
@@ -15932,6 +16068,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_contiguous_and_direct, __pyx_k_contiguous_and_direct, sizeof(__pyx_k_contiguous_and_direct), 0, 0, 1, 0},
   {&__pyx_kp_s_contiguous_and_indirect, __pyx_k_contiguous_and_indirect, sizeof(__pyx_k_contiguous_and_indirect), 0, 0, 1, 0},
   {&__pyx_n_s_dict, __pyx_k_dict, sizeof(__pyx_k_dict), 0, 0, 1, 1},
+  {&__pyx_kp_s_distributions_pyx, __pyx_k_distributions_pyx, sizeof(__pyx_k_distributions_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_dtype_is_object, __pyx_k_dtype_is_object, sizeof(__pyx_k_dtype_is_object), 0, 0, 1, 1},
   {&__pyx_n_s_encode, __pyx_k_encode, sizeof(__pyx_k_encode), 0, 0, 1, 1},
   {&__pyx_n_s_enumerate, __pyx_k_enumerate, sizeof(__pyx_k_enumerate), 0, 0, 1, 1},
@@ -15984,6 +16121,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_strided_and_indirect, __pyx_k_strided_and_indirect, sizeof(__pyx_k_strided_and_indirect), 0, 0, 1, 0},
   {&__pyx_kp_s_stringsource, __pyx_k_stringsource, sizeof(__pyx_k_stringsource), 0, 0, 1, 0},
   {&__pyx_n_s_struct, __pyx_k_struct, sizeof(__pyx_k_struct), 0, 0, 1, 1},
+  {&__pyx_n_s_tau, __pyx_k_tau, sizeof(__pyx_k_tau), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
   {&__pyx_kp_s_unable_to_allocate_array_data, __pyx_k_unable_to_allocate_array_data, sizeof(__pyx_k_unable_to_allocate_array_data), 0, 0, 1, 0},
   {&__pyx_kp_s_unable_to_allocate_shape_and_str, __pyx_k_unable_to_allocate_shape_and_str, sizeof(__pyx_k_unable_to_allocate_shape_and_str), 0, 0, 1, 0},
@@ -16204,14 +16342,14 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
- *     _gt_homo_dist(a, b, F, n_snps, res)
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
+ *     _gt_homo_dist_tau(a, b, F, tau, n_snps, res)
  * cdef void _gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
  */
-  __pyx_tuple__19 = PyTuple_Pack(5, __pyx_n_s_a, __pyx_n_s_b, __pyx_n_s_F, __pyx_n_s_n_snps, __pyx_n_s_res); if (unlikely(!__pyx_tuple__19)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_tuple__19 = PyTuple_Pack(6, __pyx_n_s_a, __pyx_n_s_b, __pyx_n_s_F, __pyx_n_s_tau, __pyx_n_s_n_snps, __pyx_n_s_res); if (unlikely(!__pyx_tuple__19)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__19);
   __Pyx_GIVEREF(__pyx_tuple__19);
-  __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(5, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_admixfrog_distributions_pyx, __pyx_n_s_gt_homo_dist, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(6, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_distributions_pyx, __pyx_n_s_gt_homo_dist, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) __PYX_ERR(0, 14, __pyx_L1_error)
 
   /* "View.MemoryView":286
  *         return self.name
@@ -16624,8 +16762,8 @@ if (!__Pyx_RefNanny) {
   /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
- *     _gt_homo_dist(a, b, F, n_snps, res)
+ * def gt_homo_dist(double[:] a, double[:] b, double F, double tau, long n_snps, double[:, :] res):             # <<<<<<<<<<<<<<
+ *     _gt_homo_dist_tau(a, b, F, tau, n_snps, res)
  * cdef void _gt_homo_dist(double[:] a, double[:] b, double F, long n_snps, double[:, :] res):
  */
   __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9admixfrog_13distributions_1gt_homo_dist, NULL, __pyx_n_s_admixfrog_distributions); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 14, __pyx_L1_error)

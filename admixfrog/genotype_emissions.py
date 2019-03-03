@@ -51,7 +51,7 @@ def _p_gt_homo(s, P, F, res=None):
     """
     n_snps = P.alpha.shape[0]
     gt = np.ones((n_snps, 3)) if res is None else res
-    gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, n_snps=n_snps, res=gt)
+    gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, tau=1., n_snps=n_snps, res=gt)
     try:
         assert np.allclose(np.sum(gt, 1), 1)
     except AssertionError:

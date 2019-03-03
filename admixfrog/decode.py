@@ -146,7 +146,7 @@ def pred_sims_rep(trans, emissions, beta, alpha0, n, n_homo, decode=True, haploi
     if decode:
         runs = decode_runs(seq, n_homo, n_states - n_homo, haploid)
     else:
-        runs = decode_runs_single(seq, n_states=max(seq)+1)
+        runs = decode_runs_single(seq, n_states=np.max(seq)+1)
     return runs
 
 
