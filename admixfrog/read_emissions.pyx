@@ -23,8 +23,7 @@ cdef double get_po_given_c(
     long [:] O,
     long [:] N,
     double [:] P_cont,
-    double [:, :] Z,
-    double [:, :, :] pg,
+    double [:, :, :] PG,
     long [:] rg2obs,
     long [:] obs2snp
     ) :
@@ -34,7 +33,7 @@ cdef double get_po_given_c(
     cdef double p,  ll = 0.
 
     n_obs = len(rg2obs) 
-    n_states = pg.shape[1]
+    n_states = PG.shape[1]
     for i in range(n_obs):
         obs = rg2obs[i]
         snp = obs2snp[obs]
@@ -43,7 +42,7 @@ cdef double get_po_given_c(
             p = p * (1-e) + (1-p) * e
             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
             for s in range(n_states):
-                ll += pg[snp, s, g] * p
+                ll += PG[snp, s, g] * p
     return ll
 
 def update_contamination(cont, error, P, PG, IX, libs):

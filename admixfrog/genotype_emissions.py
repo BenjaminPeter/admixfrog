@@ -92,13 +92,16 @@ def update_post_geno(PG, SNP, Z, IX):
     """
     PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
-    PG[np.isnan(PG)] = 0 #1.0 / 3. / Z.shape[1]
+    PG[np.isnan(PG)] = 0. # 1.0 / 3. / Z.shape[1]
+    PG = np.minimum(np.maximum(PG, 0), 1)  # rounding error
+    try:
+        assert np.all(PG >= 0)
+        assert np.all(PG <= 1)
+        assert np.allclose(np.sum(PG, (1, 2)), 1)
+    except AssertionError:
+        pdb.set_trace()
 
-    assert np.all(PG >= 0)
-    assert np.all(PG <= 1)
-    assert np.allclose(np.sum(PG, (1, 2)), 1)
-
-    return np.minimum(np.maximum(PG, 0), 1)  # rounding error
+    return  PG
 
 
 def update_F(F, Z, PG, P, IX):
