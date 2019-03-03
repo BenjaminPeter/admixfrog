@@ -111,9 +111,10 @@ def read2snp_emissions(read_emissions, n_snps, ix):
     return snp_emissions
 
 
-def p_snps_given_gt(P, c, error, n_snps, ix):
+def p_snps_given_gt(P, c, error, n_snps, IX):
     """calculates probabilty of anc/derived reads given genotype
     """
     n_obs = P.O.shape[0]
     read_emissions = p_reads_given_gt(P.O, P.N, P.P_cont, c, error, n_obs)
-    return read2snp_emissions(read_emissions, n_snps, ix)
+    read_emissions[IX.HAPSNP, 1] = 0.0
+    return read2snp_emissions(read_emissions, n_snps, IX.OBS2SNP)
