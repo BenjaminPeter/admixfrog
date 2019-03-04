@@ -25,7 +25,7 @@ def baum_welch(
     est_F=True,
     freq_contamination=1,
     freq_F=1,
-    haploid=False
+    est_inbreeding=False
 ):
     n_gt = 3
 
@@ -44,14 +44,25 @@ def baum_welch(
     PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
 
     gamma, emissions = [], []
+    hap_gamma, hap_emissions = [], []
     row0 = 0
-    for r in IX.bin_sizes:
-        gamma.append(Z[row0 : (row0 + r)])
-        emissions.append(E[row0 : (row0 + r)])
-        row0 += r
+    if True:
+        for r in IX.bin_sizes:
+            gamma.append(Z[row0 : (row0 + r)])
+            emissions.append(E[row0 : (row0 + r)])
+            row0 += r
+    else:
+        for r, is_hap in zip(IX.bin_sizes, IX.ishap):
+            if is_hap:
+                hap_gamma.append(Z[row0 : (row0 + r)])
+                hap_emissions.append(E[row0 : (row0 + r)])
+            else:
+                gamma.append(Z[row0 : (row0 + r)])
+                emissions.append(E[row0 : (row0 + r)])
+            row0 += r
 
-    update_snp_prob(SNP, P, IX, cont, error, F, haploid)  # P(O, G | Z)
-    e_scaling = update_emissions(E, SNP, P, IX, haploid)  # P(O | Z)
+    update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding)  # P(O, G | Z)
+    e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding)  # P(O | Z)
 
     for it in range(max_iter):
 
@@ -90,7 +101,7 @@ def baum_welch(
 
         # update stuff
         trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions,
-                                       n, sex, haploid)
+                                       n, sex, est_inbreeding=est_inbreeding)
         alpha0 = np.linalg.matrix_power(trans_mat, 10000)[0]
 
         if gamma_names is not None:
@@ -115,8 +126,8 @@ def baum_welch(
                 est_F, cond_F = False, False
                 print("stopping F updates")
         if cond_F or cond_cont:
-            update_snp_prob(SNP, P, IX, cont, error, F, haploid)  # P(O, G | Z)
-            e_scaling = update_emissions(E, SNP, P, IX, haploid)  # P(O | Z)
+            update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding=est_inbreeding)  # P(O, G | Z)
+            e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding=est_inbreeding)  # P(O | Z)
             print("e-scaling:", e_scaling)
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
@@ -141,7 +152,7 @@ def run_admixfrog(
     c0=1e-2,
     run_penalty=0.9,
     n_post_replicates=100,
-    haploid=False,
+    est_inbreeding=False,
     **kwargs
 ):
 
@@ -185,12 +196,12 @@ def run_admixfrog(
     assert ref.shape[0] == P.alpha.shape[0]
     del ref
 
-    pars = init_pars(state_ids, sex, F0, e0, c0, haploid)
+    pars = init_pars(state_ids, sex, F0, e0, c0, est_inbreeding)
     print(pars.alpha0)
     print("done loading data")
 
     Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(P, IX, pars,
-                                                        haploid=haploid, **kwargs)
+                                                        est_inbreeding=est_inbreeding, **kwargs)
 
     pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
 
@@ -204,7 +215,7 @@ def run_admixfrog(
         n=n,
         n_homo=len(state_ids),
         n_sims=n_post_replicates,
-        haploid=haploid
+        est_inbreeding=est_inbreeding
     )
 
     # output formating from here

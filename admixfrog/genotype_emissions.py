@@ -13,7 +13,7 @@ def snp2bin(e_out, e_in, ix):
         e_out[row] *= e_in[i]
 
 
-def update_emissions(E, SNP, P, IX, haploid=False, bad_bin_cutoff=1e-150):
+def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150):
     """main function to calculate emission probabilities
 
     """
@@ -28,7 +28,7 @@ def update_emissions(E, SNP, P, IX, haploid=False, bad_bin_cutoff=1e-150):
 
     E[:] = 1  # reset
     snp2bin(E, snp_emissions, IX.SNP2BIN)
-    if not haploid:
+    if not est_inbreeding:
         E[IX.HAPBIN, n_homo_states:] = 0
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
@@ -148,34 +148,25 @@ def update_F(F, PG, P, IX):
     return delta
 
 
-def update_snp_prob(SNP, P, IX, cont, error, F, haploid=False):
+def update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding=False):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
     """
-    n_homo = len(F)
     n_snps = P.alpha.shape[0]
     cflat = np.array([cont[lib] for lib in P.lib])
 
     # get P(O | G)
     # save in the same array as SNP - size is the same, and
     # we do not need to allocate more memory
-    update_geno_emissions(SNP, P, IX, F, n_states=SNP.shape[1], haploid=haploid)
+    update_geno_emissions(SNP, P, IX, F, n_states=SNP.shape[1], est_inbreeding=est_inbreeding)
 
     # get P(G | Z)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
 
     SNP *= ll_snp[:, np.newaxis, :]
 
-    # haploidize x chrom
-    if not haploid:
-        s = n_homo
-        for s1 in range(n_homo):
-            for s2 in range(s1 + 1, n_homo):
-                SNP[IX.HAPSNP, s] = 0
-                s += 1
 
-
-def update_geno_emissions(GT, P, IX, F, n_states, haploid=False):
+def update_geno_emissions(GT, P, IX, F, n_states, est_inbreeding):
     """P(G | Z) for each SNP
     build table giving the probabilities of P(G | Z)
     """
@@ -198,7 +189,7 @@ def update_geno_emissions(GT, P, IX, F, n_states, haploid=False):
                 res=GT[:, s, :],
             )
 
-    if haploid:
+    if est_inbreeding:
         for i in range(n_homo_states):
             _p_gt_hap(P.alpha[:, i], P.beta[:, i], res=GT[:, s+i+1, :])
 
@@ -207,7 +198,7 @@ def update_geno_emissions(GT, P, IX, F, n_states, haploid=False):
     except AssertionError:
         pdb.set_trace()
 
-    if not haploid:
+    if not est_inbreeding:
         GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
         GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
         for s in range(n_homo_states):

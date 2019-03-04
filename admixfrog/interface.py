@@ -293,7 +293,7 @@ def run():
         """,
     )
     parser.add_argument(
-        "--haploid", "--allow-haploid", "-H",
+        "--est-inbreeding", "-I",
         default=False,
         action="store_true",
         help="""allow  haploid (i.e. inbreed) stretches"""

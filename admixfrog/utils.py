@@ -153,14 +153,14 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     return bins, IX  # , data_bin
 
 
-def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2, haploid=False):
+def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2, est_inbreeding=False):
     homo = [s for s in state_ids]
     het = []
     for i, s in enumerate(state_ids):
         for s2 in state_ids[i + 1 :]:
             het.append(s + s2)
     gamma_names = homo + het
-    if haploid:
+    if est_inbreeding:
         gamma_names.extend(["h%s" % s for s in homo])
 
     n_states = len(gamma_names)
@@ -246,8 +246,8 @@ def load_data(infile, split_lib=True, downsample=1):
     return data
 
 
-def posterior_table(pg, Z, IX, haploid=False):
-    freq = np.array([0, 1, 2, 0, 1]) if haploid else np.arange(3)
+def posterior_table(pg, Z, IX, est_inbreeding=False):
+    freq = np.array([0, 1, 2, 0, 1]) if est_inbreeding else np.arange(3)
     PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
     mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
     PG = np.log10(PG + 1e-40)
