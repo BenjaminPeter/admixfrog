@@ -8,7 +8,7 @@ from .utils import posterior_table, load_data, load_ref
 from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
-from .genotype_emissions import update_emissions
+from .genotype_emissions import update_emissions, update_Ftau
 from .rle import get_rle
 from .decode import pred_sims
 
@@ -29,7 +29,7 @@ def baum_welch(
 ):
     n_gt = 3
 
-    alpha0, trans_mat, cont, error, F, gamma_names, sex = pars
+    alpha0, trans_mat, cont, error, F, tau, gamma_names, sex = pars
 
     libs = np.unique(P.lib)
     ll = -np.inf
@@ -61,7 +61,7 @@ def baum_welch(
                 emissions.append(E[row0 : (row0 + r)])
             row0 += r
 
-    update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding)  # P(O, G | Z)
+    update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding)  # P(O, G | Z)
     e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding)  # P(O | Z)
 
     for it in range(max_iter):
@@ -121,16 +121,16 @@ def baum_welch(
                 print("stopping contamination updates")
         if cond_F:
             # need P(G, Z | O') =  P(Z| O') P(G | Z, O')
-            delta = update_F(F, PG, P, IX)
+            delta = update_Ftau(F, tau, PG, P, IX)
             if delta < 1e-5:  # when we converged, do not update F
                 est_F, cond_F = False, False
                 print("stopping F updates")
         if cond_F or cond_cont:
-            update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding=est_inbreeding)  # P(O, G | Z)
+            update_snp_prob(SNP, P, IX, cont, error, F, tau,  est_inbreeding=est_inbreeding)  # P(O, G | Z)
             e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding=est_inbreeding)  # P(O | Z)
             print("e-scaling:", e_scaling)
 
-    pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
+    pars = Pars(alpha0, trans_mat, dict(cont), error, F, tau, gamma_names, sex)
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
 
@@ -150,6 +150,7 @@ def run_admixfrog(
     F0=0,
     e0=1e-2,
     c0=1e-2,
+    tau0=1,
     run_penalty=0.9,
     n_post_replicates=100,
     est_inbreeding=False,
@@ -196,7 +197,7 @@ def run_admixfrog(
     assert ref.shape[0] == P.alpha.shape[0]
     del ref
 
-    pars = init_pars(state_ids, sex, F0, e0, c0, est_inbreeding)
+    pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding)
     print(pars.alpha0)
     print("done loading data")
 
@@ -256,9 +257,12 @@ def run_admixfrog(
     df_pars["alpha0"] = pars.alpha0
     df_pars["state"] = pars.gamma_names
     df_pars["F"] = 0
+    df_pars["tau"] = 0
     df_pars["ll"] = ll
     for i in range(len(pars.F)):
         df_pars.loc[i, "F"] = pars.F[i]
+    for i in range(len(pars.tau)):
+        df_pars.loc[i, "tau"] = pars.tau[i]
 
     df_rle = get_rle(df, state_ids, run_penalty)
 

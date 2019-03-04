@@ -43,7 +43,7 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150)
     return log_scaling
 
 
-def _p_gt_homo(s, P, F, res=None):
+def _p_gt_homo(s, P, F=0, tau=1., res=None):
     """Pr(G | Z) for homozygous hidden states
 
     the basic version of the homozygous genotype emission. Assumes
@@ -51,7 +51,7 @@ def _p_gt_homo(s, P, F, res=None):
     """
     n_snps = P.alpha.shape[0]
     gt = np.ones((n_snps, 3)) if res is None else res
-    gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, tau=1., n_snps=n_snps, res=gt)
+    gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, tau=tau, n_snps=n_snps, res=gt)
     try:
         assert np.allclose(np.sum(gt, 1), 1)
     except AssertionError:
@@ -121,13 +121,13 @@ def update_post_geno(PG, SNP, Z, IX):
     return PG
 
 
-def update_F(F, PG, P, IX):
+def update_F(F, tau, PG, P, IX):
     n_states = len(F)
     delta = 0.0
     for s in range(n_states):
 
         def f(t):
-            x = np.log(_p_gt_homo(s, P, t[0]) + 1e-10) * PG[:, s, :] 
+            x = np.log(_p_gt_homo(s, P, t[0], tau=tau[s]) + 1e-10) * PG[:, s, :] 
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -147,8 +147,35 @@ def update_F(F, PG, P, IX):
 
     return delta
 
+def update_Ftau(F, tau, PG, P, IX):
+    n_states = len(F)
+    delta = 0.0
+    for s in range(n_states):
 
-def update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding=False):
+        def f(t):
+            F, tau = t
+            x = np.log(_p_gt_homo(s, P, F, tau) + 1e-10) * PG[:, s, :] 
+            if np.isnan(np.sum(x)):
+                pdb.set_trace()
+            x[IX.HAPSNP] = 0.0
+            return -np.sum(x)
+
+        prev = f([F[s], tau[s]])
+        OO = minimize(
+            f,
+            [F[s], tau[s]],
+            bounds=[(0, 1), (0, 1)],
+            method="L-BFGS-B",
+            options=dict([("gtol", 1e-2)]),
+        )
+        print("[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun))
+        print("[%s] \tT: [%.4f->%.4f]:\t%.4f" % (s, tau[s], OO.x[1], prev - OO.fun))
+        delta += abs(F[s] - OO.x[0]) + abs(tau[s] - OO.x[1])
+        F[s], tau[s] = OO.x
+
+    return delta
+
+def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
     """
@@ -158,7 +185,7 @@ def update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding=False):
     # get P(O | G)
     # save in the same array as SNP - size is the same, and
     # we do not need to allocate more memory
-    update_geno_emissions(SNP, P, IX, F, n_states=SNP.shape[1], est_inbreeding=est_inbreeding)
+    update_geno_emissions(SNP, P, IX, F, tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding)
 
     # get P(G | Z)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
@@ -166,7 +193,7 @@ def update_snp_prob(SNP, P, IX, cont, error, F, est_inbreeding=False):
     SNP *= ll_snp[:, np.newaxis, :]
 
 
-def update_geno_emissions(GT, P, IX, F, n_states, est_inbreeding):
+def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
     """P(G | Z) for each SNP
     build table giving the probabilities of P(G | Z)
     """
@@ -176,7 +203,7 @@ def update_geno_emissions(GT, P, IX, F, n_states, est_inbreeding):
     # P(G | Z)
     for s in range(n_homo_states):
         for g in range(3):
-            _p_gt_homo(s=s, P=P, F=F[s], res=GT[:, s, :])
+            _p_gt_homo(s=s, P=P, F=F[s], tau=tau[s], res=GT[:, s, :])
 
     for s1 in range(n_homo_states):
         for s2 in range(s1 + 1, n_homo_states):

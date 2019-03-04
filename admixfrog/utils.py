@@ -5,7 +5,7 @@ from scipy.stats import binom
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
 Pars = namedtuple(
-    "Pars", ("alpha0", "trans_mat", "cont", "e0", "F", "gamma_names", "sex")
+    "Pars", ("alpha0", "trans_mat", "cont", "e0", "F", "tau", "gamma_names", "sex")
 )  # for returning from varios functions
 HAPX = (2699520, 155260560)  # start, end of haploid region on X
 
@@ -153,7 +153,7 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     return bins, IX  # , data_bin
 
 
-def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2, est_inbreeding=False):
+def init_pars(state_ids, sex=None, F0=0.001, tau0=1, e0=1e-2, c0=1e-2, est_inbreeding=False):
     homo = [s for s in state_ids]
     het = []
     for i, s in enumerate(state_ids):
@@ -179,7 +179,16 @@ def init_pars(state_ids, sex=None, F0=0.001, e0=1e-2, c0=1e-2, est_inbreeding=Fa
             F = [F0]
     except TypeError:
         F = [F0] * n_homo
-    return Pars(alpha0, trans_mat, cont, e0, F, gamma_names, sex=sex)
+    try:
+        if len(tau0) == n_homo:
+            tau = tau0
+        elif len(F0) == 1:
+            tau = tau0 * n_homo
+        else:
+            tau = [tau0]
+    except TypeError:
+        tau = [tau0] * n_homo
+    return Pars(alpha0, trans_mat, cont, e0, F, tau, gamma_names, sex=sex)
 
 
 def load_ref(
