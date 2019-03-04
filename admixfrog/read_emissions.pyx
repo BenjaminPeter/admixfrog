@@ -80,7 +80,7 @@ def update_contamination(cont, error, P, PG, IX, libs):
         #                                                           cont[lib], OO.x, p0-OO.fun))
         #cont[lib] = OO.x
         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
-        print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+        print("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
                                                                    cont[lib], OO.x[0], p0-OO.fun))
         delta += abs(cont[lib] - OO.x[0])
         cont[lib] = OO.x[0]

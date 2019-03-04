@@ -8,7 +8,7 @@ from .utils import posterior_table, load_data, load_ref
 from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
-from .genotype_emissions import update_emissions, update_Ftau
+from .genotype_emissions import update_emissions, update_Ftau, update_tau
 from .rle import get_rle
 from .decode import pred_sims
 
@@ -23,6 +23,7 @@ def baum_welch(
     ll_tol=1e-1,
     est_contamination=True,
     est_F=True,
+    est_tau=True,
     freq_contamination=1,
     freq_F=1,
     est_inbreeding=False
@@ -111,7 +112,10 @@ def baum_welch(
         # updating parameters
         cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
         cond_F = est_F and (it % freq_F == 0 or it < 3)
-        if cond_F or cond_cont:
+        cond_tau = est_tau and (it % freq_F == 0 or it < 3)
+        cond_Ftau = cond_F and cond_tau
+
+        if cond_F or cond_cont or cond_tau:
             update_post_geno(PG, SNP, Z, IX)
         if cond_cont:
             # need P(G, Z|O') =  P(Z | O') P(G | Z, O')
@@ -119,13 +123,24 @@ def baum_welch(
             if delta < 1e-5:  # when we converged, do not update contamination
                 est_contamination, cond_cont = False, False
                 print("stopping contamination updates")
-        if cond_F:
-            # need P(G, Z | O') =  P(Z| O') P(G | Z, O')
+        if cond_Ftau:
             delta = update_Ftau(F, tau, PG, P, IX)
+            if delta < 1e-5:  # when we converged, do not update F
+                est_F, est_tau = False, False
+                cond_Ftau, cond_F, cond_tau = False, False, False
+                print("stopping Ftau updates")
+        elif cond_F:
+            # need P(G, Z | O') =  P(Z| O') P(G | Z, O')
+            delta = update_F(F, tau, PG, P, IX)
             if delta < 1e-5:  # when we converged, do not update F
                 est_F, cond_F = False, False
                 print("stopping F updates")
-        if cond_F or cond_cont:
+        elif cond_tau:
+            delta = update_tau(F, tau, PG, P, IX)
+            if delta < 1e-5:  # when we converged, do not update F
+                est_tau, cond_tau = False, False
+                print("stopping F updates")
+        if cond_F or cond_cont or cond_tau:
             update_snp_prob(SNP, P, IX, cont, error, F, tau,  est_inbreeding=est_inbreeding)  # P(O, G | Z)
             e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding=est_inbreeding)  # P(O | Z)
             print("e-scaling:", e_scaling)

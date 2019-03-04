@@ -168,10 +168,37 @@ def update_Ftau(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        print("[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun))
-        print("[%s] \tT: [%.4f->%.4f]:\t%.4f" % (s, tau[s], OO.x[1], prev - OO.fun))
+        print("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], OO.x[0]), end = "\t")
+        print("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun))
         delta += abs(F[s] - OO.x[0]) + abs(tau[s] - OO.x[1])
         F[s], tau[s] = OO.x
+
+    return delta
+
+def update_tau(F, tau, PG, P, IX):
+    n_states = len(F)
+    delta = 0.0
+    for s in range(n_states):
+
+        def f(t):
+            x = np.log(_p_gt_homo(s, P, F, tau=t[0]) + 1e-10) * PG[:, s, :] 
+            if np.isnan(np.sum(x)):
+                pdb.set_trace()
+            x[IX.HAPSNP] = 0.0
+            return -np.sum(x)
+
+        prev = f([tau[s]])
+        OO = minimize(
+            f,
+            [tau[s]],
+            bounds=[(0, 1)],
+            method="L-BFGS-B",
+            options=dict([("gtol", 1e-2)]),
+        )
+        print("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], F[s]), end="\t")
+        print("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun))
+        delta += abs(tau[s] - OO.x[0])
+        tau[s] = OO.x[0]
 
     return delta
 
