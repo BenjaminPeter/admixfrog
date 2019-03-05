@@ -3,54 +3,19 @@ import pickle
 import pandas as pd
 from collections import defaultdict, Counter
 import pdb
-from numba import njit
 from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_data, load_ref
 from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
+from .genotype_emissions import update_emissions, update_Ftau, update_tau
 from .rle import get_rle
 from .decode import pred_sims
 
 np.set_printoptions(suppress=True, precision=4)
 
 
-@njit(fastmath=True)
-def snp2bin(e_out, e_in, ix):
-    for i, row in enumerate(ix):
-        e_out[row] *= e_in[i]
-
-
-def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-150):
-    """main function to calculate emission probabilities
-
-    """
-    n_homo_states = P.alpha.shape[1]
-
-    # P(O|Z) = sum_G P(O, G | Z)
-    snp_emissions = np.sum(SNP, 2)
-    scaling = np.max(snp_emissions, 1)[:, np.newaxis]
-    snp_emissions /= scaling
-    assert np.allclose(np.max(snp_emissions, 1), 1)
-    log_scaling = np.sum(np.log(scaling))
-
-    E[:] = 1  # reset
-    snp2bin(E, snp_emissions, IX.SNP2BIN)
-    E[IX.HAPBIN, n_homo_states:] = 0
-
-    bad_bins = np.sum(E, 1) < bad_bin_cutoff
-    if sum(bad_bins) > 0:
-        print("bad bins", sum(bad_bins))
-    E[bad_bins] = bad_bin_cutoff / E.shape[1]
-
-    e_scaling = np.max(E, 1)[:, np.newaxis]
-    E /= e_scaling
-    log_scaling += np.sum(np.log(e_scaling))
-
-    return log_scaling
-
-
-def bw_bb(
+def baum_welch(
     P,
     IX,
     pars,
@@ -58,11 +23,14 @@ def bw_bb(
     ll_tol=1e-1,
     est_contamination=True,
     est_F=True,
+    est_tau=True,
     freq_contamination=1,
     freq_F=1,
+    est_inbreeding=False
 ):
+    n_gt = 3
 
-    alpha0, trans_mat, cont, error, F, gamma_names, sex = pars
+    alpha0, trans_mat, cont, error, F, tau, gamma_names, sex = pars
 
     libs = np.unique(P.lib)
     ll = -np.inf
@@ -71,20 +39,31 @@ def bw_bb(
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
-    # GT = np.ones((IX.n_snps, n_states, 3))      # P(G | Z)
-    # OBS = np.ones((IX.n_snps, 3))               # P(O | G)
-    SNP = np.ones((IX.n_snps, n_states, 3))  # P(O, G | Z)
-    PG = np.ones((IX.n_snps, n_states, 3))  # P(G Z | O)
+    # GT = np.ones((IX.n_snps, n_states, n_gt))      # P(G | Z)
+    # OBS = np.ones((IX.n_snps, n_gt))               # P(O | G)
+    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
+    PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
 
     gamma, emissions = [], []
+    hap_gamma, hap_emissions = [], []
     row0 = 0
-    for r in IX.bin_sizes:
-        gamma.append(Z[row0 : (row0 + r)])
-        emissions.append(E[row0 : (row0 + r)])
-        row0 += r
+    if True:
+        for r in IX.bin_sizes:
+            gamma.append(Z[row0 : (row0 + r)])
+            emissions.append(E[row0 : (row0 + r)])
+            row0 += r
+    else:
+        for r, is_hap in zip(IX.bin_sizes, IX.ishap):
+            if is_hap:
+                hap_gamma.append(Z[row0 : (row0 + r)])
+                hap_emissions.append(E[row0 : (row0 + r)])
+            else:
+                gamma.append(Z[row0 : (row0 + r)])
+                emissions.append(E[row0 : (row0 + r)])
+            row0 += r
 
-    update_snp_prob(SNP, P, IX, cont, error, F)  # P(O, G | Z)
-    e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
+    update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding)  # P(O, G | Z)
+    e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding)  # P(O | Z)
 
     for it in range(max_iter):
 
@@ -122,7 +101,8 @@ def bw_bb(
             raise ValueError("nan observed in emissions")
 
         # update stuff
-        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions, n, sex)
+        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions,
+                                       n, sex, est_inbreeding=est_inbreeding)
         alpha0 = np.linalg.matrix_power(trans_mat, 10000)[0]
 
         if gamma_names is not None:
@@ -132,7 +112,10 @@ def bw_bb(
         # updating parameters
         cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
         cond_F = est_F and (it % freq_F == 0 or it < 3)
-        if cond_F or cond_cont:
+        cond_tau = est_tau and (it % freq_F == 0 or it < 3)
+        cond_Ftau = cond_F and cond_tau
+
+        if cond_F or cond_cont or cond_tau:
             update_post_geno(PG, SNP, Z, IX)
         if cond_cont:
             # need P(G, Z|O') =  P(Z | O') P(G | Z, O')
@@ -140,18 +123,29 @@ def bw_bb(
             if delta < 1e-5:  # when we converged, do not update contamination
                 est_contamination, cond_cont = False, False
                 print("stopping contamination updates")
-        if cond_F:
+        if cond_Ftau:
+            delta = update_Ftau(F, tau, PG, P, IX)
+            if delta < 1e-5:  # when we converged, do not update F
+                est_F, est_tau = False, False
+                cond_Ftau, cond_F, cond_tau = False, False, False
+                print("stopping Ftau updates")
+        elif cond_F:
             # need P(G, Z | O') =  P(Z| O') P(G | Z, O')
-            delta = update_F(F, PG, P, IX)
+            delta = update_F(F, tau, PG, P, IX)
             if delta < 1e-5:  # when we converged, do not update F
                 est_F, cond_F = False, False
                 print("stopping F updates")
-        if cond_F or cond_cont:
-            update_snp_prob(SNP, P, IX, cont, error, F)  # P(O, G | Z)
-            e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
+        elif cond_tau:
+            delta = update_tau(F, tau, PG, P, IX)
+            if delta < 1e-5:  # when we converged, do not update F
+                est_tau, cond_tau = False, False
+                print("stopping F updates")
+        if cond_F or cond_cont or cond_tau:
+            update_snp_prob(SNP, P, IX, cont, error, F, tau,  est_inbreeding=est_inbreeding)  # P(O, G | Z)
+            e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding=est_inbreeding)  # P(O | Z)
             print("e-scaling:", e_scaling)
 
-    pars = Pars(alpha0, trans_mat, dict(cont), error, F, gamma_names, sex)
+    pars = Pars(alpha0, trans_mat, dict(cont), error, F, tau, gamma_names, sex)
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
 
@@ -171,8 +165,10 @@ def run_admixfrog(
     F0=0,
     e0=1e-2,
     c0=1e-2,
+    tau0=1,
     run_penalty=0.9,
     n_post_replicates=100,
+    est_inbreeding=False,
     **kwargs
 ):
 
@@ -216,11 +212,12 @@ def run_admixfrog(
     assert ref.shape[0] == P.alpha.shape[0]
     del ref
 
-    pars = init_pars(state_ids, sex, F0, e0, c0)
-
+    pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding)
+    print(pars.alpha0)
     print("done loading data")
 
-    Z, G, pars, ll, emissions, (alpha, beta, n) = bw_bb(P, IX, pars, **kwargs)
+    Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(P, IX, pars,
+                                                        est_inbreeding=est_inbreeding, **kwargs)
 
     pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
 
@@ -234,6 +231,7 @@ def run_admixfrog(
         n=n,
         n_homo=len(state_ids),
         n_sims=n_post_replicates,
+        est_inbreeding=est_inbreeding
     )
 
     # output formating from here
@@ -274,9 +272,12 @@ def run_admixfrog(
     df_pars["alpha0"] = pars.alpha0
     df_pars["state"] = pars.gamma_names
     df_pars["F"] = 0
+    df_pars["tau"] = 0
     df_pars["ll"] = ll
     for i in range(len(pars.F)):
         df_pars.loc[i, "F"] = pars.F[i]
+    for i in range(len(pars.tau)):
+        df_pars.loc[i, "tau"] = pars.tau[i]
 
     df_rle = get_rle(df, state_ids, run_penalty)
 

@@ -10,7 +10,6 @@ from libc.math cimport pow, log, exp
 from libc.stdio cimport printf
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import betaln
-from .distributions cimport *
 from scipy.stats import binom
 
 
@@ -81,20 +80,9 @@ def update_contamination(cont, error, P, PG, IX, libs):
         #                                                           cont[lib], OO.x, p0-OO.fun))
         #cont[lib] = OO.x
         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
-        print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+        print("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
                                                                    cont[lib], OO.x[0], p0-OO.fun))
         delta += abs(cont[lib] - OO.x[0])
         cont[lib] = OO.x[0]
 
     return delta
-
-def p_reads_given_gt(P, c, error):
-    """calculates probabilty of anc/derived reads given genotype
-    """
-    read_emissions = np.ones((P.O.shape[0], 3))
-    for g in range(3):
-        p = c * P.P_cont + (1 - c) * g / 2
-        p = p * (1 - error) + (1 - p) * error
-        read_emissions[:, g] = binom.pmf(P.O, P.N, p)
-
-    return read_emissions

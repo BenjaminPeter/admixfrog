@@ -1,10 +1,65 @@
 import numpy as np
-from scipy.optimize import minimize, minimize_scalar
+from scipy.optimize import minimize
 from numba import njit
-from math import lgamma, log, exp
+from math import lgamma, exp
+
+
+@njit(fastmath=True)
+def binom_pmf(O, N, p):
+    res = np.power(p, O) * np.power(1. - p, N - O)
+    for i, (o, n) in enumerate(zip(O, N)):
+        if o > 0 and n > 1:
+            res[i] *= exp(lgamma(n + 1) - lgamma(o + 1) - lgamma(n - o + 1))
+    return res
+
+
+@njit
+def p_reads_given_gt(O, N, Pcont, c, error, n_obs):
+    """calculates P(O | G); probabilty of anc/derived reads given genotype
+    per read group
+
+    """
+    n_gt = 3
+    read_emissions = np.ones((n_obs, n_gt))
+    for g in range(3):
+        p = c * Pcont + (1 - c) * g / 2
+        p = p * (1 - error) + (1 - p) * error
+        # = binom.pmf(P.O, P.N, p)
+        read_emissions[:, g] = binom_pmf(O, N, p)
+
+    return read_emissions
+
+
+@njit(fastmath=True)
+def read2snp_emissions(read_emissions, n_snps, ix):
+    n_gt = 3
+    snp_emissions = np.ones((n_snps, n_gt))
+    for i, row in enumerate(ix):
+        snp_emissions[row] *= read_emissions[i]
+    return snp_emissions
+
+
+def p_snps_given_gt(P, c, error, n_snps, IX):
+    """calculates probabilty of anc/derived reads given genotype
+    """
+    n_obs = P.O.shape[0]
+    read_emissions = p_reads_given_gt(P.O, P.N, P.P_cont, c, error, n_obs)
+    read_emissions[IX.HAPSNP, 1] = 0.0
+    return read2snp_emissions(read_emissions, n_snps, IX.OBS2SNP)
+
+
+
+
+
+
+
+
 
 # @njit(fastmath=True)
 def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
+    """
+    UNUSED, as cython version appears to be faster
+    """
     ll = np.zeros(1)
     BIN = obs2bin[rg2obs]
     SNP = obs2snp[rg2obs]
@@ -18,6 +73,10 @@ def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
 
 @njit(fastmath=True)
 def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
+    """
+    UNUSED, as cython version appears to be faster
+    """
+
     n_obs = len(rg2obs)
     n_states = pg.shape[1]
     ll = np.zeros(1)
@@ -44,8 +103,7 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
     Z : Pr(Z | O)
     pg: Pr(G | Z, O)
 
-
-
+    UNUSED, as cython version appears to be faster
     """
     n_libs = len(libs)
     delta = 0.
@@ -86,41 +144,3 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
     return delta
 
 
-@njit(fastmath=True)
-def binom_pmf(O, N, p):
-    res = np.power(p, O) * np.power(1. - p, N - O)
-    for i, (o, n) in enumerate(zip(O, N)):
-        if o > 0 and n > 1:
-            res[i] *= exp(lgamma(n + 1) - lgamma(o + 1) - lgamma(n - o + 1))
-    return res
-
-
-@njit
-def p_reads_given_gt(O, N, Pcont, c, error, n_obs):
-    """calculates probabilty of anc/derived reads given genotype
-    """
-    read_emissions = np.ones((n_obs, 3))
-    for g in range(3):
-        p = c * Pcont + (1 - c) * g / 2
-        p = p * (1 - error) + (1 - p) * error
-        # = binom.pmf(P.O, P.N, p)
-        read_emissions[:, g] = binom_pmf(O, N, p)
-
-    return read_emissions
-
-
-@njit(fastmath=True)
-def read2snp_emissions(read_emissions, n_snps, ix):
-    snp_emissions = np.ones((n_snps, 3))
-    for i, row in enumerate(ix):
-        snp_emissions[row] *= read_emissions[i]
-    return snp_emissions
-
-
-def p_snps_given_gt(P, c, error, n_snps, IX):
-    """calculates probabilty of anc/derived reads given genotype
-    """
-    n_obs = P.O.shape[0]
-    read_emissions = p_reads_given_gt(P.O, P.N, P.P_cont, c, error, n_obs)
-    read_emissions[IX.HAPSNP, 1] = 0.0
-    return read2snp_emissions(read_emissions, n_snps, IX.OBS2SNP)

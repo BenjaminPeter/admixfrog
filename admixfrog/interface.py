@@ -213,6 +213,13 @@ def run():
         help="""Estimate F (distance from ref, default False)""",
     )
     parser.add_argument(
+        "--est-tau",
+        "-tau",
+        action="store_true",
+        default=False,
+        help="""Estimate tau (population structure in references)""",
+    )
+    parser.add_argument(
         "--freq-F",
         "--f",
         type=int,
@@ -270,6 +277,13 @@ def run():
         help="initial F (should be in [0;1]) (default 0)",
     )
     parser.add_argument(
+        "--tau0",
+        nargs="*",
+        type=float,
+        default=1,
+        help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+    )
+    parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"
     )
     parser.add_argument(
@@ -291,6 +305,12 @@ def run():
         help="""Number of replicates that are sampled from posterior. Useful for
         parameter estimation and bootstrapping
         """,
+    )
+    parser.add_argument(
+        "--est-inbreeding", "-I",
+        default=False,
+        action="store_true",
+        help="""allow  haploid (i.e. inbreed) stretches"""
     )
     add_bam_parse_group(parser)
     add_rle_parse_group(parser)
