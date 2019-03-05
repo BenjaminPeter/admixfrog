@@ -209,12 +209,12 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False):
     n_snps = P.alpha.shape[0]
     cflat = np.array([cont[lib] for lib in P.lib])
 
-    # get P(O | G)
+    # get P(G | Z)
     # save in the same array as SNP - size is the same, and
     # we do not need to allocate more memory
     update_geno_emissions(SNP, P, IX, F, tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding)
 
-    # get P(G | Z)
+    # get P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
 
     SNP *= ll_snp[:, np.newaxis, :]
