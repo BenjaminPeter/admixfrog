@@ -262,3 +262,15 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
     PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(np.hstack((PG, mu)), columns=["G0", "G1", "G2", "p"])
+
+
+def empirical_bayes_prior(ref, alt, known_anc=True):
+    """using beta-binomial plug
+    """
+    n = ref + alt
+    f = np.mean(alt / n) if known_anc else .5
+    H = ref * alt / n / n
+    #  H = f * (1.-f) # alt formulation
+    V = np.var(alt / n) if known_anc else np.var(np.hstack((ref/n, alt/n)))
+    ab = (H - V) / (V - H / n)
+    return f * ab, (1-f) * ab
