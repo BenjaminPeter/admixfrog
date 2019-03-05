@@ -111,7 +111,7 @@ def update_post_geno(PG, SNP, Z, IX):
     return PG
 
 
-def update_F(F, Z, PG, P, IX):
+def update_F(F, PG, P, IX):
     n_states = len(F)
     delta = 0.0
     for s in range(n_states):
