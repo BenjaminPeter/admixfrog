@@ -169,6 +169,7 @@ def run_admixfrog(
     run_penalty=0.9,
     n_post_replicates=100,
     est_inbreeding=False,
+    empirical_priors=True,
     **kwargs
 ):
 
@@ -208,7 +209,8 @@ def run_admixfrog(
     bins, IX = bins_from_bed(
         bed=ref.iloc[:, :5], data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
     )
-    P = data2probs(data, ref, state_ids, cont_id, (prior, prior))
+    P = data2probs(data, ref, state_ids, cont_id, (prior, prior), 
+                   ancestral=ancestral, empirical_priors=empirical_priors)
     assert ref.shape[0] == P.alpha.shape[0]
     del ref
 

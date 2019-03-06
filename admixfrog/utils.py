@@ -23,32 +23,89 @@ def data2probs(
     state_priors=(1e-5, 1e-5),
     cont_prior=(1e-8, 1e-8),
     ancestral=None,
+    empirical_priors=True
 ):
+    n_states = len(state_ids)
+    n_snps = ref.shape[0]
     alpha_ix = ["%s_alt" % s for s in state_ids]
     beta_ix = ["%s_ref" % s for s in state_ids]
-    if ancestral is None:
-        pa, pb = state_priors
+
+    if empirical_priors:
+        alpha = np.empty((n_snps, n_states))
+        beta = np.empty((n_snps, n_states))
+        cont = "%s_alt" % cont_id, "%s_ref" % cont_id
+        ca, cb = empirical_bayes_prior(ref[cont[0]], ref[cont[1]])
+
+        if ancestral is None:
+
+            for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
+                pa, pb = empirical_bayes_prior(ref[a], ref[b])
+                print("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
+                alpha[:, i] = ref[a] + pa
+                beta[:, i] = ref[b] + pb
+        else:
+            anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
+            ref_is_anc = (ref[anc_ref] == 1) & (ref[anc_alt] == 0)   
+            alt_is_anc = (ref[anc_alt] == 1) & (ref[anc_ref] == 0)   
+            ref_is_der, alt_is_der = alt_is_anc, ref_is_anc
+            anc_is_unknown =(1-alt_is_anc) * (1-ref_is_anc) == 1
+            for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
+                pa, pb = empirical_bayes_prior(ref[a], ref[b])
+                print("[%s]EB prior0 [anc=%.4f, der=%.4f]: " % (s, pa, pb))
+                alpha[:, i], beta[:, i] = ref[a], ref[b]
+                alpha[anc_is_unknown, i] += pa
+                beta[anc_is_unknown, i] +=  pb
+
+                m_anc = pd.concat((ref_is_anc, alt_is_anc), 1)
+                m_der = pd.concat((ref_is_der, alt_is_der), 1)
+                ANC = np.array(ref[[b, a]])[m_anc] 
+                DER = np.array(ref[[b, a]])[m_der] 
+
+                pder, panc = empirical_bayes_prior(DER, ANC, True)
+                print("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
+                alpha[alt_is_anc, i] += panc
+                alpha[alt_is_der, i] += pder
+                beta[ref_is_anc, i] += panc
+                beta[ref_is_der, i] += pder
+
+
+
+
+        P = Probs(
+            O=np.array(data.talt),
+            N=np.array(data.tref + data.talt),
+            P_cont=np.array(
+                (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
+            ),
+            alpha=alpha,
+            beta=beta,
+            lib=np.array(data.lib),
+        )
+        return P
+            
     else:
-        # anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
-        anc_ref, anc_alt = ancestral + "_ref", "ancestral" + "_alt"
-        pa = data[anc_alt] + state_priors[0] * (1 - 2 * np.sign(data[anc_alt]))
-        pb = data[anc_ref] + state_priors[1] * (1 - 2 * np.sign(data[anc_ref]))
-    cont = "%s_alt" % cont_id, "%s_ref" % cont_id
-    ca, cb = cont_prior
+        if ancestral is None:
+            pa, pb = state_priors
+        else:
+            # anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+            anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
+            pa = data[anc_alt] + state_priors[0] * (1 - 2 * np.sign(data[anc_alt]))
+            pb = data[anc_ref] + state_priors[1] * (1 - 2 * np.sign(data[anc_ref]))
+        cont = "%s_alt" % cont_id, "%s_ref" % cont_id
+        ca, cb = cont_prior
 
-    print(alpha_ix, beta_ix)
 
-    P = Probs(
-        O=np.array(data.talt),
-        N=np.array(data.tref + data.talt),
-        P_cont=np.array(
-            (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
-        ),
-        alpha=np.array(ref[alpha_ix]) + pa,
-        beta=np.array(ref[beta_ix]) + pb,
-        lib=np.array(data.lib),
-    )
-    return P
+        P = Probs(
+            O=np.array(data.talt),
+            N=np.array(data.tref + data.talt),
+            P_cont=np.array(
+                (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
+            ),
+            alpha=np.array(ref[alpha_ix]) + pa,
+            beta=np.array(ref[beta_ix]) + pb,
+            lib=np.array(data.lib),
+        )
+        return P
 
 
 def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
@@ -264,13 +321,16 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
     return pd.DataFrame(np.hstack((PG, mu)), columns=["G0", "G1", "G2", "p"])
 
 
-def empirical_bayes_prior(ref, alt, known_anc=True):
-    """using beta-binomial plug
+def empirical_bayes_prior(der, anc, known_anc=False):
+    """using beta-binomial plug-in estimator
     """
-    n = ref + alt
-    f = np.mean(alt / n) if known_anc else .5
-    H = ref * alt / n / n
-    #  H = f * (1.-f) # alt formulation
-    V = np.var(alt / n) if known_anc else np.var(np.hstack((ref/n, alt/n)))
-    ab = (H - V) / (V - H / n)
+    n = anc+der
+    f = np.nanmean(der / n) if known_anc else .5
+    #H = ref * alt / n / n
+    H = f * (1.-f) # alt formulation
+    if H == 0.:
+        return 1e-10, 1e-10
+
+    V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der/n, anc/n)))
+    ab = (H - V) / (V - H / np.nanmean(n))
     return f * ab, (1-f) * ab
