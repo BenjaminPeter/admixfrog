@@ -2,6 +2,7 @@
 #cython: language_level=3
 #cython: infer_types=True
 
+import logging
 import pandas as pd
 import numpy as np
 cimport scipy.special.cython_special as scs
@@ -80,7 +81,7 @@ def update_contamination(cont, error, P, PG, IX, libs):
         #                                                           cont[lib], OO.x, p0-OO.fun))
         #cont[lib] = OO.x
         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
-        print("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+        logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
                                                                    cont[lib], OO.x[0], p0-OO.fun))
         delta += abs(cont[lib] - OO.x[0])
         cont[lib] = OO.x[0]

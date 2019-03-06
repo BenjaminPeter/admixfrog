@@ -6,7 +6,7 @@ from math import lgamma, exp
 
 @njit(fastmath=True)
 def binom_pmf(O, N, p):
-    res = np.power(p, O) * np.power(1. - p, N - O)
+    res = np.power(p, O) * np.power(1.0 - p, N - O)
     for i, (o, n) in enumerate(zip(O, N)):
         if o > 0 and n > 1:
             res[i] *= exp(lgamma(n + 1) - lgamma(o + 1) - lgamma(n - o + 1))
@@ -48,13 +48,6 @@ def p_snps_given_gt(P, c, error, n_snps, IX):
     return read2snp_emissions(read_emissions, n_snps, IX.OBS2SNP)
 
 
-
-
-
-
-
-
-
 # @njit(fastmath=True)
 def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
     """
@@ -64,7 +57,7 @@ def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
     BIN = obs2bin[rg2obs]
     SNP = obs2snp[rg2obs]
     for g in range(3):
-        p = c * P_cont[rg2obs] + (1. - c) * g / 2.
+        p = c * P_cont[rg2obs] + (1.0 - c) * g / 2.0
         p = p * (1 - e) + (1 - p) * e
         p = O[rg2obs] * np.log(p) + (N[rg2obs] - O[rg2obs]) * np.log(1 - p)
         ll += np.sum(Z[BIN] * pg[SNP, :, g] * p[:, np.newaxis])
@@ -87,7 +80,7 @@ def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
         # SNP = obs2snp[rg2obs[i]]
         snp = obs2snp[obs]
         for g in range(3):
-            p = c * P_cont[obs] + (1. - c) * g / 2.
+            p = c * P_cont[obs] + (1.0 - c) * g / 2.0
             p = p * (1 - e) + (1 - p) * e
             p = O[obs] * np.log(p) + (N[obs] - O[obs]) * np.log(1 - p)
             for s in range(n_states):
@@ -106,7 +99,7 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
     UNUSED, as cython version appears to be faster
     """
     n_libs = len(libs)
-    delta = 0.
+    delta = 0.0
     for i in range(n_libs):
         lib = libs[i]
         f_ = IX.RG2OBS[lib]
@@ -133,7 +126,7 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
         # print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
         #                                                           cont[lib], OO.x, p0-OO.fun))
         # cont[lib] = OO.x
-        OO = minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1 - 1e-10)])
+        OO = minimize(get_po_given_c_all, [cont[lib]], bounds=[(0.0, 1 - 1e-10)])
         print(
             "[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f"
             % (lib, len(f_), cont[lib], OO.x[0], p0 - OO.fun)
@@ -142,5 +135,3 @@ def update_contamination(cont, error, P, Z, pg, IX, libs):
         cont[lib] = OO.x[0]
 
     return delta
-
-

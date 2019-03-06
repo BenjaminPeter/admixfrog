@@ -308,10 +308,11 @@ def run():
         """,
     )
     parser.add_argument(
-        "--est-inbreeding", "-I",
+        "--est-inbreeding",
+        "-I",
         default=False,
         action="store_true",
-        help="""allow  haploid (i.e. inbreed) stretches"""
+        help="""allow  haploid (i.e. inbreed) stretches""",
     )
     add_bam_parse_group(parser)
     add_rle_parse_group(parser)

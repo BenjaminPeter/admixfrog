@@ -12,9 +12,10 @@ from .genotype_emissions import update_emissions, update_Ftau, update_tau
 from .rle import get_rle
 from .decode import pred_sims
 import logging
-logging.basicConfig(level=logging.INFO,
-                    format='[%(asctime)s]%(message)s',
-                    datefmt='%H:%M:%S')
+
+logging.basicConfig(
+    level=logging.INFO, format="[%(asctime)s]%(message)s", datefmt="%H:%M:%S"
+)
 
 np.set_printoptions(suppress=True, precision=4)
 
@@ -30,7 +31,7 @@ def baum_welch(
     est_tau=True,
     freq_contamination=1,
     freq_F=1,
-    est_inbreeding=False
+    est_inbreeding=False,
 ):
     n_gt = 3
 
@@ -66,7 +67,9 @@ def baum_welch(
                 emissions.append(E[row0 : (row0 + r)])
             row0 += r
 
-    s_scaling = update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding)  # P(O, G | Z)
+    s_scaling = update_snp_prob(
+        SNP, P, IX, cont, error, F, tau, est_inbreeding
+    )  # P(O, G | Z)
     e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding)  # P(O | Z)
     scaling = e_scaling + s_scaling
 
@@ -74,7 +77,7 @@ def baum_welch(
 
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
         if sex == "m":
-            #print("male ll doens't take x into account", end="\t")
+            # print("male ll doens't take x into account", end="\t")
             logging.info("male ll doens't take x into account")
             ll, old_ll = (
                 np.sum([np.sum(np.log(n_i)) for _, n_i in zip(range(22), n)])
@@ -107,8 +110,16 @@ def baum_welch(
             raise ValueError("nan observed in emissions")
 
         # update stuff
-        trans_mat = update_transitions(trans_mat, alpha, beta, gamma, emissions,
-                                       n, sex, est_inbreeding=est_inbreeding)
+        trans_mat = update_transitions(
+            trans_mat,
+            alpha,
+            beta,
+            gamma,
+            emissions,
+            n,
+            sex,
+            est_inbreeding=est_inbreeding,
+        )
         alpha0 = np.linalg.matrix_power(trans_mat, 10000)[0]
 
         if gamma_names is not None:
@@ -147,8 +158,12 @@ def baum_welch(
                 est_tau, cond_tau = False, False
                 logging.info("stopping F updates")
         if cond_F or cond_cont or cond_tau:
-            s_scaling = update_snp_prob(SNP, P, IX, cont, error, F, tau,  est_inbreeding=est_inbreeding)  # P(O, G | Z)
-            e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding=est_inbreeding)  # P(O | Z)
+            s_scaling = update_snp_prob(
+                SNP, P, IX, cont, error, F, tau, est_inbreeding=est_inbreeding
+            )  # P(O, G | Z)
+            e_scaling = update_emissions(
+                E, SNP, P, IX, est_inbreeding=est_inbreeding
+            )  # P(O | Z)
             logging.info("e-scaling: %s", e_scaling)
             logging.info("s-scaling: %s", s_scaling)
             scaling = e_scaling + s_scaling
@@ -217,16 +232,24 @@ def run_admixfrog(
     bins, IX = bins_from_bed(
         bed=ref.iloc[:, :5], data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
     )
-    P = data2probs(data, ref, state_ids, cont_id, (prior, prior), 
-                   ancestral=ancestral, empirical_priors=empirical_priors)
+    P = data2probs(
+        data,
+        ref,
+        state_ids,
+        cont_id,
+        (prior, prior),
+        ancestral=ancestral,
+        empirical_priors=empirical_priors,
+    )
     assert ref.shape[0] == P.alpha.shape[0]
     del ref
 
     pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding)
     logging.info("done loading data")
 
-    Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(P, IX, pars,
-                                                        est_inbreeding=est_inbreeding, **kwargs)
+    Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(
+        P, IX, pars, est_inbreeding=est_inbreeding, **kwargs
+    )
 
     pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
 
@@ -240,7 +263,7 @@ def run_admixfrog(
         n=n,
         n_homo=len(state_ids),
         n_sims=n_post_replicates,
-        est_inbreeding=est_inbreeding
+        est_inbreeding=est_inbreeding,
     )
 
     # output formating from here
