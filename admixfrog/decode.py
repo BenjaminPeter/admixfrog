@@ -76,7 +76,7 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                         r1, r2, l1, l2 = c2, c1, 1, l2 + 1
                     else:
                         print(
-                            "not handled case" + " ".join((r1, r2, c1, c2, seq[i]))
+                            "not handled case", r1, r2, c1, c2, seq[i]
                         )
 
             # both strands end
