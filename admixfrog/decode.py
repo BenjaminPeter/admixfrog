@@ -4,6 +4,7 @@ from collections import Counter
 import numpy as np
 from numpy.random import choice
 from random import random
+import logging
 
 
 @njit  # ('i8(i8, i8)')
@@ -74,7 +75,9 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                         runs[r1].append(l1)
                         r1, r2, l1, l2 = c2, c1, 1, l2 + 1
                     else:
-                        print("not handled case", r1, r2, c1, c2, seq[i])
+                        logging.error("not handled case" + " ".join((r1, r2, c1,
+                                                                     c2,
+                                                                     seq[i])))
 
             # both strands end
             elif c1 != r1 and c1 != r2 and c2 != r1 and c2 != r2:
@@ -83,7 +86,7 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                 runs[r2].append(l2)
                 r1, r2, l1, l2 = c1, c2, 1, 1
             else:
-                print("not handled case", r1, r2, c1, c2, seq[i])
+                logging.error("not handled case", r1, r2, c1, c2, seq[i])
     runs[r1].append(l1)
     runs[r2].append(l2)
     return runs
@@ -181,7 +184,7 @@ def pred_sims(trans, emissions, beta, alpha0, n, n_homo, n_sims=100,
                               est_inbreeding)
         df["chrom"] = i
         output.append(df)
-        print("Posterior Simulating chromosome %s" % i)
+        logging.info("Posterior Simulating chromosome %s" % i)
     return pd.concat(output)
 
 
@@ -206,7 +209,6 @@ def pred_sims_slow(trans, emissions, beta, alpha0, n, n_homo, n_sims=100):
     seq = np.zeros(n_steps, dtype=int)
     sims = []
     for it in range(n_sims):
-        print("sim %s" % it)
         for i in range(n_steps):
             if i == 0:
                 state = choice(n_states, p=alpha0)

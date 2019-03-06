@@ -1,5 +1,6 @@
 from numba import njit
 import numpy as np
+import logging
 
 
 @njit
@@ -143,7 +144,7 @@ def update_transitions(old_trans_mat, alpha, beta, gamma, emissions, n, sex="f",
     n_states = old_trans_mat.shape[0]
     if sex == "m" and len(alpha) > 22 and not est_inbreeding:
         """ this is a hack, I just remove last chromosome and no checks are done"""
-        print("update hack")
+        logging.warning("update hack")
         # update transition
         for i in range(n_states):
             for j in range(n_states):

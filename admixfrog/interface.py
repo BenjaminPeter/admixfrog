@@ -1,10 +1,11 @@
 import argparse
 from .admixfrog import run_admixfrog
-from pprint import pprint
+from pprint import pprint, pformat
 from .bam import process_bam
 from .rle import get_rle
 from os.path import isfile
 import admixfrog
+import logging
 
 
 def add_bam_parse_group(parser):
@@ -69,7 +70,7 @@ def bam():
     )
     add_bam_parse_group(parser)
     args = vars(parser.parse_args())
-    pprint(args)
+    logging.info(pformat(args))
     force_bam = args.pop("force_bam")
     if isfile(args["outfile"]) and not force_bam:
         raise ValueError("""infile exists. set --force-bam to regenerate""")
@@ -87,7 +88,7 @@ def do_rle():
     )
     add_rle_parse_group(parser)
     args = parser.parse_args()
-    pprint(vars(args))
+    logging.info(pformat(args))
     import pandas as pd
 
     data = pd.read_csv(args.infile)
@@ -316,8 +317,8 @@ def run():
     add_rle_parse_group(parser)
 
     args = parser.parse_args()
-    pprint(vars(args))
     V = vars(args)
+    logging.info(pformat(V))
     force_bam = V.pop("force_bam")
 
     if V["infile"] is not None and V["bamfile"] is not None:
@@ -350,7 +351,7 @@ def run():
 
     from . import __version__
 
-    print("admixfrog ", __version__)
+    logging.info("admixfrog %s", __version__)
     bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")

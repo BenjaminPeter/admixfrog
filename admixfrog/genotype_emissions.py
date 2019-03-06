@@ -5,6 +5,7 @@ from .distributions import gt_homo_dist
 from .read_emissions2 import p_snps_given_gt
 from numba import njit
 from scipy.special import betainc
+import logging
 
 
 @njit(fastmath=True)
@@ -42,7 +43,7 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150)
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     if sum(bad_bins) > 0:
-        print("bad bins", sum(bad_bins))
+        logging.warning("bad bins %s", sum(bad_bins))
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
 
     log_scaling += scale_mat(E)
@@ -147,7 +148,7 @@ def update_F(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        print("[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun))
+        logging.info("[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun))
         delta += abs(F[s] - OO.x[0])
         F[s] = OO.x[0]
 
@@ -174,8 +175,8 @@ def update_Ftau(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        print("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], OO.x[0]), end = "\t")
-        print("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun))
+        logging.info("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], OO.x[0]), end = "\t")
+        logging.info("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun))
         delta += abs(F[s] - OO.x[0]) + abs(tau[s] - OO.x[1])
         F[s], tau[s] = OO.x
 
@@ -201,8 +202,8 @@ def update_tau(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        print("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], F[s]), end="\t")
-        print("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun))
+        logging.info("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], F[s]), end="\t")
+        logging.info("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun))
         delta += abs(tau[s] - OO.x[0])
         tau[s] = OO.x[0]
 
@@ -222,10 +223,10 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False):
 
     # get P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
-    log_scaling = scale_mat(ll_snp)
+    #log_scaling = scale_mat(ll_snp)
 
     SNP *= ll_snp[:, np.newaxis, :]
-    return log_scaling
+    return 0 #log_scaling
 
 
 def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
