@@ -283,8 +283,9 @@ def run():
         "--tau0",
         nargs="*",
         type=float,
-        default=1,
-        help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+        default=0,
+        #help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+        help="initial log-tau (default 0), at most 1 per source",
     )
     parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"
@@ -320,6 +321,8 @@ def run():
     add_bam_parse_group(parser)
     add_rle_parse_group(parser)
 
+    from . import __version__
+    logging.info("running admixfrog version %s", __version__)
     args = parser.parse_args()
     V = vars(args)
     logging.info(pformat(V))
@@ -353,9 +356,6 @@ def run():
 
     out = V.pop("out")
 
-    from . import __version__
-
-    logging.info("admixfrog %s", __version__)
     bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")

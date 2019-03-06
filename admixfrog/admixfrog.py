@@ -14,10 +14,9 @@ from .decode import pred_sims
 import logging
 
 logging.basicConfig(
-    level=logging.INFO, format="[%(asctime)s]%(message)s", datefmt="%H:%M:%S"
+    level=logging.INFO, format="[%(asctime)s][%(filename)s:%(lineno)d]%(message)s", datefmt="%H:%M:%S"
 )
 
-np.set_printoptions(suppress=True, precision=4)
 
 
 def baum_welch(
@@ -46,6 +45,7 @@ def baum_welch(
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
     # GT = np.ones((IX.n_snps, n_states, n_gt))      # P(G | Z)
     # OBS = np.ones((IX.n_snps, n_gt))               # P(O | G)
+    # P(O, G | Z), scaled such that max for each row is 1
     SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
     PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
 
@@ -194,6 +194,10 @@ def run_admixfrog(
     est_inbreeding=False,
     **kwargs
 ):
+
+    #np config
+    np.set_printoptions(suppress=True, precision=4)
+    np.seterr(divide='ignore', invalid='ignore')
 
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 

@@ -6,6 +6,7 @@ from .read_emissions2 import p_snps_given_gt
 from numba import njit
 from scipy.special import betainc
 import logging
+from math import exp, log
 
 
 @njit(fastmath=True)
@@ -22,6 +23,17 @@ def scale_mat(M):
     scaling = np.max(M, 1)[:, np.newaxis]
     M /= scaling
     assert np.allclose(np.max(M, 1), 1)
+    log_scaling = np.sum(np.log(scaling))
+    return log_scaling
+
+def scale_mat3d(M):
+    """scale a matrix of probabilities such that it's highest value is one
+
+    modifies M and returns log(scaling)
+    """
+    scaling = np.max(M, (1, 2))[:, np.newaxis, np.newaxis]
+    M /= scaling
+    assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
 
@@ -164,7 +176,7 @@ def update_Ftau(F, tau, PG, P, IX):
 
         def f(t):
             F, tau = t
-            x = np.log(_p_gt_homo(s, P, F, tau) + 1e-10) * PG[:, s, :]
+            x = np.log(_p_gt_homo(s, P, F, exp(tau)) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -174,7 +186,7 @@ def update_Ftau(F, tau, PG, P, IX):
         OO = minimize(
             f,
             [F[s], tau[s]],
-            bounds=[(0, 1), (0, 1)],
+            bounds=[(0, 1), (-10, 10)],
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
@@ -193,7 +205,7 @@ def update_tau(F, tau, PG, P, IX):
     for s in range(n_states):
 
         def f(t):
-            x = np.log(_p_gt_homo(s, P, F=F[s], tau=t[0]) + 1e-10) * PG[:, s, :]
+            x = np.log(_p_gt_homo(s, P, F=F[s], tau=exp(t[0])) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -203,7 +215,7 @@ def update_tau(F, tau, PG, P, IX):
         OO = minimize(
             f,
             [tau[s]],
-            bounds=[(0, 1)],
+            bounds=[(0, 10)],
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
@@ -232,10 +244,11 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False):
 
     # get P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
-    # log_scaling = scale_mat(ll_snp)
 
     SNP *= ll_snp[:, np.newaxis, :]
-    return 0  # log_scaling
+    log_scaling = scale_mat3d(SNP)
+
+    return log_scaling
 
 
 def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
@@ -248,7 +261,8 @@ def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
     # P(G | Z)
     for s in range(n_homo_states):
         for g in range(3):
-            _p_gt_homo(s=s, P=P, F=F[s], tau=tau[s], res=GT[:, s, :])
+            #_p_gt_homo(s=s, P=P, F=F[s], tau=tau[s], res=GT[:, s, :])
+            _p_gt_homo(s=s, P=P, F=F[s], tau=exp(tau[s]), res=GT[:, s, :])
 
     for s1 in range(n_homo_states):
         for s2 in range(s1 + 1, n_homo_states):
