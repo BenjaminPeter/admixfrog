@@ -179,7 +179,7 @@ def run_admixfrog(
     cont_id="AFR",
     split_lib=True,
     bin_size=1e4,
-    prior=1e-5,
+    prior=None,
     ancestral=None,
     sex=None,
     pos_mode=False,
@@ -192,7 +192,6 @@ def run_admixfrog(
     run_penalty=0.9,
     n_post_replicates=100,
     est_inbreeding=False,
-    empirical_priors=True,
     **kwargs
 ):
 
@@ -237,9 +236,8 @@ def run_admixfrog(
         ref,
         state_ids,
         cont_id,
-        (prior, prior),
-        ancestral=ancestral,
-        empirical_priors=empirical_priors,
+        prior=prior,
+        ancestral=ancestral
     )
     assert ref.shape[0] == P.alpha.shape[0]
     del ref

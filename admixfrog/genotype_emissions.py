@@ -178,8 +178,9 @@ def update_Ftau(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        logging.info("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], OO.x[0]), end="\t")
-        logging.info("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun))
+        log_ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], OO.x[0])
+        log_ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun)
+        logging.info(log_)
         delta += abs(F[s] - OO.x[0]) + abs(tau[s] - OO.x[1])
         F[s], tau[s] = OO.x
 
@@ -206,8 +207,9 @@ def update_tau(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        logging.info("[%s] \tF: [%.4f->%.4f]:" % (s, F[s], F[s]), end="\t")
-        logging.info("T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun))
+        log_ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], F[s])
+        log_ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun)
+        logging.info(log_)
         delta += abs(tau[s] - OO.x[0])
         tau[s] = OO.x[0]
 

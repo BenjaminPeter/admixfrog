@@ -21,17 +21,16 @@ def data2probs(
     ref,
     state_ids,
     cont_id,
-    state_priors=(1e-5, 1e-5),
+    prior=None,
     cont_prior=(1e-8, 1e-8),
     ancestral=None,
-    empirical_priors=True,
 ):
     n_states = len(state_ids)
     n_snps = ref.shape[0]
     alpha_ix = ["%s_alt" % s for s in state_ids]
     beta_ix = ["%s_ref" % s for s in state_ids]
 
-    if empirical_priors:
+    if prior is None:    # empirical bayes
         alpha = np.empty((n_snps, n_states))
         beta = np.empty((n_snps, n_states))
         cont = "%s_alt" % cont_id, "%s_ref" % cont_id
@@ -83,12 +82,12 @@ def data2probs(
 
     else:
         if ancestral is None:
-            pa, pb = state_priors
+            pa, pb = prior, prior
         else:
             # anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
             anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
-            pa = data[anc_alt] + state_priors[0] * (1 - 2 * np.sign(data[anc_alt]))
-            pb = data[anc_ref] + state_priors[1] * (1 - 2 * np.sign(data[anc_ref]))
+            pa = data[anc_alt] + prior * (1 - 2 * np.sign(data[anc_alt]))
+            pb = data[anc_ref] + prior * (1 - 2 * np.sign(data[anc_ref]))
         cont = "%s_alt" % cont_id, "%s_ref" % cont_id
         ca, cb = cont_prior
 

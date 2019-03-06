@@ -110,7 +110,7 @@ def run():
     )
 
     parser.add_argument(
-        "--infile",
+        "--infile", "--in",
         help="""Sample input file (csv). Contains individual specific data, obtained from
                         a bam file.
 
@@ -184,13 +184,15 @@ def run():
         "--prior",
         "-p",
         type=float,
-        default=1e-5,
-        help="""Prior of reference allele frequencies. This number is added to both the
+        default=None,
+        help="""Prior of reference allele frequencies. IF None (default), this is 
+        estimated from the data
+        
+        This number is added to both the
         ref and alt allele count for each reference, to reflect the uncertainty in allele
         frequencies from a sample. If references are stationary with size 2N, this is
         approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
-
-        """,
+          """,
     )
     parser.add_argument(
         "--dont-est-contamination",
@@ -314,6 +316,7 @@ def run():
         action="store_true",
         help="""allow  haploid (i.e. inbreed) stretches""",
     )
+
     add_bam_parse_group(parser)
     add_rle_parse_group(parser)
 
