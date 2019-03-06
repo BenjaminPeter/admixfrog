@@ -13,6 +13,18 @@ def snp2bin(e_out, e_in, ix):
         e_out[row] *= e_in[i]
 
 
+def scale_mat(M):
+    """scale a matrix of probabilities such that it's highest value is one
+
+    modifies M and returns log(scaling)
+    """
+    scaling = np.max(M, 1)[:, np.newaxis]
+    M /= scaling
+    assert np.allclose(np.max(M, 1), 1)
+    log_scaling = np.sum(np.log(scaling))
+    return log_scaling
+
+
 def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150):
     """main function to calculate emission probabilities
 
@@ -21,10 +33,7 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150)
 
     # P(O|Z) = sum_G P(O, G | Z)
     snp_emissions = np.sum(SNP, 2)
-    scaling = np.max(snp_emissions, 1)[:, np.newaxis]
-    snp_emissions /= scaling
-    assert np.allclose(np.max(snp_emissions, 1), 1)
-    log_scaling = np.sum(np.log(scaling))
+    log_scaling = scale_mat(snp_emissions)
 
     E[:] = 1  # reset
     snp2bin(E, snp_emissions, IX.SNP2BIN)
@@ -36,10 +45,7 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150)
         print("bad bins", sum(bad_bins))
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
 
-    e_scaling = np.max(E, 1)[:, np.newaxis]
-    E /= e_scaling
-    log_scaling += np.sum(np.log(e_scaling))
-
+    log_scaling += scale_mat(E)
     return log_scaling
 
 
@@ -216,8 +222,10 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False):
 
     # get P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX)
+    log_scaling = scale_mat(ll_snp)
 
     SNP *= ll_snp[:, np.newaxis, :]
+    return log_scaling
 
 
 def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):

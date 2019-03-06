@@ -62,8 +62,9 @@ def baum_welch(
                 emissions.append(E[row0 : (row0 + r)])
             row0 += r
 
-    update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding)  # P(O, G | Z)
+    s_scaling = update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding)  # P(O, G | Z)
     e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding)  # P(O | Z)
+    scaling = e_scaling + s_scaling
 
     for it in range(max_iter):
 
@@ -76,7 +77,7 @@ def baum_welch(
                 ll,
             )
         else:
-            ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]) + e_scaling, ll
+            ll, old_ll = np.sum([np.sum(np.log(n_i)) for n_i in n]) + scaling, ll
         assert np.allclose(np.sum(Z, 1), 1)
         if np.isnan(ll):
             pdb.set_trace()
@@ -141,9 +142,11 @@ def baum_welch(
                 est_tau, cond_tau = False, False
                 print("stopping F updates")
         if cond_F or cond_cont or cond_tau:
-            update_snp_prob(SNP, P, IX, cont, error, F, tau,  est_inbreeding=est_inbreeding)  # P(O, G | Z)
+            s_scaling = update_snp_prob(SNP, P, IX, cont, error, F, tau,  est_inbreeding=est_inbreeding)  # P(O, G | Z)
             e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding=est_inbreeding)  # P(O | Z)
             print("e-scaling:", e_scaling)
+            print("s-scaling:", s_scaling)
+            scaling = e_scaling + s_scaling
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, tau, gamma_names, sex)
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
