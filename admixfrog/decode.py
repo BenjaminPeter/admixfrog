@@ -75,7 +75,7 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                         runs[r1].append(l1)
                         r1, r2, l1, l2 = c2, c1, 1, l2 + 1
                     else:
-                        logging.error(
+                        print(
                             "not handled case" + " ".join((r1, r2, c1, c2, seq[i]))
                         )
 
@@ -86,7 +86,7 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                 runs[r2].append(l2)
                 r1, r2, l1, l2 = c1, c2, 1, 1
             else:
-                logging.error("not handled case", r1, r2, c1, c2, seq[i])
+                print("not handled case", r1, r2, c1, c2, seq[i])
     runs[r1].append(l1)
     runs[r2].append(l2)
     return runs
