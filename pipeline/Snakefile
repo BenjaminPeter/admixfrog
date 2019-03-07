@@ -195,12 +195,16 @@ rule plot_hmm_panel_region:
 rule plot_hmm_panel_pw:
     input:
         rle = _panel_rle,
+        bins = _panel_bin,
         script_ = "scripts/plotting/hmm_panel_pw.R"
     params:
         lengths= [.33, .66, 1, 1.33, 1.66, 2] # in cM
     output:
-        pwplot="figures/{states}/{type}_{target}_{penalty}/{panel}_pwall_{bin_size,\d+}_{snpset}.png",
+        pwplot="figures/{states}/{type}_{target}_{penalty}/{panel}_pwcor_{bin_size,\d+}_{snpset}.png",
+        pwplot2="figures/{states}/{type}_{target}_{penalty}/{panel}_pwamount_{bin_size,\d+}_{snpset}.png",
         trackplot="figures/{states}/{type}_{target}_{penalty}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
+        trackfull="figures/{states}/{type}_{target}_{penalty}/{panel}_trackfull_{bin_size,\d+}_{snpset}.png",
+        tracksimple="figures/{states}/{type}_{target}_{penalty}/{panel}_tracksimple_{bin_size,\d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_panel_pw.R"
 

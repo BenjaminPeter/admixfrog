@@ -50,6 +50,7 @@ def add_rle_parse_group(parser):
 
 
 def bam():
+    logger = setup_log()
     parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
@@ -79,6 +80,7 @@ def bam():
 
 
 def do_rle():
+    logger = setup_log()
     parser = argparse.ArgumentParser(description="Do RLE encoding")
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
