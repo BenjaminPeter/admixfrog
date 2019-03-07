@@ -217,6 +217,7 @@ def run_admixfrog(
     #loading data and reference
     data = load_data(infile, split_lib, downsample)
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
+    ref = ref.drop_duplicates(COORDS)
     if pos_mode:
         ref.map = ref.pos
 
@@ -228,24 +229,24 @@ def run_admixfrog(
 
 
     log_.debug(ref.shape)
-    data = data.merge(ref[COORDS], how='left').dropna()
+    data = data.merge(ref[COORDS], how='inner').dropna()
     log_.debug(data.shape)
 
     ref = ref.sort_values(COORDS)
     data = data.sort_values(COORDS)
 
-    snp = data[COORDS] .drop_duplicates()
+    snp = data[COORDS].drop_duplicates()
     log_.debug(snp.shape)
     n_snps = snp.shape[0]
     snp["snp_id"] = range(n_snps)
     data = data.merge(snp)
-    log_.debug(data.shape)
 
     bins, IX = bins_from_bed(
         bed=ref.iloc[:, :5], snp=snp, data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
     )
 
-    ref = ref.merge(snp[COORDS])
+    ref = ref.merge(snp[COORDS], 'right')
+    log_.debug(ref.shape)
 
     P = data2probs(
         data,
