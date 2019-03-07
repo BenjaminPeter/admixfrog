@@ -13,6 +13,7 @@ from .rle import get_rle
 from .decode import pred_sims
 from .log import log_
 
+COORDS = ['chrom', 'map', 'pos']
 
 
 
@@ -29,19 +30,16 @@ def baum_welch(
     freq_F=1,
     est_inbreeding=False,
 ):
-    n_gt = 3
-
     alpha0, trans_mat, cont, error, F, tau, gamma_names, sex = pars
 
     libs = np.unique(P.lib)
     ll = -np.inf
     n_states = len(alpha0)
+    n_gt = 3
 
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
-    # GT = np.ones((IX.n_snps, n_states, n_gt))      # P(G | Z)
-    # OBS = np.ones((IX.n_snps, n_gt))               # P(O | G)
     # P(O, G | Z), scaled such that max for each row is 1
     SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
     PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
@@ -168,6 +166,21 @@ def baum_welch(
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, tau, gamma_names, sex)
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
+def guess_sex(data):
+    cov = data.groupby(data.chrom == "X").apply(
+        lambda df: np.sum(df.tref + df.talt)
+    )
+    cov = cov.astype(float)
+    cov[True] /= np.sum(ref.chrom == "X")
+    cov[False] /= np.sum(ref.chrom != "X")
+
+    if cov[True] / cov[False] < 0.8:
+        sex = "m"
+        log_.info("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
+    else:
+        sex = "f"
+        log_.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
+    return sex
 
 def run_admixfrog(
     infile,
@@ -192,12 +205,16 @@ def run_admixfrog(
     **kwargs
 ):
 
-    #np config
+    #numpy config
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide='ignore', invalid='ignore')
 
+
+    #by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
+
+    #loading data and reference
     data = load_data(infile, split_lib, downsample)
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
     if pos_mode:
@@ -207,31 +224,27 @@ def run_admixfrog(
     if "Y" in data.chrom.values:
         sex = "m"
     if sex is None and "X" in data.chrom.values:
-        """guess sex"""
-        cov = data.groupby(data.chrom == "X").apply(
-            lambda df: np.sum(df.tref + df.talt)
-        )
-        cov = cov.astype(float)
-        cov[True] /= np.sum(ref.chrom == "X")
-        cov[False] /= np.sum(ref.chrom != "X")
+        sex = guess_sex(data)
 
-        if cov[True] / cov[False] < 0.8:
-            sex = "m"
-            log_.info("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
-        else:
-            sex = "f"
-            log_.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
 
-    # merge. This is a bit overkill
-    ref = ref.merge(data.iloc[:, :2].drop_duplicates()).drop_duplicates()
-    log_.info(ref.shape)
-    data = data.merge(ref)
-    log_.info(data.shape)
-    ref = ref.sort_values(["chrom", "map", "pos"])
-    data = data.sort_values(["chrom", "map", "pos"])
+    log_.debug(ref.shape)
+    data = data.merge(ref[COORDS], how='left').dropna()
+    log_.debug(data.shape)
+
+    ref = ref.sort_values(COORDS)
+    data = data.sort_values(COORDS)
+
+    snp = data[COORDS] .drop_duplicates()
+    n_snps = snp.shape[0]
+    snp["snp_id"] = range(n_snps)
+    data = data.merge(snp)
+
     bins, IX = bins_from_bed(
-        bed=ref.iloc[:, :5], data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
+        bed=ref.iloc[:, :5], snp=snp, data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
     )
+
+    ref = ref.merge(snp[COORDS])
+
     P = data2probs(
         data,
         ref,
@@ -240,8 +253,9 @@ def run_admixfrog(
         prior=prior,
         ancestral=ancestral
     )
+
     assert ref.shape[0] == P.alpha.shape[0]
-    del ref
+    del ref, snp
 
     pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding)
     log_.info("done loading data")

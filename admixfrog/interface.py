@@ -5,7 +5,7 @@ from .bam import process_bam
 from .rle import get_rle
 from os.path import isfile
 import admixfrog
-import logging
+from .log import log_, setup_log
 
 
 def add_bam_parse_group(parser):
@@ -99,20 +99,6 @@ def do_rle():
 
     rle = get_rle(data, homo, args.run_penalty)
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
-
-
-def setup_log():
-    logger = logging.getLogger('admixfrog')
-    logger.setLevel(logging.INFO)
-
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-
-    formatter = logging.Formatter('[%(asctime)s]: %(message)s')
-    ch.setFormatter(formatter)
-
-    logger.addHandler(ch)
-    return logger
 
 
 def run():
@@ -341,7 +327,7 @@ def run():
     add_rle_parse_group(parser)
 
     from . import __version__
-    logging.info("running admixfrog version %s", __version__)
+    logger.info("running admixfrog version %s", __version__)
     args = parser.parse_args()
     V = vars(args)
     logger.info(pformat(V))

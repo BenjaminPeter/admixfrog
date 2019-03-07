@@ -146,7 +146,7 @@ def update_F(F, tau, PG, P, IX):
     for s in range(n_states):
 
         def f(t):
-            x = np.log(_p_gt_homo(s, P, t[0], tau=tau[s]) + 1e-10) * PG[:, s, :]
+            x = np.log(_p_gt_homo(s, P, t[0], tau=exp(tau[s])) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0

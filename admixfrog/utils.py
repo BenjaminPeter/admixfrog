@@ -1,7 +1,12 @@
 from collections import namedtuple, defaultdict
 import numpy as np
 import pandas as pd
-from .log import log_
+try:
+    from .log import log_
+except (ImportError, ModuleNotFoundError):
+    from log import log_
+
+
 from scipy.stats import binom
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
@@ -30,14 +35,15 @@ def data2probs(
     alpha_ix = ["%s_alt" % s for s in state_ids]
     beta_ix = ["%s_ref" % s for s in state_ids]
 
+    cont = "%s_alt" % cont_id, "%s_ref" % cont_id
+    data = data.merge(ref[list(cont) + ['chrom', 'pos', 'map']] )
+
     if prior is None:    # empirical bayes
         alpha = np.empty((n_snps, n_states))
         beta = np.empty((n_snps, n_states))
-        cont = "%s_alt" % cont_id, "%s_ref" % cont_id
         ca, cb = empirical_bayes_prior(ref[cont[0]], ref[cont[1]])
 
         if ancestral is None:
-
             for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
                 pa, pb = empirical_bayes_prior(ref[a], ref[b])
                 log_.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
@@ -63,6 +69,7 @@ def data2probs(
 
                 pder, panc = empirical_bayes_prior(DER, ANC, True)
                 log_.info("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
+                print("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
                 alpha[alt_is_anc, i] += panc
                 alpha[alt_is_der, i] += pder
                 beta[ref_is_anc, i] += panc
@@ -91,6 +98,7 @@ def data2probs(
         cont = "%s_alt" % cont_id, "%s_ref" % cont_id
         ca, cb = cont_prior
 
+
         P = Probs(
             O=np.array(data.talt),
             N=np.array(data.tref + data.talt),
@@ -104,7 +112,7 @@ def data2probs(
         return P
 
 
-def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
+def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
     """create a bunch of auxillary data frames for binning
 
     - bins: columns are chrom_id, chrom, bin_pos, bin_id, map
@@ -115,21 +123,15 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     if pos_mode:
         bed.map = bed.pos
     chroms = pd.unique(bed.chrom)
-    snp = data[["chrom", "pos", "map"]].drop_duplicates()
-    n_snps = snp.shape[0]
-    snp["snp_id"] = range(n_snps)
-    snp["hap"] = False
 
     if sex == "m":
         snp.loc[
             (data.chrom == "X") & (HAPX[0] < data.pos) & (data.pos < HAPX[1]), "hap"
         ] = True
+    n_snps = snp.shape[0]
 
-    IX.SNP2CHROMBIN = np.empty((n_snps, 2), int)
+
     IX.SNP2BIN = np.empty((n_snps), int)
-    IX.hapsnp = np.zeros(n_snps, bool)
-
-    data = data.merge(snp)
     IX.OBS2SNP = np.array(data["snp_id"])
 
     bin_loc = []
@@ -141,8 +143,8 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
             ("map", float),
             ("pos", int),
             ("id", int),
-            ("chrom_id", int),
-            ("hap", bool),
+    #        ("chrom_id", int),
+    #        ("hap", bool),
         ]
     )
 
@@ -164,18 +166,15 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
         _bin["pos"] = np.interp(bins, map_, pos)
         _bin["id"] = bin_ids
         _bin["map"] = bins
-        _bin["chrom_id"] = i
 
-        if chrom == "X" and sex == "m":
-            _bin["hap"] = (HAPX[0] < _bin["pos"]) & (HAPX[1] > _bin["pos"])
-        else:
-            _bin["hap"] = False
+        #if chrom == "X" and sex == "m":
+        #    _bin["hap"] = True
+        #else:
+        #    _bin["hap"] = False
         bin_loc.append(_bin)
 
         snp_ids = snp.snp_id[snp.chrom == chrom]
         dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
-        IX.SNP2CHROMBIN[snp_ids, 0] = i
-        IX.SNP2CHROMBIN[snp_ids, 1] = dig_snp
         IX.SNP2BIN[snp_ids] = dig_snp + bin0
 
         bin0 += len(bins)
@@ -183,19 +182,16 @@ def bins_from_bed(bed, data, bin_size, sex=None, pos_mode=False):
     bins = np.hstack(bin_loc)
 
     IX.RG2OBS = dict((l, np.where(data.lib == l)[0]) for l in libs)
-    IX.RG2SNP = dict((k, IX.OBS2SNP[v]) for k, v in IX.RG2OBS.items())
-    IX.RG2BIN = dict((k, IX.SNP2BIN[v]) for k, v in IX.RG2SNP.items())
-    IX.OBS2RG = np.array(data.lib)
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
-    IX.OBS2CHROMBIN = IX.SNP2CHROMBIN[IX.OBS2SNP]
+    IX.HAPSNP = []
 
-    IX.HAPOBS = np.where(data.hap)[0]
-    IX.HAPSNP = np.unique(IX.OBS2SNP[IX.HAPOBS])
-    IX.DIPOBS = np.where(np.logical_not(data.hap))[0]
-    IX.DIPSNP = np.unique(IX.OBS2SNP[IX.DIPOBS])
-    IX.HAPBIN = bins["id"][bins["hap"]]
-    assert all(x in IX.HAPBIN for x in IX.SNP2BIN[IX.HAPSNP])
-    assert all(x in IX.HAPBIN for x in IX.OBS2BIN[IX.HAPOBS])
+    #IX.HAPOBS = np.where(data.hap)[0]
+    #IX.HAPSNP = np.unique(IX.OBS2SNP[IX.HAPOBS])
+    #IX.DIPOBS = np.where(np.logical_not(data.hap))[0]
+    #IX.DIPSNP = np.unique(IX.OBS2SNP[IX.DIPOBS])
+    #IX.HAPBIN = bins["id"][bins["hap"]]
+    #assert all(x in IX.HAPBIN for x in IX.SNP2BIN[IX.HAPSNP])
+    #assert all(x in IX.HAPBIN for x in IX.OBS2BIN[IX.HAPOBS])
 
     IX.n_chroms = len(chroms)
     IX.n_bins = len(bins)
@@ -293,17 +289,18 @@ def load_data(infile, split_lib=True, downsample=1):
     dtype_ = dict(chrom="category")
     data = pd.read_csv(infile, dtype=dtype_).dropna()
     data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
+
     if "lib" not in data or (not split_lib):
         data = data.groupby(["chrom", "pos"], as_index=False).agg(
             {"tref": sum, "talt": sum}
         )
         data["lib"] = "lib0"
 
-    # rm sites with extremely high coverage
     if downsample < 1:
         data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))
         data.talt = binom.rvs(data.talt, downsample, size=len(data.talt))
 
+    # rm sites with extremely high coverage
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 0.999)
     data = data[data.tref + data.talt <= q]
