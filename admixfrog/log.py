@@ -3,10 +3,10 @@ log_ = logging.getLogger(__name__)
 
 def setup_log():
     logger = logging.getLogger('admixfrog')
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('[%(asctime)s]: %(message)s')
     ch.setFormatter(formatter)

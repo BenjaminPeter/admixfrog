@@ -235,9 +235,11 @@ def run_admixfrog(
     data = data.sort_values(COORDS)
 
     snp = data[COORDS] .drop_duplicates()
+    log_.debug(snp.shape)
     n_snps = snp.shape[0]
     snp["snp_id"] = range(n_snps)
     data = data.merge(snp)
+    log_.debug(data.shape)
 
     bins, IX = bins_from_bed(
         bed=ref.iloc[:, :5], snp=snp, data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
