@@ -36,7 +36,11 @@ def data2probs(
     beta_ix = ["%s_ref" % s for s in state_ids]
 
     cont = "%s_alt" % cont_id, "%s_ref" % cont_id
-    data = data.merge(ref[list(cont) + ['chrom', 'pos', 'map']] )
+    if ancestral is None:
+        data = data.merge(ref[list(cont) + ['chrom', 'pos', 'map']] )
+    else:
+        anc = "%s_alt" % ancestral, "%s_ref" % ancestral
+        data = data.merge(ref[list(cont) + list(anc) + ['chrom', 'pos', 'map']] )
 
     if prior is None:    # empirical bayes
         alpha = np.empty((n_snps, n_states))
@@ -69,7 +73,6 @@ def data2probs(
 
                 pder, panc = empirical_bayes_prior(DER, ANC, True)
                 log_.info("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
-                print("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
                 alpha[alt_is_anc, i] += panc
                 alpha[alt_is_der, i] += pder
                 beta[ref_is_anc, i] += panc
@@ -184,6 +187,7 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
     IX.RG2OBS = dict((l, np.where(data.lib == l)[0]) for l in libs)
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
     IX.HAPSNP = []
+    IX.HAPBIN = []
 
     #IX.HAPOBS = np.where(data.hap)[0]
     #IX.HAPSNP = np.unique(IX.OBS2SNP[IX.HAPOBS])
