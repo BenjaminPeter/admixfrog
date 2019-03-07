@@ -28,7 +28,6 @@ P = data %>%
     facet_wrap(~chrom, ncol=1, strip='l') + THEME
 ggsave(snakemake@output$tracksimple, width=20, height=11)
 
-
 df =  data %>% 
     rowwise %>% 
     do(id=seq(.$id, .$id_end)) %>% 
@@ -39,24 +38,25 @@ MAP_MIN = .2
 # second overview plot: genomic positions and lengths, no indiv info
 P2= df %>% arrange(-map_len) %>% 
     filter( map_len>MAP_MIN) %>% 
-    ggplot(aes(x=pos/1e6, y=1, fill=map_len, color=map_len)) + 
+    mutate(length = pmin(map_len, 2)) %>%
+    ggplot(aes(x=pos/1e6, y=1, fill=length, color=length)) + 
     geom_col() + 
     facet_wrap(~chrom, ncol=1, strip='l') + 
     THEME + 
     xlab("Position (Mb)") +
     ylab("# individuals") + 
-    scale_color_viridis_c(trans='log')
+    scale_color_viridis_c(trans='log', name="length (cM)", aesthetics=c("color", "fill"))
 ggsave(snakemake@output$trackplot, P2,  width=20, height=11)
 
 P3= df %>% arrange(-map_len) %>% 
     filter( map_len>MAP_MIN) %>% 
-    ggplot(aes(x=map, y=1, group=map_len, color=map_len, fill=map_len)) + 
+    ggplot(aes(x=map, y=1, group=map_len, color=sample, fill=sample)) + 
     geom_col() + 
     facet_wrap(~chrom, ncol=1, strip='l') + 
     THEME + 
     xlab("Position (Mb)") +
     ylab("# individuals") 
-ggsave(snakemake@output$trackplot, P2,  width=20, height=11)
+ggsave(snakemake@output$trackfull, P3,  width=20, height=11)
 
 
 mycor = function(...)cov(...) %>% cov2cor %>% replace_na(0)

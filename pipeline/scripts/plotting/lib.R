@@ -83,6 +83,7 @@ load_rle_data <- function(rlefiles, name){
 }
 
 sort_chroms <- function(chrom)
+    #chrom <- factor(as.character(as.integer(chrom)), levels=c(1:22,"X", "Y", "mt"))
     chrom <- factor(as.character(chrom), levels=c(1:22,"X", "Y", "mt"))
 
 load_bin_data <- function(infiles, name, widths=TRUE){
