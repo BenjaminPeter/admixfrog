@@ -38,12 +38,13 @@ rule run_admixfrog:
     params:
         cont_id = "AFR",
         ll_tol = 1e-2,
-        freq_f = 5,
-        freq_c = 5,
+        freq_f = 3,
+        freq_c = 3,
         error = 1e-2,
         ancestral = "PAN",
         run_penalty = 0.4,
         max_iter = 250,
+        n_post_rep = 200,
     benchmark:
         "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
     version: ".3"
@@ -60,16 +61,17 @@ rule run_admixfrog:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
         s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
-        s += " --state-ids {states} "
+        s += " --states {states} "
         s += " --cont-id {params.cont_id} "
         s += " --ll-tol {params.ll_tol} "
         s += " --bin-size {wildcards.bin_size} "
-        s += " --est-F --freq-F {params.freq_f} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
         s += " --freq-contamination {params.freq_c} "
         s += " --e0 {params.error} "
         s += " --ancestral {params.ancestral} "
         s += " --run-penalty {params.run_penalty}"
         s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
         s += " --female"
         shell(s)
 

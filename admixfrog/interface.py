@@ -70,7 +70,7 @@ def bam():
     )
     add_bam_parse_group(parser)
     args = vars(parser.parse_args())
-    logging.info(pformat(args))
+    logger.info(pformat(args))
     force_bam = args.pop("force_bam")
     if isfile(args["outfile"]) and not force_bam:
         raise ValueError("""infile exists. set --force-bam to regenerate""")
@@ -88,7 +88,7 @@ def do_rle():
     )
     add_rle_parse_group(parser)
     args = parser.parse_args()
-    logging.info(pformat(args))
+    logger.info(pformat(args))
     import pandas as pd
 
     data = pd.read_csv(args.infile)
@@ -99,7 +99,24 @@ def do_rle():
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
 
+def setup_log():
+    logger = logging.getLogger('admixfrog')
+    logger.setLevel(logging.INFO)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+
+    formatter = logging.Formatter('[%(asctime)s]: %(message)s')
+    ch.setFormatter(formatter)
+
+    logger.addHandler(ch)
+    return logger
+
+
 def run():
+    logger = setup_log()
+
+
     parser = argparse.ArgumentParser(
         description="Infer admixture frogments from low-coverage and contaminated genomes"
         #        formatter_class=argparse.RawTextHelpFormatter
@@ -322,7 +339,7 @@ def run():
 
     args = parser.parse_args()
     V = vars(args)
-    logging.info(pformat(V))
+    logger.info(pformat(V))
     force_bam = V.pop("force_bam")
 
     if V["infile"] is not None and V["bamfile"] is not None:
@@ -355,7 +372,7 @@ def run():
 
     from . import __version__
 
-    logging.info("admixfrog %s", __version__)
+    logger.info("admixfrog %s", __version__)
     bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")

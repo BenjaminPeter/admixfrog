@@ -11,11 +11,9 @@ from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .genotype_emissions import update_emissions, update_Ftau, update_tau
 from .rle import get_rle
 from .decode import pred_sims
-import logging
+from .log import log_
 
-logging.basicConfig(
-    level=logging.INFO, format="[%(asctime)s]%(message)s", datefmt="%H:%M:%S"
-)
+#log_  = logging.getLogger(__name__)
 
 np.set_printoptions(suppress=True, precision=4)
 
@@ -78,7 +76,7 @@ def baum_welch(
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
         if sex == "m":
             # print("male ll doens't take x into account", end="\t")
-            logging.info("male ll doens't take x into account")
+            log_.info("male ll doens't take x into account")
             ll, old_ll = (
                 np.sum([np.sum(np.log(n_i)) for _, n_i in zip(range(22), n)])
                 + e_scaling,
@@ -100,7 +98,7 @@ def baum_welch(
             ll,
             ll - old_ll,
         )
-        logging.info("[%dk|%dk|%dk|%dk]: iter:%d |p95:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
+        log_.info("[%dk|%dk|%dk|%dk]: iter:%d |p95:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
         if ll - old_ll < ll_tol:
             break
 
@@ -123,8 +121,8 @@ def baum_welch(
         alpha0 = np.linalg.matrix_power(trans_mat, 10000)[0]
 
         if gamma_names is not None:
-            logging.info("\t".join(gamma_names))
-        logging.info("\t".join(["%.3f" % a for a in alpha0]))
+            log_.info("\t".join(gamma_names))
+        log_.info("\t".join(["%.3f" % a for a in alpha0]))
 
         # updating parameters
         cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
@@ -139,24 +137,24 @@ def baum_welch(
             delta = update_contamination(cont, error, P, PG, IX, libs)
             if delta < 1e-5:  # when we converged, do not update contamination
                 est_contamination, cond_cont = False, False
-                logging.info("stopping contamination updates")
+                log_.info("stopping contamination updates")
         if cond_Ftau:
             delta = update_Ftau(F, tau, PG, P, IX)
             if delta < 1e-5:  # when we converged, do not update F
                 est_F, est_tau = False, False
                 cond_Ftau, cond_F, cond_tau = False, False, False
-                logging.info("stopping Ftau updates")
+                log_.info("stopping Ftau updates")
         elif cond_F:
             # need P(G, Z | O') =  P(Z| O') P(G | Z, O')
             delta = update_F(F, tau, PG, P, IX)
             if delta < 1e-5:  # when we converged, do not update F
                 est_F, cond_F = False, False
-                logging.info("stopping F updates")
+                log_.info("stopping F updates")
         elif cond_tau:
             delta = update_tau(F, tau, PG, P, IX)
             if delta < 1e-5:  # when we converged, do not update F
                 est_tau, cond_tau = False, False
-                logging.info("stopping F updates")
+                log_.info("stopping F updates")
         if cond_F or cond_cont or cond_tau:
             s_scaling = update_snp_prob(
                 SNP, P, IX, cont, error, F, tau, est_inbreeding=est_inbreeding
@@ -164,8 +162,8 @@ def baum_welch(
             e_scaling = update_emissions(
                 E, SNP, P, IX, est_inbreeding=est_inbreeding
             )  # P(O | Z)
-            logging.info("e-scaling: %s", e_scaling)
-            logging.info("s-scaling: %s", s_scaling)
+            log_.info("e-scaling: %s", e_scaling)
+            log_.info("s-scaling: %s", s_scaling)
             scaling = e_scaling + s_scaling
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, tau, gamma_names, sex)
@@ -216,16 +214,16 @@ def run_admixfrog(
 
         if cov[True] / cov[False] < 0.8:
             sex = "m"
-            logging.info("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
+            log_.info("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
         else:
             sex = "f"
-            logging.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
+            log_.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
 
     # merge. This is a bit overkill
     ref = ref.merge(data.iloc[:, :2].drop_duplicates()).drop_duplicates()
-    logging.info(ref.shape)
+    log_.info(ref.shape)
     data = data.merge(ref)
-    logging.info(data.shape)
+    log_.info(data.shape)
     ref = ref.sort_values(["chrom", "map", "pos"])
     data = data.sort_values(["chrom", "map", "pos"])
     bins, IX = bins_from_bed(
@@ -243,7 +241,7 @@ def run_admixfrog(
     del ref
 
     pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding)
-    logging.info("done loading data")
+    log_.info("done loading data")
 
     Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(
         P, IX, pars, est_inbreeding=est_inbreeding, **kwargs
