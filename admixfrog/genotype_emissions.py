@@ -5,8 +5,8 @@ from .distributions import gt_homo_dist
 from .read_emissions2 import p_snps_given_gt
 from numba import njit
 from scipy.special import betainc
-import logging
 from math import exp, log
+from .log import log_
 
 
 @njit(fastmath=True)
@@ -55,7 +55,7 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150)
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     if sum(bad_bins) > 0:
-        logging.warning("bad bins %s", sum(bad_bins))
+        log_.warning("bad bins %s", sum(bad_bins))
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
 
     log_scaling += scale_mat(E)
@@ -160,7 +160,7 @@ def update_F(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        logging.info(
+        log_.info(
             "[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun)
         )
         delta += abs(F[s] - OO.x[0])
@@ -190,9 +190,9 @@ def update_Ftau(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        log_ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], OO.x[0])
-        log_ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun)
-        logging.info(log_)
+        log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], OO.x[0])
+        log__ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun)
+        log_.info(log__)
         delta += abs(F[s] - OO.x[0]) + abs(tau[s] - OO.x[1])
         F[s], tau[s] = OO.x
 
@@ -219,9 +219,9 @@ def update_tau(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        log_ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], F[s])
-        log_ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun)
-        logging.info(log_)
+        log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], F[s])
+        log__ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun)
+        log_.info(log__)
         delta += abs(tau[s] - OO.x[0])
         tau[s] = OO.x[0]
 

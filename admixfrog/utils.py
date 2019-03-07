@@ -1,7 +1,7 @@
 from collections import namedtuple, defaultdict
 import numpy as np
 import pandas as pd
-import logging
+from .log import log_
 from scipy.stats import binom
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
@@ -40,7 +40,7 @@ def data2probs(
 
             for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
                 pa, pb = empirical_bayes_prior(ref[a], ref[b])
-                logging.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
+                log_.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
                 alpha[:, i] = ref[a] + pa
                 beta[:, i] = ref[b] + pb
         else:
@@ -51,7 +51,7 @@ def data2probs(
             anc_is_unknown = (1 - alt_is_anc) * (1 - ref_is_anc) == 1
             for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
                 pa, pb = empirical_bayes_prior(ref[a], ref[b])
-                logging.info("[%s]EB prior0 [anc=%.4f, der=%.4f]: " % (s, pa, pb))
+                log_.info("[%s]EB prior0 [anc=%.4f, der=%.4f]: " % (s, pa, pb))
                 alpha[:, i], beta[:, i] = ref[a], ref[b]
                 alpha[anc_is_unknown, i] += pa
                 beta[anc_is_unknown, i] += pb
@@ -62,7 +62,7 @@ def data2probs(
                 DER = np.array(ref[[b, a]])[m_der]
 
                 pder, panc = empirical_bayes_prior(DER, ANC, True)
-                logging.info("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
+                log_.info("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
                 alpha[alt_is_anc, i] += panc
                 alpha[alt_is_der, i] += pder
                 beta[ref_is_anc, i] += panc

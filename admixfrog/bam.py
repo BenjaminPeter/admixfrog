@@ -2,7 +2,7 @@ import admixfrog.pgdirect as pg
 import pandas as pd
 from collections import defaultdict
 import lzma
-import logging
+from .log import log_
 
 default_filter = {
     "deam_only": False,
@@ -98,7 +98,7 @@ def process_bam(outfile, bamfile, ref, deam_cutoff, length_bin_size, **kwargs):
     sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks)
 
     default_filter.update(kwargs)
-    logging.info("Filter is %s", default_filter)
+    log_.info("Filter is %s", default_filter)
     cov = AdmixfrogInput(
         **default_filter,
         length_bin_size=length_bin_size,
