@@ -10,7 +10,7 @@ get_track <- function(bin_data, TRACK, p_min, p_max){
         TRACK = NULL
     }
     v <- bin_data %>% 
-    select(-1:-9) %>%
+    select(-1:-7) %>%
     summarize_all(.funs=mean)  %>% 
     unlist 
     TRACK <- names(v[v<p_max& v>p_min])                                                           
@@ -27,7 +27,6 @@ read_binout <- function(fname){
                chrom=col_factor(),
                pos=col_integer(),
                id=col_integer(),
-               chrom_id=col_integer(),
                viterbi=col_factor(),
                n_snps=col_integer()
                )
@@ -83,6 +82,7 @@ load_rle_data <- function(rlefiles, name){
 }
 
 sort_chroms <- function(chrom)
+    #chrom <- factor(as.character(as.integer(chrom)), levels=c(1:22,"X", "Y", "mt"))
     chrom <- factor(as.character(chrom), levels=c(1:22,"X", "Y", "mt"))
 
 load_bin_data <- function(infiles, name, widths=TRUE){

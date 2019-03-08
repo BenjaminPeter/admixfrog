@@ -1,10 +1,11 @@
 import argparse
 from .admixfrog import run_admixfrog
-from pprint import pprint
+from pprint import pprint, pformat
 from .bam import process_bam
 from .rle import get_rle
 from os.path import isfile
 import admixfrog
+from .log import log_, setup_log
 
 
 def add_bam_parse_group(parser):
@@ -49,6 +50,7 @@ def add_rle_parse_group(parser):
 
 
 def bam():
+    logger = setup_log()
     parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
@@ -69,7 +71,7 @@ def bam():
     )
     add_bam_parse_group(parser)
     args = vars(parser.parse_args())
-    pprint(args)
+    logger.info(pformat(args))
     force_bam = args.pop("force_bam")
     if isfile(args["outfile"]) and not force_bam:
         raise ValueError("""infile exists. set --force-bam to regenerate""")
@@ -78,6 +80,7 @@ def bam():
 
 
 def do_rle():
+    logger = setup_log()
     parser = argparse.ArgumentParser(description="Do RLE encoding")
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
@@ -87,11 +90,11 @@ def do_rle():
     )
     add_rle_parse_group(parser)
     args = parser.parse_args()
-    pprint(vars(args))
+    logger.info(pformat(args))
     import pandas as pd
 
     data = pd.read_csv(args.infile)
-    states = list(data.columns)[8:]
+    states = list(data.columns)[6:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
 
     rle = get_rle(data, homo, args.run_penalty)
@@ -99,6 +102,9 @@ def do_rle():
 
 
 def run():
+    logger = setup_log()
+
+
     parser = argparse.ArgumentParser(
         description="Infer admixture frogments from low-coverage and contaminated genomes"
         #        formatter_class=argparse.RawTextHelpFormatter
@@ -109,7 +115,7 @@ def run():
     )
 
     parser.add_argument(
-        "--infile",
+        "--infile", "--in",
         help="""Sample input file (csv). Contains individual specific data, obtained from
                         a bam file.
 
@@ -183,13 +189,15 @@ def run():
         "--prior",
         "-p",
         type=float,
-        default=1e-5,
-        help="""Prior of reference allele frequencies. This number is added to both the
+        default=None,
+        help="""Prior of reference allele frequencies. IF None (default), this is 
+        estimated from the data
+        
+        This number is added to both the
         ref and alt allele count for each reference, to reflect the uncertainty in allele
         frequencies from a sample. If references are stationary with size 2N, this is
         approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
-
-        """,
+          """,
     )
     parser.add_argument(
         "--dont-est-contamination",
@@ -280,8 +288,9 @@ def run():
         "--tau0",
         nargs="*",
         type=float,
-        default=1,
-        help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+        default=0,
+        #help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+        help="initial log-tau (default 0), at most 1 per source",
     )
     parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"
@@ -307,17 +316,21 @@ def run():
         """,
     )
     parser.add_argument(
-        "--est-inbreeding", "-I",
+        "--est-inbreeding",
+        "-I",
         default=False,
         action="store_true",
-        help="""allow  haploid (i.e. inbreed) stretches"""
+        help="""allow  haploid (i.e. inbreed) stretches""",
     )
+
     add_bam_parse_group(parser)
     add_rle_parse_group(parser)
 
+    from . import __version__
+    logger.info("running admixfrog version %s", __version__)
     args = parser.parse_args()
-    pprint(vars(args))
     V = vars(args)
+    logger.info(pformat(V))
     force_bam = V.pop("force_bam")
 
     if V["infile"] is not None and V["bamfile"] is not None:
@@ -350,7 +363,7 @@ def run():
 
     from . import __version__
 
-    print("admixfrog ", __version__)
+    logger.info("admixfrog %s", __version__)
     bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")

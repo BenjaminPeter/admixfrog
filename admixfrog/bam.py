@@ -2,6 +2,7 @@ import admixfrog.pgdirect as pg
 import pandas as pd
 from collections import defaultdict
 import lzma
+from .log import log_
 
 default_filter = {
     "deam_only": False,
@@ -93,12 +94,11 @@ class RefIter:
 
 
 def process_bam(outfile, bamfile, ref, deam_cutoff, length_bin_size, **kwargs):
-    print(kwargs)
     blocks = RefIter(ref)
     sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks)
 
     default_filter.update(kwargs)
-    print(default_filter)
+    log_.info("Filter is %s", default_filter)
     cov = AdmixfrogInput(
         **default_filter,
         length_bin_size=length_bin_size,

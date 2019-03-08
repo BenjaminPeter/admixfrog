@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from .log import log_
 from itertools import accumulate
 
 
@@ -52,7 +53,7 @@ def get_rle(data, states, penalty=0.5):
     res = []
 
     for target, type_ in zip(targets, types):
-        print(target)
+        log_.info("rle for %s", target)
 
         data["target"] = np.sum(data[target], 1)
         runs = (

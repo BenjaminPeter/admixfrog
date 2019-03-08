@@ -38,12 +38,13 @@ rule run_admixfrog:
     params:
         cont_id = "AFR",
         ll_tol = 1e-2,
-        freq_f = 5,
-        freq_c = 5,
+        freq_f = 3,
+        freq_c = 3,
         error = 1e-2,
         ancestral = "PAN",
         run_penalty = 0.4,
         max_iter = 250,
+        n_post_rep = 200,
     benchmark:
         "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
     version: ".3"
@@ -60,16 +61,17 @@ rule run_admixfrog:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
         s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
-        s += " --state-ids {states} "
+        s += " --states {states} "
         s += " --cont-id {params.cont_id} "
         s += " --ll-tol {params.ll_tol} "
         s += " --bin-size {wildcards.bin_size} "
-        s += " --est-F --freq-F {params.freq_f} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
         s += " --freq-contamination {params.freq_c} "
         s += " --e0 {params.error} "
         s += " --ancestral {params.ancestral} "
         s += " --run-penalty {params.run_penalty}"
         s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
         s += " --female"
         shell(s)
 
@@ -193,12 +195,16 @@ rule plot_hmm_panel_region:
 rule plot_hmm_panel_pw:
     input:
         rle = _panel_rle,
+        bins = _panel_bin,
         script_ = "scripts/plotting/hmm_panel_pw.R"
     params:
-        lengths= [.33, .66, 1, 1.33, 1.66, 2] # in cM
+        lengths= [0, .33, .66, 1, 1.33, 1.66] # in cM
     output:
-        pwplot="figures/{states}/{type}_{target}_{penalty}/{panel}_pwall_{bin_size,\d+}_{snpset}.png",
+        pwplot="figures/{states}/{type}_{target}_{penalty}/{panel}_pwcor_{bin_size,\d+}_{snpset}.png",
+        pwplot2="figures/{states}/{type}_{target}_{penalty}/{panel}_pwamount_{bin_size,\d+}_{snpset}.png",
         trackplot="figures/{states}/{type}_{target}_{penalty}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
+        trackfull="figures/{states}/{type}_{target}_{penalty}/{panel}_trackfull_{bin_size,\d+}_{snpset}.png",
+        tracksimple="figures/{states}/{type}_{target}_{penalty}/{panel}_tracksimple_{bin_size,\d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_panel_pw.R"
 
