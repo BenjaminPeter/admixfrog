@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \author{benjamin Peter}
 
+\newcommand{\BE}[1]{\mathbb{E}\left[#1\right]}
 
 \title{Admixfrog model}
 \begin{document}
@@ -89,84 +90,99 @@ P(O_{rs}| G_s, c_r, n_{rs}) \sim Binom(O_{rs}; n_{rs}, p) \label{eq:ll:geno}
 where $p = (1-e) p' + e (1-p')$
 and $p' =c_{rs} p_c + (1-c_{rs}) G_s$
 \subsection{State Likelihood}
-\subsubsection{Homozygous States}
+We want to calculate the probability of a single locus, given the hidden state (i.e ancestry) is known. For homozygous ancestry, if the allele frequency of the introgressed individual were known to be $p$, the genotype probabilities would be $p, 2p(1-p), (1-p)^2$, respectively However, we do not observe $p$, but instead need  to estimate it from a possibly distant proxy. There are three causes of uncertainty that we will take into account.
+\begin{enumerate}
+	\item Sampling uncertainty from the reference.	
+	\item Genetic drift between the reference and introgressing population
+	\item Population substructure in the reference population
+\end{enumerate}
+
+
+\subsubsection{Homozygous Hidden States}
+As we deal with a single hidden-state bin and locus, subscripts designating the genomic location are omitted in this section. We start with the simplest possible model, and add complexity in sequence.
 \paragraph{Direct samples}
-(subscripts are omitted) We wish to calculate the probability that the individual is homozygous, given the SNP of interest derives from a population whose allele frequency can be characterized as
-$$f \sim Beta(aF, bF)$$
-$$G \sim Binom(2, f)$$
-The resulting compound distribution is  betabinomial:
+We wish to calculate the probability that the individual is homozygous, given the SNP of interest derives two haplotypes from a population whose allele frequency is known to be $p$. If, $p$ is not known, 
+\begin{equation}
+G \sim Binom(2, p)
+\end{equation}
+however, we may need to infer it from a panel where we observe $a', d'$ ancestral and derived alleles, respectively. In this case
+\begin{align}
+p &\sim Beta(d' + d_0, a' + a_0)
+\end{align}
+The prior $d_0, a_0$ can be justified by noting that even if we only observe ancestral alleles in our sample, there is still a small chance that some individuals might have a derived allele in this locus. There are differing opinions about the values of $d_0, a_0$. Balding \& Nichols proposed a uniform prior, i.e. $a_0=d_0=1$. By noting that the derived allele occurs proportionally to $\theta/p$, one can justify $d_0=0, a_0=1$. A third option is an empirical Bayes prior: In the absence of data at a particular locus, a sensible guess for the allele frequency at this locus would be the genome wide average. Hence, we obtain an empirical prior by fitting a $Beta(d_0, a_0)$ distribution to all loci in the reference panel. In particular for ascertained data, this might be most suitable.
+
+Writing $d = d' + d_0, a = a'+a_0$
 \begin{eqnarray}
-P(G=k | F, a, b) &\sim& Betabinom(k; n=2, aF, bF)\nonumber\\
-&=& \binom{2}{k} \frac{B[k+a F, n-k + b F]}{B[ (a + b) F]} \label{eq:ll:homo}
+P(G | d, a, d_0, a_0) &\sim& Betabinom(2, d+d_0, a+a_0)\nonumber\\
+&=& \binom{2}{G} \frac{B[G+d, 2-G + a]}{B[ d + a]} \label{eq:ll:homo}
 \end{eqnarray}
 where $B[.]$ denotes the beta function.
-\paragraph{Drift to reference}
-Let $f$ denote the frequency in the reference, $A, D$ the number of ancestral and derived alleles observed in a 
-sample from there, and $G$ the number of derived alleles present.
+\paragraph{Genetic drift between reference and target}
+In many cases, the target individual will not be sampled immediately after admixture, but thousands of generations after. Thus, we need to take into account that the allele frequency might have changed.
 
-Conceptually, genetic drift will increase the chance that the two alleles in the target are derived from the same ancestor: If the populations are very distant, the probability $F$ that the two alleles are identical by descent is one.  Conversely, if we have a very close reference, that probability is zero. 
+Conceptually, genetic drift will increase the chance that the two alleles in the target are derived from the same ancestor: If the target is very very distant from the panel, the probability $F$ that the two alleles are identical by descent approaches one.  Conversely, if we have a very close reference, that probability is zero. 
 \begin{align}
-P(G=2 | A,D) &= \int P(G|f) P(f | A, D) df\nonumber\\
-&= \int \left[ F f + (1-F) f^2\right] P(f | A, D) df\nonumber\\
-&= F E[f|A, D] + (1-F)  E[f^2|A, D]\nonumber\\
-&= F \frac{D}{A+D} + (1-F)  \frac{D (D+1)}{(A+D)(A+D+1)}\nonumber\\
-&= \frac{D^2 + D + ADF}{(A+D)(A+D+1)}
+P(G=2 | a,d, F) &= \int P(G|p) P(p | a, d) dp \nonumber\\
+&= \int \left[ F p + (1-F) p^2\right] P(p | a, d) df\nonumber\\
+&= F \BE{p|a, d} + (1-F)  \BE{p^2|a, d}\nonumber\\
+&= F \frac{d}{a+d} + (1-F)  \frac{d (d+1)}{(a+d)(a+d+1)}\nonumber\\
+&= \frac{d^2 + d + adF}{(a+d)(a+d+1)}
 \end{align}
 Hence we have an excess of homozygous emissions. The probability for $G=0$ is obtained by switching $A$ and $D$, and for $G=1$ by subtracting them from one:
 \begin{equation}
-P(G=1 | A,D) = \frac{2AD(1-F)}{(A+D)(A+D+1)}
+P(G=1 | a,d) = \frac{2ad(1-F)}{(a+d)(a+d+1)}
 \end{equation} 
 
-\paragraph{Drift to reference / subdivided source}
-We further assume that we do not have a sample from the source directly, but instead from a population loosely related to it. Let $f$ now denote the frequency of that subdivided population, and $\tau$ a measure of the population structure. 
+\paragraph{Drift to reference, population structure in source}
+As a final complication, the reference may be subdivided. For example, we want to infer Neandertal introgression by using the Altai Neandertal \\citep{prufer2014} as a reference, despite it being substantially diverged. This will lead to additional uncertainty in the allele frequency, but should not change our belief in the average allele frequency. For this purpose, we introduce a parameter $\tau$
 
-$$P(f| A, D, \tau) \sim Beta (A\tau, B\tau)$$
+\begin{equation}
+p| a, d, \tau \sim Beta (d\tau, a\tau)
+\end{equation}
+
+
 
 \begin{align}
-P(G=2 | A,D) &= \int P(G|f) P(f | A, D, \tau) df\nonumber\\
-&= \int \left[ F f + (1-F) f^2\right] P(f | A, D, \tau) df\nonumber\\
-&= F E[f|A, D] + (1-F)  E[f^2|A, D, \tau]\nonumber\\
-&= F \frac{D}{A+D} + (1-F)  \frac{D (D\tau+1)}{(A+D)(A\tau+D\tau+1)}\nonumber\\
-&= \frac{\tau D^2 + D + ADF\tau}{(A+D)(\tau A+\tau D+1)}
+P(G=2 | a,d, F, \tau) &= \int P(G|p) P(p | a, d, \tau) df\nonumber\\
+&= \int \left[ F p + (1-F) p^2\right] P(p | a, d, \tau) df\nonumber\\
+&= F E[p|a,d] + (1-F)  E[p^2|a, d, \tau]\nonumber\\
+&= F \frac{d}{a+d} + (1-F)  \frac{d (d\tau+1)}{(a+d)(a\tau+d\tau+1)}\nonumber\\
+&= \frac{\tau d^2 + d + adF\tau}{(a+d)(\tau a+\tau d+1)}
 \end{align}
-Hence we have an excess of homozygous emissions. The probability for $G=0$ is obtained by switching $A$ and $D$, and for $G=1$ by subtracting them from one:
+The probability for $G=0$ is again obtained by switching $a$ and $d$, and for $G=1$ by subtracting them from one:
 \begin{equation}
-P(G=1 | A,D) = \frac{2AD(1-F)\tau}{(A+D)(\tau A+\tau D+1)}
+P(G=1 | a,d, F, \tau) = \frac{2ad(1-F)\tau}{(a+d)(\tau a+\tau d+1)}
 \end{equation} 
 
 In the limit as $\tau=1$, we have the same as without subdivision. In the 
 other limit as $\tau=0$, we get
 \begin{equation}
-P(G=2|A, D, \tau) = D / (A+D)
+P(G=2|a, d, F, \tau) = d / (a+d)
 \end{equation}
 
-\paragraph{Drift to reference / subdivided source / prior}
+\paragraph{Drift to reference / subdivided source / alt}
+A more complex model is
+\begin{equation}
+p| a, d, \tau \sim Beta (d'\tau + d_0, a'\tau + a_0)
+\end{equation}
 
 
-\begin{align}
-P(G=2 | A,D, \tau, N) &= \int P(G|f) P(f | A, D, \tau, N) df\nonumber\\
-&= \int \left[ F f + (1-F) f^2\right] P(f | A, D, \tau, N) df\nonumber\\
-&= F E[f|A, D, N] + (1-F)  E[f^2|A, D, \tau, N]\nonumber\\
-&= K(a\tau,d\tau,N) \left[F \frac{D }{A+D} + (1-F) \frac{(D) (D\tau+1)}{(A+D )(A\tau+D\tau+1)}\right]
-\end{align}
-Thus the probability will be decreased by a factor that depends on $a\tau, d\tau$ and $N$, but not $F$.
+
 
 \subsubsection{Heterozygous States}
-For a heterozygous state, we know the allele frequencies in the two source pops, and we know they contribute one haplotype each.
+For a heterozygous state, we know the allele frequencies in the two source pops, and we know they contribute one haplotype each. If we assume that the sources have allele frequencies $p_i$ with prior $d_i, a_i$, respectively.
+
 \begin{align}
-P(G=1 | F, a, b) &= Betabinom( n=1, a F, b F)\nonumber\\
-% &=&\binom{n, k) \frac{\Gamma(k+a)\Gamma(n-k+b)}{\Gamma(n+a+b)}\frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}\\
-&=\int f P(f| a, b, N, F \tau) df\nonumber\\
-&= E[f| a, b, N, F \tau]\nonumber\\
-&=\frac{F a}{(Fa+Fb)}\nonumber\\
-&=\frac{a}{a+b}.\label{eq:ll:het}
+P(G_i = 1 | \tau_i, F_i, d_i, a_i) &=  \int p P(p| d_i, a_i, p \tau_i, F_i) df\nonumber\\
+&= E[f| d_i, a_i, F_i, \tau_i]\nonumber\\
+&=\frac{d_i}{a_i+d_i}\label{eq:ll:het}
 \end{align}
-Intuitively, this is because if we just sample one allele from a population, that population's allele frequency is the best guess for the state of our sample. The distance increases our uncertainty, but not the mean estimate.
-Thus
+and hence is independent from $F$ and $\tau$. Intuitively, this is because if we just sample one allele from a population, that population's allele frequency is the best guess for the state of our sample. The distance increases our uncertainty, but not the mean.
+Thus for sources $S_i, S_j$, 
 \begin{align*}
-P(G=0) &= K_1' K_2'\frac{b_1}{a_1+b_1}\frac{b_2}{a_2 + b_2}\\
-P(G=1) &=  \frac{K_1K_2'a_1b_2 + K_1'K_2a_2b_1}{(a_1+b_1)(a_2+b_2)}\\
-P(G=2) &= K_1 K_2\frac{a_1}{a_1+b_1}\frac{a_2}{a_2 + b_2}
+P(G=0) &= \frac{a_i a_j}{(d_i+a_i)(d_j+a_j)}\\
+P(G=1) &= \frac{a_id_j + a_jd_i}{(d_i+a_i)(d_j+a_j)}\\
+P(G=2) &= \frac{d_i d_j}{(d_i+a_i)(d_j+a_j)}\\
 \end{align*}
 
 
@@ -174,16 +190,16 @@ P(G=2) &= K_1 K_2\frac{a_1}{a_1+b_1}\frac{a_2}{a_2 + b_2}
 \subsubsection{Haploid States}
 On the sex chromosome, or when inbreeding is present, we further encounter haploid regions. Here, the heterozygous states have emission probability 0, and we just have one allele of the heterozygous case: $F_{ST}$ does not matter.
 \begin{align}
-P(G=0) &= \frac{b}{a+b}\nonumber\\
-P(G=1) &= \frac{a}{a+b}\label{eq:ll:hap}
+P(G=0) &= \frac{a}{a+d}\nonumber\\
+P(G=1) &= \frac{d}{a+d}\label{eq:ll:hap}
 \end{align}
 
 
 
 
-\subsection{Estimating F}
+\subsection{Estimating F and $\tau$}
 \begin{align}
-Q(F|F' )&= E[\log P(O, Z, G )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
+Q(F, \tau|F', \tau' )&= E[\log P(O, Z, G )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
 &=\sum_{Z \in \mathcal{Z}, G \in \mathcal{G}} \log P(G  | Z, A, B, \tau) P(G|Z, \theta') P(Z | O, \theta')\nonumber\\
 &=\sum_k\sum_{g=0}^2\sum_{l=1}^L \log P(G_t | Z_l=k, A_{lk}, B_{lk}, F)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta')
 \end{align}
@@ -206,18 +222,7 @@ P(G,Z| O) &= P(G|Z, O)P(Z|O)\nonumber\\
 &= \frac{P(O_i | G) P(G|Z)}{P(O_i | Z)} P(Z|O)
 \end{align}
 as $G_i | Z_i$ is independent of all observations except $O_i$ and Bayes theorem.
-\subsection{Estimating K}
-As for $F$,
-\begin{equation}
-\hat{K} =\operatorname*{argmax}_K \left[ \sum_k\sum_{g=0}^2\sum_{l=1}^L \log P(G_t | Z_l=k, A_{lk}, B_{lk}, F)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta') 
-\right]
-\end{equation}
-\begin{equation}
-\hat{K} =\operatorname*{argmax}_K \left[ \sum_k\sum_{g=0}^2\sum_{l=1}^L \log K(A_{lk}, B_{lk}, n)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta') 
-\right]
-\end{equation}
 
-but we need to optimize over all homo- and heterozygous states containing a particular $K$.
 
 
 
