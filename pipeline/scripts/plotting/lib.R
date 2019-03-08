@@ -237,7 +237,7 @@ rle_fit_plot <- function(data, R, trunc=0.049, xmax=6){
         gather(k, v, lomax, exp)
 
      
-    P + geom_path(data=pred, mapping=aes(color=k, x=lengths, y=v, group=sample))
+    P + geom_step(data=pred, mapping=aes(color=k, x=lengths, y=v, group=sample))
 }
 plot_m_gamma <- function(R, generation_time){
     SCALING = generation_time * 100 #* 2
@@ -257,10 +257,10 @@ plot_m_gamma <- function(R, generation_time){
     M = gpred %>%
         ggplot( aes(x=time*SCALING, y=mig)) + 
         geom_line(lty=2) + 
-        #coord_cartesian(ylim=c(0,20), xlim=c(0,1000)) + xlab("time (gen)") + 
         scale_x_continuous(name="time (y)", expand=expand_scale(0,0)) + 
         coord_cartesian(xlim=c(0, tmax * SCALING)) + 
-        geom_vline(aes(xintercept=semean * SCALING), data=gpred) + 
+        geom_vline(aes(xintercept=emean + age), data=gpred) + 
+        geom_vline(aes(xintercept=lmean + age), lty=2, data=gpred) + 
         facet_wrap(~sample, scale="free_y", ncol=1, strip.position="left") +
         geom_rect(aes(xmin=0, ymin=0, ymax=Inf, xmax=age), fill='white')
 }
