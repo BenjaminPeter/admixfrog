@@ -4,7 +4,7 @@ from collections import Counter
 import numpy as np
 from numpy.random import choice
 from random import random
-import logging
+from .log import log_
 
 
 @njit  # ('i8(i8, i8)')
@@ -203,7 +203,7 @@ def pred_sims(
         )
         df["chrom"] = i
         output.append(df)
-        logging.info("Posterior Simulating chromosome %s" % i)
+        log_.info("Posterior Simulating chromosome %s" % i)
     return pd.concat(output)
 
 

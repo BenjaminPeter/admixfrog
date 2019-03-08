@@ -6,7 +6,7 @@
         "depends": [],
         "name": "admixfrog.read_emissions",
         "sources": [
-            "/mnt/expressions/bpeter/admixfrog/src/admixfrog/admixfrog/read_emissions.pyx"
+            "admixfrog/cyread_emissions.pyx"
         ]
     },
     "module_name": "admixfrog.read_emissions"
@@ -837,7 +837,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "read_emissions.pyx",
+  "admixfrog/cyread_emissions.pyx",
   "stringsource",
 };
 /* MemviewSliceStruct.proto */
@@ -968,7 +968,7 @@ struct __pyx_MemviewEnum_obj;
 struct __pyx_memoryview_obj;
 struct __pyx_memoryviewslice_obj;
 
-/* "admixfrog/read_emissions.pyx":48
+/* "admixfrog/cyread_emissions.pyx":48
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -2068,7 +2068,6 @@ static const char __pyx_k_setstate_cython[] = "__setstate_cython__";
 static const char __pyx_k_pyx_unpickle_Enum[] = "__pyx_unpickle_Enum";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_get_po_given_c_all[] = "get_po_given_c_all";
-static const char __pyx_k_read_emissions_pyx[] = "read_emissions.pyx";
 static const char __pyx_k_strided_and_direct[] = "<strided and direct>";
 static const char __pyx_k_strided_and_indirect[] = "<strided and indirect>";
 static const char __pyx_k_update_contamination[] = "update_contamination";
@@ -2081,6 +2080,7 @@ static const char __pyx_k_admixfrog_read_emissions[] = "admixfrog.read_emissions
 static const char __pyx_k_Invalid_shape_in_axis_d_d[] = "Invalid shape in axis %d: %d.";
 static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cython.array";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
+static const char __pyx_k_admixfrog_cyread_emissions_pyx[] = "admixfrog/cyread_emissions.pyx";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
 static const char __pyx_k_update_contamination_locals_get[] = "update_contamination.<locals>.get_po_given_c_all";
 static const char __pyx_k_Buffer_view_does_not_expose_stri[] = "Buffer view does not expose strides";
@@ -2133,6 +2133,7 @@ static PyObject *__pyx_kp_u__3;
 static PyObject *__pyx_kp_u__4;
 static PyObject *__pyx_kp_u__5;
 static PyObject *__pyx_kp_u__6;
+static PyObject *__pyx_kp_s_admixfrog_cyread_emissions_pyx;
 static PyObject *__pyx_n_s_admixfrog_read_emissions;
 static PyObject *__pyx_n_s_all;
 static PyObject *__pyx_n_s_allocate_buffer;
@@ -2202,7 +2203,6 @@ static PyObject *__pyx_n_s_pyx_type;
 static PyObject *__pyx_n_s_pyx_unpickle_Enum;
 static PyObject *__pyx_n_s_pyx_vtable;
 static PyObject *__pyx_n_s_range;
-static PyObject *__pyx_kp_s_read_emissions_pyx;
 static PyObject *__pyx_n_s_reduce;
 static PyObject *__pyx_n_s_reduce_cython;
 static PyObject *__pyx_n_s_reduce_ex;
@@ -2314,7 +2314,7 @@ static PyObject *__pyx_codeobj__26;
 static PyObject *__pyx_codeobj__33;
 /* Late includes */
 
-/* "admixfrog/read_emissions.pyx":20
+/* "admixfrog/cyread_emissions.pyx":20
  * @cython.boundscheck(False) # turn off bounds-checking for entire function
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
  * cdef double get_po_given_c(             # <<<<<<<<<<<<<<
@@ -2353,7 +2353,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
   Py_ssize_t __pyx_t_17;
   __Pyx_RefNannySetupContext("get_po_given_c", 0);
 
-  /* "admixfrog/read_emissions.pyx":33
+  /* "admixfrog/cyread_emissions.pyx":33
  *     cdef long n_obs, n_states,
  *     cdef int obs, snp
  *     cdef double p,  ll = 0.             # <<<<<<<<<<<<<<
@@ -2362,7 +2362,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
  */
   __pyx_v_ll = 0.;
 
-  /* "admixfrog/read_emissions.pyx":35
+  /* "admixfrog/cyread_emissions.pyx":35
  *     cdef double p,  ll = 0.
  * 
  *     n_obs = len(rg2obs)             # <<<<<<<<<<<<<<
@@ -2372,7 +2372,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_rg2obs); 
   __pyx_v_n_obs = __pyx_t_1;
 
-  /* "admixfrog/read_emissions.pyx":36
+  /* "admixfrog/cyread_emissions.pyx":36
  * 
  *     n_obs = len(rg2obs)
  *     n_states = PG.shape[1]             # <<<<<<<<<<<<<<
@@ -2381,7 +2381,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
  */
   __pyx_v_n_states = (__pyx_v_PG.shape[1]);
 
-  /* "admixfrog/read_emissions.pyx":37
+  /* "admixfrog/cyread_emissions.pyx":37
  *     n_obs = len(rg2obs)
  *     n_states = PG.shape[1]
  *     for i in range(n_obs):             # <<<<<<<<<<<<<<
@@ -2393,7 +2393,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
     __pyx_v_i = __pyx_t_4;
 
-    /* "admixfrog/read_emissions.pyx":38
+    /* "admixfrog/cyread_emissions.pyx":38
  *     n_states = PG.shape[1]
  *     for i in range(n_obs):
  *         obs = rg2obs[i]             # <<<<<<<<<<<<<<
@@ -2403,7 +2403,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
     __pyx_t_5 = __pyx_v_i;
     __pyx_v_obs = (*((long *) ( /* dim=0 */ (__pyx_v_rg2obs.data + __pyx_t_5 * __pyx_v_rg2obs.strides[0]) )));
 
-    /* "admixfrog/read_emissions.pyx":39
+    /* "admixfrog/cyread_emissions.pyx":39
  *     for i in range(n_obs):
  *         obs = rg2obs[i]
  *         snp = obs2snp[obs]             # <<<<<<<<<<<<<<
@@ -2413,7 +2413,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
     __pyx_t_6 = __pyx_v_obs;
     __pyx_v_snp = (*((long *) ( /* dim=0 */ (__pyx_v_obs2snp.data + __pyx_t_6 * __pyx_v_obs2snp.strides[0]) )));
 
-    /* "admixfrog/read_emissions.pyx":40
+    /* "admixfrog/cyread_emissions.pyx":40
  *         obs = rg2obs[i]
  *         snp = obs2snp[obs]
  *         for g in range(3):             # <<<<<<<<<<<<<<
@@ -2423,7 +2423,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
     for (__pyx_t_7 = 0; __pyx_t_7 < 3; __pyx_t_7+=1) {
       __pyx_v_g = __pyx_t_7;
 
-      /* "admixfrog/read_emissions.pyx":41
+      /* "admixfrog/cyread_emissions.pyx":41
  *         snp = obs2snp[obs]
  *         for g in range(3):
  *             p = c * P_cont[obs] + (1.-c) * g / 2.             # <<<<<<<<<<<<<<
@@ -2433,7 +2433,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
       __pyx_t_8 = __pyx_v_obs;
       __pyx_v_p = ((__pyx_v_c * (*((double *) ( /* dim=0 */ (__pyx_v_P_cont.data + __pyx_t_8 * __pyx_v_P_cont.strides[0]) )))) + (((1. - __pyx_v_c) * __pyx_v_g) / 2.));
 
-      /* "admixfrog/read_emissions.pyx":42
+      /* "admixfrog/cyread_emissions.pyx":42
  *         for g in range(3):
  *             p = c * P_cont[obs] + (1.-c) * g / 2.
  *             p = p * (1-e) + (1-p) * e             # <<<<<<<<<<<<<<
@@ -2442,7 +2442,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
  */
       __pyx_v_p = ((__pyx_v_p * (1.0 - __pyx_v_e)) + ((1.0 - __pyx_v_p) * __pyx_v_e));
 
-      /* "admixfrog/read_emissions.pyx":43
+      /* "admixfrog/cyread_emissions.pyx":43
  *             p = c * P_cont[obs] + (1.-c) * g / 2.
  *             p = p * (1-e) + (1-p) * e
  *             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)             # <<<<<<<<<<<<<<
@@ -2454,7 +2454,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
       __pyx_t_11 = __pyx_v_obs;
       __pyx_v_p = (((*((long *) ( /* dim=0 */ (__pyx_v_O.data + __pyx_t_9 * __pyx_v_O.strides[0]) ))) * log(__pyx_v_p)) + (((*((long *) ( /* dim=0 */ (__pyx_v_N.data + __pyx_t_10 * __pyx_v_N.strides[0]) ))) - (*((long *) ( /* dim=0 */ (__pyx_v_O.data + __pyx_t_11 * __pyx_v_O.strides[0]) )))) * log((1.0 - __pyx_v_p))));
 
-      /* "admixfrog/read_emissions.pyx":44
+      /* "admixfrog/cyread_emissions.pyx":44
  *             p = p * (1-e) + (1-p) * e
  *             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
  *             for s in range(n_states):             # <<<<<<<<<<<<<<
@@ -2466,7 +2466,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
       for (__pyx_t_14 = 0; __pyx_t_14 < __pyx_t_13; __pyx_t_14+=1) {
         __pyx_v_s = __pyx_t_14;
 
-        /* "admixfrog/read_emissions.pyx":45
+        /* "admixfrog/cyread_emissions.pyx":45
  *             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
  *             for s in range(n_states):
  *                 ll += PG[snp, s, g] * p             # <<<<<<<<<<<<<<
@@ -2481,7 +2481,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
     }
   }
 
-  /* "admixfrog/read_emissions.pyx":46
+  /* "admixfrog/cyread_emissions.pyx":46
  *             for s in range(n_states):
  *                 ll += PG[snp, s, g] * p
  *     return ll             # <<<<<<<<<<<<<<
@@ -2491,7 +2491,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
   __pyx_r = __pyx_v_ll;
   goto __pyx_L0;
 
-  /* "admixfrog/read_emissions.pyx":20
+  /* "admixfrog/cyread_emissions.pyx":20
  * @cython.boundscheck(False) # turn off bounds-checking for entire function
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
  * cdef double get_po_given_c(             # <<<<<<<<<<<<<<
@@ -2505,7 +2505,7 @@ static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_
   return __pyx_r;
 }
 
-/* "admixfrog/read_emissions.pyx":48
+/* "admixfrog/cyread_emissions.pyx":48
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -2620,7 +2620,7 @@ static PyObject *__pyx_pw_9admixfrog_14read_emissions_1update_contamination(PyOb
   return __pyx_r;
 }
 
-/* "admixfrog/read_emissions.pyx":65
+/* "admixfrog/cyread_emissions.pyx":65
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
@@ -2662,7 +2662,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_outer_scope = (struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *) __Pyx_CyFunction_GetClosure(__pyx_self);
   __pyx_cur_scope = __pyx_outer_scope;
 
-  /* "admixfrog/read_emissions.pyx":66
+  /* "admixfrog/cyread_emissions.pyx":66
  * 
  *         def get_po_given_c_all(cc):
  *             prob = get_po_given_c(c=cc,             # <<<<<<<<<<<<<<
@@ -2671,7 +2671,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
  */
   __pyx_t_1 = __pyx_PyFloat_AsDouble(__pyx_v_cc); if (unlikely((__pyx_t_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L1_error)
 
-  /* "admixfrog/read_emissions.pyx":67
+  /* "admixfrog/cyread_emissions.pyx":67
  *         def get_po_given_c_all(cc):
  *             prob = get_po_given_c(c=cc,
  *                                  e=error,             # <<<<<<<<<<<<<<
@@ -2681,7 +2681,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   if (unlikely(!__pyx_cur_scope->__pyx_v_error)) { __Pyx_RaiseClosureNameError("error"); __PYX_ERR(0, 67, __pyx_L1_error) }
   __pyx_t_2 = __pyx_PyFloat_AsDouble(__pyx_cur_scope->__pyx_v_error); if (unlikely((__pyx_t_2 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L1_error)
 
-  /* "admixfrog/read_emissions.pyx":68
+  /* "admixfrog/cyread_emissions.pyx":68
  *             prob = get_po_given_c(c=cc,
  *                                  e=error,
  *                                  O=P.O,             # <<<<<<<<<<<<<<
@@ -2694,7 +2694,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 68, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "admixfrog/read_emissions.pyx":69
+  /* "admixfrog/cyread_emissions.pyx":69
  *                                  e=error,
  *                                  O=P.O,
  *                                  N=P.N,             # <<<<<<<<<<<<<<
@@ -2707,7 +2707,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "admixfrog/read_emissions.pyx":70
+  /* "admixfrog/cyread_emissions.pyx":70
  *                                  O=P.O,
  *                                  N=P.N,
  *                                  P_cont=P.P_cont,             # <<<<<<<<<<<<<<
@@ -2720,7 +2720,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 70, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "admixfrog/read_emissions.pyx":71
+  /* "admixfrog/cyread_emissions.pyx":71
  *                                  N=P.N,
  *                                  P_cont=P.P_cont,
  *                                  PG=PG,             # <<<<<<<<<<<<<<
@@ -2730,7 +2730,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   if (unlikely(!__pyx_cur_scope->__pyx_v_PG)) { __Pyx_RaiseClosureNameError("PG"); __PYX_ERR(0, 71, __pyx_L1_error) }
   __pyx_t_7 = __Pyx_PyObject_to_MemoryviewSlice_dsdsds_double(__pyx_cur_scope->__pyx_v_PG, PyBUF_WRITABLE); if (unlikely(!__pyx_t_7.memview)) __PYX_ERR(0, 71, __pyx_L1_error)
 
-  /* "admixfrog/read_emissions.pyx":72
+  /* "admixfrog/cyread_emissions.pyx":72
  *                                  P_cont=P.P_cont,
  *                                  PG=PG,
  *                                  rg2obs = IX.RG2OBS[lib],             # <<<<<<<<<<<<<<
@@ -2747,7 +2747,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_t_9 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_8, PyBUF_WRITABLE); if (unlikely(!__pyx_t_9.memview)) __PYX_ERR(0, 72, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "admixfrog/read_emissions.pyx":73
+  /* "admixfrog/cyread_emissions.pyx":73
  *                                  PG=PG,
  *                                  rg2obs = IX.RG2OBS[lib],
  *                                  obs2snp = IX.OBS2SNP)             # <<<<<<<<<<<<<<
@@ -2760,7 +2760,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_t_10 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_8, PyBUF_WRITABLE); if (unlikely(!__pyx_t_10.memview)) __PYX_ERR(0, 73, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "admixfrog/read_emissions.pyx":66
+  /* "admixfrog/cyread_emissions.pyx":66
  * 
  *         def get_po_given_c_all(cc):
  *             prob = get_po_given_c(c=cc,             # <<<<<<<<<<<<<<
@@ -2787,7 +2787,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_t_10.memview = NULL;
   __pyx_t_10.data = NULL;
 
-  /* "admixfrog/read_emissions.pyx":74
+  /* "admixfrog/cyread_emissions.pyx":74
  *                                  rg2obs = IX.RG2OBS[lib],
  *                                  obs2snp = IX.OBS2SNP)
  *             return -prob             # <<<<<<<<<<<<<<
@@ -2801,7 +2801,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   __pyx_t_8 = 0;
   goto __pyx_L0;
 
-  /* "admixfrog/read_emissions.pyx":65
+  /* "admixfrog/cyread_emissions.pyx":65
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
@@ -2827,7 +2827,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get
   return __pyx_r;
 }
 
-/* "admixfrog/read_emissions.pyx":48
+/* "admixfrog/cyread_emissions.pyx":48
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -2880,7 +2880,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_IX);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_IX);
 
-  /* "admixfrog/read_emissions.pyx":58
+  /* "admixfrog/cyread_emissions.pyx":58
  * 
  *     """
  *     n_libs = len(libs)             # <<<<<<<<<<<<<<
@@ -2890,7 +2890,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
   __pyx_t_1 = PyObject_Length(__pyx_v_libs); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 58, __pyx_L1_error)
   __pyx_v_n_libs = __pyx_t_1;
 
-  /* "admixfrog/read_emissions.pyx":59
+  /* "admixfrog/cyread_emissions.pyx":59
  *     """
  *     n_libs = len(libs)
  *     delta = 0.             # <<<<<<<<<<<<<<
@@ -2900,7 +2900,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
   __Pyx_INCREF(__pyx_float_0_);
   __pyx_v_delta = __pyx_float_0_;
 
-  /* "admixfrog/read_emissions.pyx":60
+  /* "admixfrog/cyread_emissions.pyx":60
  *     n_libs = len(libs)
  *     delta = 0.
  *     for i in range(n_libs):             # <<<<<<<<<<<<<<
@@ -2912,7 +2912,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "admixfrog/read_emissions.pyx":61
+    /* "admixfrog/cyread_emissions.pyx":61
  *     delta = 0.
  *     for i in range(n_libs):
  *         lib = libs[i]             # <<<<<<<<<<<<<<
@@ -2926,7 +2926,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_GIVEREF(__pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "admixfrog/read_emissions.pyx":62
+    /* "admixfrog/cyread_emissions.pyx":62
  *     for i in range(n_libs):
  *         lib = libs[i]
  *         f_ = IX.RG2OBS[lib]             # <<<<<<<<<<<<<<
@@ -2941,7 +2941,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_XDECREF_SET(__pyx_v_f_, __pyx_t_5);
     __pyx_t_5 = 0;
 
-    /* "admixfrog/read_emissions.pyx":63
+    /* "admixfrog/cyread_emissions.pyx":63
  *         lib = libs[i]
  *         f_ = IX.RG2OBS[lib]
  *         assert all(lib == P.lib[f_])             # <<<<<<<<<<<<<<
@@ -2969,7 +2969,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     }
     #endif
 
-    /* "admixfrog/read_emissions.pyx":65
+    /* "admixfrog/cyread_emissions.pyx":65
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
@@ -2981,7 +2981,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_XDECREF_SET(__pyx_v_get_po_given_c_all, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "admixfrog/read_emissions.pyx":77
+    /* "admixfrog/cyread_emissions.pyx":77
  * 
  * 
  *         p0 = get_po_given_c_all(cont[lib])             # <<<<<<<<<<<<<<
@@ -2996,7 +2996,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_XDECREF_SET(__pyx_v_p0, __pyx_t_5);
     __pyx_t_5 = 0;
 
-    /* "admixfrog/read_emissions.pyx":83
+    /* "admixfrog/cyread_emissions.pyx":83
  *         #                                                           cont[lib], OO.x, p0-OO.fun))
  *         #cont[lib] = OO.x
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])             # <<<<<<<<<<<<<<
@@ -3047,7 +3047,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_XDECREF_SET(__pyx_v_OO, __pyx_t_8);
     __pyx_t_8 = 0;
 
-    /* "admixfrog/read_emissions.pyx":84
+    /* "admixfrog/cyread_emissions.pyx":84
  *         #cont[lib] = OO.x
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
  *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),             # <<<<<<<<<<<<<<
@@ -3090,7 +3090,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_GIVEREF(__pyx_kp_u_c);
     PyTuple_SET_ITEM(__pyx_t_7, 4, __pyx_kp_u_c);
 
-    /* "admixfrog/read_emissions.pyx":85
+    /* "admixfrog/cyread_emissions.pyx":85
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
  *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))             # <<<<<<<<<<<<<<
@@ -3142,7 +3142,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     PyTuple_SET_ITEM(__pyx_t_7, 9, __pyx_t_9);
     __pyx_t_9 = 0;
 
-    /* "admixfrog/read_emissions.pyx":84
+    /* "admixfrog/cyread_emissions.pyx":84
  *         #cont[lib] = OO.x
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
  *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),             # <<<<<<<<<<<<<<
@@ -3170,7 +3170,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-    /* "admixfrog/read_emissions.pyx":86
+    /* "admixfrog/cyread_emissions.pyx":86
  *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))
  *         delta += abs(cont[lib] - OO.x[0])             # <<<<<<<<<<<<<<
@@ -3197,7 +3197,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_DECREF_SET(__pyx_v_delta, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "admixfrog/read_emissions.pyx":87
+    /* "admixfrog/cyread_emissions.pyx":87
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))
  *         delta += abs(cont[lib] - OO.x[0])
  *         cont[lib] = OO.x[0]             # <<<<<<<<<<<<<<
@@ -3213,7 +3213,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
   }
 
-  /* "admixfrog/read_emissions.pyx":89
+  /* "admixfrog/cyread_emissions.pyx":89
  *         cont[lib] = OO.x[0]
  * 
  *     return delta             # <<<<<<<<<<<<<<
@@ -3223,7 +3223,7 @@ static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHO
   __pyx_r = __pyx_v_delta;
   goto __pyx_L0;
 
-  /* "admixfrog/read_emissions.pyx":48
+  /* "admixfrog/cyread_emissions.pyx":48
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -16912,6 +16912,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_u__4, __pyx_k__4, sizeof(__pyx_k__4), 0, 1, 0, 0},
   {&__pyx_kp_u__5, __pyx_k__5, sizeof(__pyx_k__5), 0, 1, 0, 0},
   {&__pyx_kp_u__6, __pyx_k__6, sizeof(__pyx_k__6), 0, 1, 0, 0},
+  {&__pyx_kp_s_admixfrog_cyread_emissions_pyx, __pyx_k_admixfrog_cyread_emissions_pyx, sizeof(__pyx_k_admixfrog_cyread_emissions_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_admixfrog_read_emissions, __pyx_k_admixfrog_read_emissions, sizeof(__pyx_k_admixfrog_read_emissions), 0, 0, 1, 1},
   {&__pyx_n_s_all, __pyx_k_all, sizeof(__pyx_k_all), 0, 0, 1, 1},
   {&__pyx_n_s_allocate_buffer, __pyx_k_allocate_buffer, sizeof(__pyx_k_allocate_buffer), 0, 0, 1, 1},
@@ -16981,7 +16982,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_pyx_unpickle_Enum, __pyx_k_pyx_unpickle_Enum, sizeof(__pyx_k_pyx_unpickle_Enum), 0, 0, 1, 1},
   {&__pyx_n_s_pyx_vtable, __pyx_k_pyx_vtable, sizeof(__pyx_k_pyx_vtable), 0, 0, 1, 1},
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
-  {&__pyx_kp_s_read_emissions_pyx, __pyx_k_read_emissions_pyx, sizeof(__pyx_k_read_emissions_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_reduce, __pyx_k_reduce, sizeof(__pyx_k_reduce), 0, 0, 1, 1},
   {&__pyx_n_s_reduce_cython, __pyx_k_reduce_cython, sizeof(__pyx_k_reduce_cython), 0, 0, 1, 1},
   {&__pyx_n_s_reduce_ex, __pyx_k_reduce_ex, sizeof(__pyx_k_reduce_ex), 0, 0, 1, 1},
@@ -17029,7 +17029,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "admixfrog/read_emissions.pyx":65
+  /* "admixfrog/cyread_emissions.pyx":65
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
@@ -17039,7 +17039,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple_ = PyTuple_Pack(2, __pyx_n_s_cc, __pyx_n_s_prob); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 65, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
-  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_read_emissions_pyx, __pyx_n_s_get_po_given_c_all, 65, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_admixfrog_cyread_emissions_pyx, __pyx_n_s_get_po_given_c_all, 65, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 65, __pyx_L1_error)
 
   /* "View.MemoryView":133
  * 
@@ -17233,7 +17233,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__24);
   __Pyx_GIVEREF(__pyx_tuple__24);
 
-  /* "admixfrog/read_emissions.pyx":48
+  /* "admixfrog/cyread_emissions.pyx":48
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -17243,7 +17243,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__25 = PyTuple_Pack(15, __pyx_n_s_cont, __pyx_n_s_error, __pyx_n_s_P, __pyx_n_s_PG, __pyx_n_s_IX, __pyx_n_s_libs, __pyx_n_s_n_libs, __pyx_n_s_delta, __pyx_n_s_i, __pyx_n_s_lib, __pyx_n_s_f, __pyx_n_s_get_po_given_c_all, __pyx_n_s_get_po_given_c_all, __pyx_n_s_p0, __pyx_n_s_OO); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__25);
   __Pyx_GIVEREF(__pyx_tuple__25);
-  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(6, 0, 15, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_read_emissions_pyx, __pyx_n_s_update_contamination, 48, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(6, 0, 15, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_admixfrog_cyread_emissions_pyx, __pyx_n_s_update_contamination, 48, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 48, __pyx_L1_error)
 
   /* "View.MemoryView":286
  *         return self.name
@@ -17649,7 +17649,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "admixfrog/read_emissions.pyx":5
+  /* "admixfrog/cyread_emissions.pyx":5
  * #cython: infer_types=True
  * 
  * import logging             # <<<<<<<<<<<<<<
@@ -17661,7 +17661,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_logging, __pyx_t_1) < 0) __PYX_ERR(0, 5, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/read_emissions.pyx":6
+  /* "admixfrog/cyread_emissions.pyx":6
  * 
  * import logging
  * import pandas as pd             # <<<<<<<<<<<<<<
@@ -17673,7 +17673,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_pd, __pyx_t_1) < 0) __PYX_ERR(0, 6, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/read_emissions.pyx":7
+  /* "admixfrog/cyread_emissions.pyx":7
  * import logging
  * import pandas as pd
  * import numpy as np             # <<<<<<<<<<<<<<
@@ -17685,7 +17685,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/read_emissions.pyx":12
+  /* "admixfrog/cyread_emissions.pyx":12
  * from libc.math cimport pow, log, exp
  * from libc.stdio cimport printf
  * from scipy.optimize import minimize, minimize_scalar             # <<<<<<<<<<<<<<
@@ -17713,7 +17713,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "admixfrog/read_emissions.pyx":13
+  /* "admixfrog/cyread_emissions.pyx":13
  * from libc.stdio cimport printf
  * from scipy.optimize import minimize, minimize_scalar
  * from scipy.special import betaln             # <<<<<<<<<<<<<<
@@ -17734,7 +17734,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/read_emissions.pyx":14
+  /* "admixfrog/cyread_emissions.pyx":14
  * from scipy.optimize import minimize, minimize_scalar
  * from scipy.special import betaln
  * from scipy.stats import binom             # <<<<<<<<<<<<<<
@@ -17755,7 +17755,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "admixfrog/read_emissions.pyx":48
+  /* "admixfrog/cyread_emissions.pyx":48
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -17767,7 +17767,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_update_contamination, __pyx_t_2) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "admixfrog/read_emissions.pyx":1
+  /* "admixfrog/cyread_emissions.pyx":1
  * #!python             # <<<<<<<<<<<<<<
  * #cython: language_level=3
  * #cython: infer_types=True
