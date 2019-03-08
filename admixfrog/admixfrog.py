@@ -11,7 +11,7 @@ from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .genotype_emissions import update_emissions, update_Ftau, update_tau
 from .rle import get_rle
 from .decode import pred_sims
-from .log import log_
+from .log import log_, setup_log
 
 COORDS = ['chrom', 'map', 'pos']
 

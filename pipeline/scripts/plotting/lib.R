@@ -10,7 +10,7 @@ get_track <- function(bin_data, TRACK, p_min, p_max){
         TRACK = NULL
     }
     v <- bin_data %>% 
-    select(-1:-9) %>%
+    select(-1:-7) %>%
     summarize_all(.funs=mean)  %>% 
     unlist 
     TRACK <- names(v[v<p_max& v>p_min])                                                           
@@ -27,7 +27,6 @@ read_binout <- function(fname){
                chrom=col_factor(),
                pos=col_integer(),
                id=col_integer(),
-               chrom_id=col_integer(),
                viterbi=col_factor(),
                n_snps=col_integer()
                )

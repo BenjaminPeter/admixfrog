@@ -152,7 +152,7 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
     IX.bin_sizes = []
 
     for i, chrom in enumerate(chroms):
-        log_.debug("binning chrom %d", chrom)
+        log_.debug("binning chrom %s", chrom)
         map_ = bed.map[bed.chrom == chrom]
         pos = bed.pos[bed.chrom == chrom]
         map_data = data.map[data.chrom == chrom]

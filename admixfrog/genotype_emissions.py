@@ -38,7 +38,7 @@ def scale_mat3d(M):
     return log_scaling
 
 
-def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150):
+def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-250):
     """main function to calculate emission probabilities
 
     """
@@ -55,7 +55,7 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-150)
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     if sum(bad_bins) > 0:
-        log_.warning("bad bins %s", sum(bad_bins))
+        log_.warning("%s underflow bins: %s", sum(bad_bins), np.where(bad_bins)[0])
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
 
     log_scaling += scale_mat(E)

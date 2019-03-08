@@ -94,7 +94,7 @@ def do_rle():
     import pandas as pd
 
     data = pd.read_csv(args.infile)
-    states = list(data.columns)[8:]
+    states = list(data.columns)[6:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
 
     rle = get_rle(data, homo, args.run_penalty)
