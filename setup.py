@@ -2,7 +2,7 @@ from setuptools import setup#, find_namespace_packages
 from distutils.extension import Extension
 
 
-USE_CYTHON = False
+USE_CYTHON = True
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
