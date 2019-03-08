@@ -2,7 +2,7 @@ from setuptools import setup#, find_namespace_packages
 from distutils.extension import Extension
 
 
-USE_CYTHON = False
+USE_CYTHON = True
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
@@ -14,7 +14,7 @@ if USE_CYTHON:
     extensions = cythonize(extensions)
 
     setup(
-        setup_requires =["pbr>=1.9", 'setuptools>=17.1', 'cython>29.4'],
+        setup_requires =["pbr>=1.9", 'setuptools>=17.1'],
         ext_modules = extensions,
           pbr=True)
 else:
