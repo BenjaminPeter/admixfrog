@@ -14,7 +14,7 @@ def binom_pmf(O, N, p):
 
 
 @njit
-def p_reads_given_gt(O, N, Pcont, c, error, n_obs):
+def p_reads_given_gt_gllmode(O, N, Pcont, c, error, n_obs):
     """calculates P(O | G); probabilty of anc/derived reads given genotype
     per read group
 
@@ -29,6 +29,29 @@ def p_reads_given_gt(O, N, Pcont, c, error, n_obs):
 
     return read_emissions
 
+def p_reads_given_gt(*args, gt_mode=False, **kwargs):
+    if gt_mode:
+        return p_reads_given_gt_gtmode(*args, **kwargs)
+    else:
+        return p_reads_given_gt_gllmode(*args, **kwargs)
+
+@njit
+def p_reads_given_gt_gtmode(O, N, Pcont, c, error, n_obs):
+    """calculates P(O | G); probabilty of anc/derived reads given genotype
+    per read group
+
+    for debug/testing purposes
+
+    """
+    n_gt = 3
+    read_emissions = np.ones((n_obs, n_gt))
+    for g in range(3):
+        # = binom.pmf(P.O, P.N, p)
+        read_emissions[O==g, g] = 1 - 2 * error
+        read_emissions[O!=g, g] = error
+
+    return read_emissions
+
 
 @njit(fastmath=True)
 def read2snp_emissions(read_emissions, n_snps, ix):
@@ -39,11 +62,12 @@ def read2snp_emissions(read_emissions, n_snps, ix):
     return snp_emissions
 
 
-def p_snps_given_gt(P, c, error, n_snps, IX):
+def p_snps_given_gt(P, c, error, n_snps, IX, gt_mode=False):
     """calculates probabilty of anc/derived reads given genotype
     """
     n_obs = P.O.shape[0]
-    read_emissions = p_reads_given_gt(P.O, P.N, P.P_cont, c, error, n_obs)
+    read_emissions = p_reads_given_gt(P.O, P.N, P.P_cont, c, error, n_obs, 
+                                      gt_mode=gt_mode)
     read_emissions[IX.HAPSNP, 1] = 0.0
     return read2snp_emissions(read_emissions, n_snps, IX.OBS2SNP)
 

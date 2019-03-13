@@ -92,7 +92,7 @@ def data2probs(
 
     else:
         if ancestral is None:
-            pa, pb = prior, prior
+            pass
         else:
             # anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
             anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
@@ -102,15 +102,16 @@ def data2probs(
         ca, cb = cont_prior
 
 
+        print(alpha_ix)
         P = Probs(
             O=np.array(data.talt, np.int8),
             N=np.array(data.tref + data.talt, np.int8),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),
-            alpha=np.array(ref[alpha_ix]) + pa,
-            beta=np.array(ref[beta_ix]) + pb,
-            lib=np.array(data.lib),
+            alpha=np.array(ref[alpha_ix]) + prior,
+            beta=np.array(ref[beta_ix]) + prior,
+            lib=np.array(data.lib)
         )
         return P
 
@@ -360,3 +361,26 @@ def guess_sex(data):
         sex = "f"
         log_.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
     return sex
+
+def scale_mat(M):
+    """scale a matrix of probabilities such that it's highest value is one
+
+    modifies M and returns log(scaling)
+    """
+    scaling = np.max(M, 1)[:, np.newaxis]
+    M /= scaling
+    assert np.allclose(np.max(M, 1), 1)
+    log_scaling = np.sum(np.log(scaling))
+    return log_scaling
+
+def scale_mat3d(M):
+    """scale a matrix of probabilities such that it's highest value is one
+
+    modifies M and returns log(scaling)
+    """
+    scaling = np.max(M, (1, 2))[:, np.newaxis, np.newaxis]
+    M /= scaling
+    assert np.allclose(np.max(M, (1, 2)), 1)
+    log_scaling = np.sum(np.log(scaling))
+    return log_scaling
+
