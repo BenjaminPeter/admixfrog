@@ -5,7 +5,6 @@ from collections import Counter
 import pdb
 from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_read_data, load_gt_data, load_ref, guess_sex
-from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .genotype_emissions import update_emissions, update_Ftau, update_tau
@@ -302,8 +301,11 @@ def run_admixfrog(
         .agg({"tref": sum, "talt": sum})
         .reset_index()
     )
-    T = posterior_table(G, Z, IX)
-    snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    if gll_model:
+        T = posterior_table(G, Z, IX)
+        snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    else:
+        snp_df = pd.concat((D, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
 
     df_libs = pd.DataFrame(pars.cont.items(), columns=["lib", "cont"])
     rgs, deams, len_bins = [], [], []

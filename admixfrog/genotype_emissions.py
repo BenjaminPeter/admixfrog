@@ -90,12 +90,9 @@ def _p_gt_homo_gtmode(s, P, F=0, tau=1.0, res=None):
     """
     n_snps = P.alpha.shape[0]
     gt = np.ones(n_snps) if res is None else res
+
     gt_homo_gtmode(o=P.O, n = P.N, 
                    a=P.alpha[:, s], b=P.beta[:, s], F=F, tau=tau, n_snps=n_snps, res=gt)
-    try:
-        assert np.allclose(np.sum(gt, 1), 1)
-    except AssertionError:
-        pdb.set_trace()
     return np.minimum(np.maximum(gt, 0), 1)  # rounding error
 
 @njit
@@ -108,17 +105,19 @@ def _p_gt_het_gtmode(o, n, a1, b1, a2, b2, res=None):
     gt = np.empty(n_snps) if res is None else res
 
     for i in range(n_snps):
-        if n == 0:
+        if n[i] == 0:
             gt[i] = 1
-        elif n== 2:
+        elif n[i] == 2:
             if o[i] == 0:
-                gt[i] = b1[i] * b2[i] / (a1 + b1) * (a2 + b2)
+                gt[i] = b1[i] * b2[i] / (a1[i] + b1[i]) * (a2[i] + b2[i])
             elif o[i] == 2:
-                gt[i] = a1[i] * a2[i] / (a1 + b1) * (a2 + b2)
+                gt[i] = a1[i] * a2[i] / (a1[i] + b1[i]) * (a2[i] + b2[i])
             elif o[i] == 1:
-                gt[i] = (a1[i] * b2[i] + a2[i] * b1[i]) / (a1 + b1) * (a2 + b2)
+                gt[i] = (a1[i] * b2[i] + a2[i] * b1[i]) / (a1[i] + b1[i]) * (a2[i] + b2[i])
             else:
                 gt[i] = -1
+        else:
+            gt[i] = -1
 
     return gt
 
@@ -219,7 +218,7 @@ def update_Ftau_gtmode(F, tau, Z, P, IX):
 
         def f(t):
             F, tau = t
-            x = np.log(_p_gt_homo_gtmode(s, P, F, exp(tau)) + 1e-10) * Z[:, s]
+            x = np.log(_p_gt_homo_gtmode(s, P, F, exp(tau)) + 1e-10) * Z[IX.SNP2BIN:, s]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -272,8 +271,8 @@ def update_Ftau_gllmode(F, tau, PG, P, IX):
 
 def update_Ftau(F, tau, PG, P, IX, gt_mode=False) :
     if gt_mode:
-        return update_Ftau_gtmode(F, tau, Z=PG, P, IX)
-    else::
+        return update_Ftau_gtmode(F, tau, Z=PG, P=P, IX=IX)
+    else:
         return update_Ftau(F, tau, PG, P, IX)
 
 
@@ -329,7 +328,7 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False):
     return log_scaling
 
 
-def update_geno_emissions_gt(GT, P, IX, F, tau, n_states, est_inbreeding):
+def update_geno_emissions_gt(GT, P, IX, F, tau, est_inbreeding):
     """P(G | Z) for each SNP
     build table giving the probabilities of P(G | Z)
 
@@ -359,19 +358,6 @@ def update_geno_emissions_gt(GT, P, IX, F, tau, n_states, est_inbreeding):
         raise NotImplemented()
         for i in range(n_homo_states):
             _p_gt_hap_gtmode(P.alpha[:, i], P.beta[:, i], res=GT[:, s + i + 1, :])
-
-    try:
-        assert np.allclose(np.sum(GT, 2), 1)
-    except AssertionError:
-        pdb.set_trace()
-
-    if not est_inbreeding:
-        GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
-        GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
-        for s in range(n_homo_states):
-            a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
-            GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
-            GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
 
     log_scaling = scale_mat(GT)
 

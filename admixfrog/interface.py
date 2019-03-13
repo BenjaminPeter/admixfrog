@@ -128,9 +128,11 @@ def run():
                         - talt: number of alt reads observed""",
     )
     parser.add_argument(
-        "--gtmode", "--gt",
+        "--gt-mode", "--gt",
         help="""Assume genotypes are known.
-        """
+        """,
+        action="store_true",
+        default=False
     )
     parser.add_argument(
         "--ref-file",

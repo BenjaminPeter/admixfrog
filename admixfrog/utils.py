@@ -79,8 +79,8 @@ def data2probs(
                 beta[ref_is_der, i] += pder
 
         P = Probs(
-            O=np.array(data.talt),
-            N=np.array(data.tref + data.talt),
+            O=np.array(data.talt, np.int8),
+            N=np.array(data.tref + data.talt, np.int8),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),
@@ -103,8 +103,8 @@ def data2probs(
 
 
         P = Probs(
-            O=np.array(data.talt),
-            N=np.array(data.tref + data.talt),
+            O=np.array(data.talt, np.int8),
+            N=np.array(data.tref + data.talt, np.int8),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),

@@ -6,7 +6,7 @@
         "depends": [],
         "name": "admixfrog.distributions",
         "sources": [
-            "/home/benjamin_peter/introgression/admixfrog/distributions.pyx"
+            "/home/benjamin_peter/exe/introgression/admixfrog/distributions.pyx"
         ]
     },
     "module_name": "admixfrog.distributions"
@@ -1662,7 +1662,7 @@ static int __Pyx_ValidateAndInit_memviewslice(
                 PyObject *original_obj);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_int(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_char(PyObject *, int writable_flag);
 
 /* ObjectToMemviewSlice.proto */
 static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double(PyObject *, int writable_flag);
@@ -1794,7 +1794,7 @@ static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
 static void __pyx_f_9admixfrog_13distributions__gt_homo_dist_tau(__Pyx_memviewslice, __Pyx_memviewslice, double, double, long, __Pyx_memviewslice); /*proto*/
-static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(int, int, double, double, double, double); /*proto*/
+static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(char, char, double, double, double, double); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -1828,7 +1828,7 @@ static void __pyx_memoryview_refcount_objects_in_slice(char *, Py_ssize_t *, Py_
 static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size_t, void *, int); /*proto*/
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
-static __Pyx_TypeInfo __Pyx_TypeInfo_int = { "int", NULL, sizeof(int), { 0 }, 0, IS_UNSIGNED(int) ? 'U' : 'I', IS_UNSIGNED(int), 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_char = { "char", NULL, sizeof(char), { 0 }, 0, 'H', IS_UNSIGNED(char), 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
 #define __Pyx_MODULE_NAME "admixfrog.distributions"
 extern int __pyx_module_is_main_admixfrog__distributions;
@@ -2138,7 +2138,7 @@ static double __pyx_f_9admixfrog_13distributions_dbinom_single(int __pyx_v_k, in
  * cdef double dbinom_single(int k, int N, double p) nogil:
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)             # <<<<<<<<<<<<<<
  * 
- * def gt_homo_gtmode(int[:] o, int[:] n,
+ * def gt_homo_gtmode(char[:] o, char[:] n,
  */
   __pyx_r = ((__pyx_f_5scipy_7special_14cython_special_binom(__pyx_v_N, __pyx_v_k, 0) * pow(__pyx_v_p, __pyx_v_k)) * pow((1. - __pyx_v_p), (__pyx_v_N - __pyx_v_k)));
   goto __pyx_L0;
@@ -2159,7 +2159,7 @@ static double __pyx_f_9admixfrog_13distributions_dbinom_single(int __pyx_v_k, in
 /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_gtmode(int[:] o, int[:] n,             # <<<<<<<<<<<<<<
+ * def gt_homo_gtmode(char[:] o, char[:] n,             # <<<<<<<<<<<<<<
  *                    double[:] a, double[:] b,
  *                    double F, double tau, long n_snps, double[:] res):
  */
@@ -2268,8 +2268,8 @@ static PyObject *__pyx_pw_9admixfrog_13distributions_1gt_homo_gtmode(PyObject *_
       values[6] = PyTuple_GET_ITEM(__pyx_args, 6);
       values[7] = PyTuple_GET_ITEM(__pyx_args, 7);
     }
-    __pyx_v_o = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_o.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
-    __pyx_v_n = __Pyx_PyObject_to_MemoryviewSlice_ds_int(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_n.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
+    __pyx_v_o = __Pyx_PyObject_to_MemoryviewSlice_ds_char(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_o.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
+    __pyx_v_n = __Pyx_PyObject_to_MemoryviewSlice_ds_char(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_n.memview)) __PYX_ERR(0, 14, __pyx_L3_error)
     __pyx_v_a = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_a.memview)) __PYX_ERR(0, 15, __pyx_L3_error)
     __pyx_v_b = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_b.memview)) __PYX_ERR(0, 15, __pyx_L3_error)
     __pyx_v_F = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_F == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 16, __pyx_L3_error)
@@ -2310,7 +2310,7 @@ static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_gtmode(CYTHON_UNUSE
  *                    double F, double tau, long n_snps, double[:] res):
  *     cdef int i
  *     for i in range(n_snps):             # <<<<<<<<<<<<<<
- *         res[i] = _gt_homo_gtmode_single(o[i], n[i], a[i], b[i], F, tau)
+ *         res[i] = _gt_homo_gtmode_single(o=o[i], n=n[i], a=a[i], b=b[i], F=F, tau=tau)
  * 
  */
   __pyx_t_1 = __pyx_v_n_snps;
@@ -2321,7 +2321,7 @@ static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_gtmode(CYTHON_UNUSE
     /* "admixfrog/distributions.pyx":19
  *     cdef int i
  *     for i in range(n_snps):
- *         res[i] = _gt_homo_gtmode_single(o[i], n[i], a[i], b[i], F, tau)             # <<<<<<<<<<<<<<
+ *         res[i] = _gt_homo_gtmode_single(o=o[i], n=n[i], a=a[i], b=b[i], F=F, tau=tau)             # <<<<<<<<<<<<<<
  * 
  * 
  */
@@ -2330,13 +2330,13 @@ static PyObject *__pyx_pf_9admixfrog_13distributions_gt_homo_gtmode(CYTHON_UNUSE
     __pyx_t_6 = __pyx_v_i;
     __pyx_t_7 = __pyx_v_i;
     __pyx_t_8 = __pyx_v_i;
-    *((double *) ( /* dim=0 */ (__pyx_v_res.data + __pyx_t_8 * __pyx_v_res.strides[0]) )) = __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single((*((int *) ( /* dim=0 */ (__pyx_v_o.data + __pyx_t_4 * __pyx_v_o.strides[0]) ))), (*((int *) ( /* dim=0 */ (__pyx_v_n.data + __pyx_t_5 * __pyx_v_n.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_6 * __pyx_v_a.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_7 * __pyx_v_b.strides[0]) ))), __pyx_v_F, __pyx_v_tau);
+    *((double *) ( /* dim=0 */ (__pyx_v_res.data + __pyx_t_8 * __pyx_v_res.strides[0]) )) = __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single((*((char *) ( /* dim=0 */ (__pyx_v_o.data + __pyx_t_4 * __pyx_v_o.strides[0]) ))), (*((char *) ( /* dim=0 */ (__pyx_v_n.data + __pyx_t_5 * __pyx_v_n.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_6 * __pyx_v_a.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_b.data + __pyx_t_7 * __pyx_v_b.strides[0]) ))), __pyx_v_F, __pyx_v_tau);
   }
 
   /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_gtmode(int[:] o, int[:] n,             # <<<<<<<<<<<<<<
+ * def gt_homo_gtmode(char[:] o, char[:] n,             # <<<<<<<<<<<<<<
  *                    double[:] a, double[:] b,
  *                    double F, double tau, long n_snps, double[:] res):
  */
@@ -2728,7 +2728,7 @@ static void __pyx_f_9admixfrog_13distributions__gt_homo_dist_tau(__Pyx_memviewsl
  *         res[i, 2] =  (a[i]*a[i]*tau + a[i] + a[i]*b[i]*F * tau) / (a[i] + b[i]) / (tau *a[i] + tau *b[i] + 1)
  *         res[i, 1] =  1 - res[i, 0] - res[i, 2] #(2.*a[i]*b[i]*(1-F) * (1-tau)) / (a[i] + b[i]) / (a[i] + b[i] + 1)             # <<<<<<<<<<<<<<
  * 
- * cdef double _gt_homo_gtmode_single(int o, int n, double a, double b, double F, double tau):
+ * cdef double _gt_homo_gtmode_single(char o, char n, double a, double b, double F, double tau):
  */
     __pyx_t_26 = __pyx_v_i;
     __pyx_t_27 = 0;
@@ -2754,12 +2754,12 @@ static void __pyx_f_9admixfrog_13distributions__gt_homo_dist_tau(__Pyx_memviewsl
 /* "admixfrog/distributions.pyx":38
  *         res[i, 1] =  1 - res[i, 0] - res[i, 2] #(2.*a[i]*b[i]*(1-F) * (1-tau)) / (a[i] + b[i]) / (a[i] + b[i] + 1)
  * 
- * cdef double _gt_homo_gtmode_single(int o, int n, double a, double b, double F, double tau):             # <<<<<<<<<<<<<<
+ * cdef double _gt_homo_gtmode_single(char o, char n, double a, double b, double F, double tau):             # <<<<<<<<<<<<<<
  *     if n == 0:
  *         return 1
  */
 
-static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(int __pyx_v_o, int __pyx_v_n, double __pyx_v_a, double __pyx_v_b, double __pyx_v_F, double __pyx_v_tau) {
+static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(char __pyx_v_o, char __pyx_v_n, double __pyx_v_a, double __pyx_v_b, double __pyx_v_F, double __pyx_v_tau) {
   double __pyx_r;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -2767,7 +2767,7 @@ static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(int __py
 
   /* "admixfrog/distributions.pyx":39
  * 
- * cdef double _gt_homo_gtmode_single(int o, int n, double a, double b, double F, double tau):
+ * cdef double _gt_homo_gtmode_single(char o, char n, double a, double b, double F, double tau):
  *     if n == 0:             # <<<<<<<<<<<<<<
  *         return 1
  *     if n == 1:
@@ -2776,7 +2776,7 @@ static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(int __py
   if (__pyx_t_1) {
 
     /* "admixfrog/distributions.pyx":40
- * cdef double _gt_homo_gtmode_single(int o, int n, double a, double b, double F, double tau):
+ * cdef double _gt_homo_gtmode_single(char o, char n, double a, double b, double F, double tau):
  *     if n == 0:
  *         return 1             # <<<<<<<<<<<<<<
  *     if n == 1:
@@ -2787,7 +2787,7 @@ static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(int __py
 
     /* "admixfrog/distributions.pyx":39
  * 
- * cdef double _gt_homo_gtmode_single(int o, int n, double a, double b, double F, double tau):
+ * cdef double _gt_homo_gtmode_single(char o, char n, double a, double b, double F, double tau):
  *     if n == 0:             # <<<<<<<<<<<<<<
  *         return 1
  *     if n == 1:
@@ -2923,7 +2923,7 @@ static double __pyx_f_9admixfrog_13distributions__gt_homo_gtmode_single(int __py
   /* "admixfrog/distributions.pyx":38
  *         res[i, 1] =  1 - res[i, 0] - res[i, 2] #(2.*a[i]*b[i]*(1-F) * (1-tau)) / (a[i] + b[i]) / (a[i] + b[i] + 1)
  * 
- * cdef double _gt_homo_gtmode_single(int o, int n, double a, double b, double F, double tau):             # <<<<<<<<<<<<<<
+ * cdef double _gt_homo_gtmode_single(char o, char n, double a, double b, double F, double tau):             # <<<<<<<<<<<<<<
  *     if n == 0:
  *         return 1
  */
@@ -16739,7 +16739,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_gtmode(int[:] o, int[:] n,             # <<<<<<<<<<<<<<
+ * def gt_homo_gtmode(char[:] o, char[:] n,             # <<<<<<<<<<<<<<
  *                    double[:] a, double[:] b,
  *                    double F, double tau, long n_snps, double[:] res):
  */
@@ -17167,7 +17167,7 @@ if (!__Pyx_RefNanny) {
   /* "admixfrog/distributions.pyx":14
  *     return scs.binom(N, k) * pow(p,k) * pow(1.-p, N-k)
  * 
- * def gt_homo_gtmode(int[:] o, int[:] n,             # <<<<<<<<<<<<<<
+ * def gt_homo_gtmode(char[:] o, char[:] n,             # <<<<<<<<<<<<<<
  *                    double[:] a, double[:] b,
  *                    double F, double tau, long n_snps, double[:] res):
  */
@@ -20305,7 +20305,7 @@ no_fail:
 }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_int(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_char(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED) };
@@ -20316,7 +20316,7 @@ no_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
                                                  PyBUF_RECORDS_RO | writable_flag, 1,
-                                                 &__Pyx_TypeInfo_int, stack,
+                                                 &__Pyx_TypeInfo_char, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
