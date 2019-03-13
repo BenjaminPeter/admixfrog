@@ -289,7 +289,7 @@ def load_ref(
     return ref
 
 
-def load_data(infile, split_lib=True, downsample=1):
+def load_read_data(infile, split_lib=True, downsample=1):
     dtype_ = dict(chrom="category")
     data = pd.read_csv(infile, dtype=dtype_).dropna()
     data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
@@ -308,6 +308,16 @@ def load_data(infile, split_lib=True, downsample=1):
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 0.999)
     data = data[data.tref + data.talt <= q]
+    return data
+
+
+def load_gt_data(infile):
+    dtype_ = dict(chrom="category")
+    data = pd.read_csv(infile, dtype=dtype_).dropna()
+    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
+
+    # rm sites with extremely high coverage
+    data = data[data.tref + data.talt > 0]
     return data
 
 
@@ -333,3 +343,20 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der / n, anc / n)))
     ab = (H - V) / (V - H / np.nanmean(n))
     return f * ab, (1 - f) * ab
+
+
+def guess_sex(data):
+    cov = data.groupby(data.chrom == "X").apply(
+        lambda df: np.sum(df.tref + df.talt)
+    )
+    cov = cov.astype(float)
+    cov[True] /= np.sum(ref.chrom == "X")
+    cov[False] /= np.sum(ref.chrom != "X")
+
+    if cov[True] / cov[False] < 0.8:
+        sex = "m"
+        log_.info("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
+    else:
+        sex = "f"
+        log_.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
+    return sex

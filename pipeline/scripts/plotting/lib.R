@@ -102,9 +102,10 @@ bin_to_long <- function(data){
         gather(variable, value, -sample:-n_snps, -pwidth, -bwidth)
 }
 
-bin_colplot_map <- function(d2){
-    d2 %>% ggplot() +
-        bg_chrom(d2) +
+bin_colplot_map <- function(d2, add_chrom=T){
+    P = d2 %>% ggplot() 
+    if(add_chrom) P = P + bg_chrom(d2)
+    P +
         geom_col(mapping=aes(x=map, 
                        y=value, 
                        fill=variable,
@@ -114,14 +115,15 @@ bin_colplot_map <- function(d2){
         coord_cartesian(ylim=0:1) +
         col_scale() + THEME
 }
-bin_colplot_pos <- function(d2){
-    d2 %>% ggplot() +
-        bg_chrom(d2, map='pos' ) +
+bin_colplot_pos <- function(d2, add_chrom=T){
+    P = d2 %>% ggplot()
+    if(add_chrom) P = P + bg_chrom(d2, map='pos')
+    P + 
         geom_col(mapping=aes(x=pos, 
                        y=value, 
                        fill=variable,
                        width=pwidth)) + 
-        scale_x_continuous(expand=c(0,0), name='Position (cM)') + 
+        scale_x_continuous(expand=c(0,0), name='Position (bp)') + 
         scale_y_continuous(expand=c(0,0), name='Probability') +
         coord_cartesian(ylim=0:1) +
         col_scale() + THEME
@@ -220,7 +222,7 @@ rle_fit_plot <- function(data, R, trunc=0.049, xmax=6){
         geom_point(aes(y=1-..y..), stat='ecdf', pad=F) +
         scale_y_log10(expand=expand_scale(0,0), name='Quantile') +
         scale_x_continuous(expand=expand_scale(0,0), name = "Length (cM)") +
-        coord_cartesian(xlim=c(trunc, xmax), ylim=c(1e-3, 1)) +
+        coord_cartesian(xlim=c(trunc, xmax), ylim=c(1e-5, 1)) +
         facet_wrap(~sample, scale='free') 
 
     s = seq(trunc, max(data$map_len), .01)
@@ -237,7 +239,7 @@ rle_fit_plot <- function(data, R, trunc=0.049, xmax=6){
         gather(k, v, lomax, exp)
 
      
-    P + geom_step(data=pred, mapping=aes(color=k, x=lengths, y=v, group=sample))
+    P + geom_step(data=pred, mapping=aes(color=k, x=lengths, y=v, group=k))
 }
 plot_m_gamma <- function(R, generation_time){
     SCALING = generation_time * 100 #* 2
@@ -259,8 +261,8 @@ plot_m_gamma <- function(R, generation_time){
         geom_line(lty=2) + 
         scale_x_continuous(name="time (y)", expand=expand_scale(0,0)) + 
         coord_cartesian(xlim=c(0, tmax * SCALING)) + 
-        geom_vline(aes(xintercept=emean + age), data=gpred) + 
-        geom_vline(aes(xintercept=lmean + age), lty=2, data=gpred) + 
+        geom_vline(aes(xintercept=emean *SCALING + age), data=gpred) + 
+        geom_vline(aes(xintercept=lmean * SCALING + age), lty=2, data=gpred) + 
         facet_wrap(~sample, scale="free_y", ncol=1, strip.position="left") +
         geom_rect(aes(xmin=0, ymin=0, ymax=Inf, xmax=age), fill='white')
 }

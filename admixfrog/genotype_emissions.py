@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 import pdb
-from .distributions import gt_homo_dist
+from .distributions import gt_homo_dist, gt_homo_gtmode
 from .read_emissions2 import p_snps_given_gt
 from numba import njit
 from scipy.special import betainc
@@ -44,8 +44,12 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-250)
     """
     n_homo_states = P.alpha.shape[1]
 
-    # P(O|Z) = sum_G P(O, G | Z)
-    snp_emissions = np.sum(SNP, 2)
+    if len(SNP.shape) == 3:
+        # P(O|Z) = sum_G P(O, G | Z)
+        snp_emissions = np.sum(SNP, 2)
+    else:
+        # if we get genotyp emissions directly, nothing to be done here
+        snp_emissions = SNP
     log_scaling = scale_mat(snp_emissions)
 
     E[:] = 1  # reset
@@ -77,6 +81,46 @@ def _p_gt_homo(s, P, F=0, tau=1.0, res=None):
         pdb.set_trace()
     return np.minimum(np.maximum(gt, 0), 1)  # rounding error
 
+
+def _p_gt_homo_gtmode(s, P, F=0, tau=1.0, res=None):
+    """Pr(G | Z) for homozygous hidden states
+
+    this version assumes that genotypes are known, the number of alt alleles
+    is give in P.O
+    """
+    n_snps = P.alpha.shape[0]
+    gt = np.ones(n_snps) if res is None else res
+    gt_homo_gtmode(o=P.O, n = P.N, 
+                   a=P.alpha[:, s], b=P.beta[:, s], F=F, tau=tau, n_snps=n_snps, res=gt)
+    try:
+        assert np.allclose(np.sum(gt, 1), 1)
+    except AssertionError:
+        pdb.set_trace()
+    return np.minimum(np.maximum(gt, 0), 1)  # rounding error
+
+@njit
+def _p_gt_het_gtmode(o, n, a1, b1, a2, b2, res=None):
+    """Pr(G | Z) for heterozygous hidden states
+
+    assumes genotypes are known, o is the number of derived alleles
+    """
+    n_snps = len(a1)
+    gt = np.empty(n_snps) if res is None else res
+
+    for i in range(n_snps):
+        if n == 0:
+            gt[i] = 1
+        elif n== 2:
+            if o[i] == 0:
+                gt[i] = b1[i] * b2[i] / (a1 + b1) * (a2 + b2)
+            elif o[i] == 2:
+                gt[i] = a1[i] * a2[i] / (a1 + b1) * (a2 + b2)
+            elif o[i] == 1:
+                gt[i] = (a1[i] * b2[i] + a2[i] * b1[i]) / (a1 + b1) * (a2 + b2)
+            else:
+                gt[i] = -1
+
+    return gt
 
 @njit
 def _p_gt_het(a1, b1, a2, b2, res=None):
@@ -168,8 +212,36 @@ def update_F(F, tau, PG, P, IX):
 
     return delta
 
+def update_Ftau_gtmode(F, tau, Z, P, IX):
+    n_states = len(F)
+    delta = 0.0
+    for s in range(n_states):
 
-def update_Ftau(F, tau, PG, P, IX):
+        def f(t):
+            F, tau = t
+            x = np.log(_p_gt_homo_gtmode(s, P, F, exp(tau)) + 1e-10) * Z[:, s]
+            if np.isnan(np.sum(x)):
+                pdb.set_trace()
+            x[IX.HAPSNP] = 0.0
+            return -np.sum(x)
+
+        prev = f([F[s], tau[s]])
+        OO = minimize(
+            f,
+            [F[s], tau[s]],
+            bounds=[(0, 1), (-10, 10)],
+            method="L-BFGS-B",
+            options=dict([("gtol", 1e-2)]),
+        )
+        log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], OO.x[0])
+        log__ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun)
+        log_.info(log__)
+        delta += abs(F[s] - OO.x[0]) + abs(tau[s] - OO.x[1])
+        F[s], tau[s] = OO.x
+
+    return delta
+
+def update_Ftau_gllmode(F, tau, PG, P, IX):
     n_states = len(F)
     delta = 0.0
     for s in range(n_states):
@@ -197,6 +269,12 @@ def update_Ftau(F, tau, PG, P, IX):
         F[s], tau[s] = OO.x
 
     return delta
+
+def update_Ftau(F, tau, PG, P, IX, gt_mode=False) :
+    if gt_mode:
+        return update_Ftau_gtmode(F, tau, Z=PG, P, IX)
+    else::
+        return update_Ftau(F, tau, PG, P, IX)
 
 
 def update_tau(F, tau, PG, P, IX):
@@ -251,6 +329,55 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False):
     return log_scaling
 
 
+def update_geno_emissions_gt(GT, P, IX, F, tau, n_states, est_inbreeding):
+    """P(G | Z) for each SNP
+    build table giving the probabilities of P(G | Z)
+
+    in gt mode, P.alpha contins the observed number of derived alleles
+    """
+    n_snps, n_homo_states = P.alpha.shape
+
+    GT[:] = 0.0
+    # P(G | Z)
+    for s in range(n_homo_states):
+        _p_gt_homo_gtmode(s=s, P=P, F=F[s], tau=exp(tau[s]), res=GT[:, s])
+
+    for s1 in range(n_homo_states):
+        for s2 in range(s1 + 1, n_homo_states):
+            s += 1
+            _p_gt_het_gtmode(
+                P.O,
+                P.N,
+                P.alpha[:, s1],
+                P.beta[:, s1],
+                P.alpha[:, s2],
+                P.beta[:, s2],
+                res=GT[:, s],
+            )
+
+    if est_inbreeding:
+        raise NotImplemented()
+        for i in range(n_homo_states):
+            _p_gt_hap_gtmode(P.alpha[:, i], P.beta[:, i], res=GT[:, s + i + 1, :])
+
+    try:
+        assert np.allclose(np.sum(GT, 2), 1)
+    except AssertionError:
+        pdb.set_trace()
+
+    if not est_inbreeding:
+        GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
+        GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
+        for s in range(n_homo_states):
+            a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
+            GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
+            GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
+
+    log_scaling = scale_mat(GT)
+
+    return log_scaling
+
+
 def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
     """P(G | Z) for each SNP
     build table giving the probabilities of P(G | Z)
@@ -260,9 +387,7 @@ def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
     GT[:] = 0.0
     # P(G | Z)
     for s in range(n_homo_states):
-        for g in range(3):
-            #_p_gt_homo(s=s, P=P, F=F[s], tau=tau[s], res=GT[:, s, :])
-            _p_gt_homo(s=s, P=P, F=F[s], tau=exp(tau[s]), res=GT[:, s, :])
+        _p_gt_homo(s=s, P=P, F=F[s], tau=exp(tau[s]), res=GT[:, s, :])
 
     for s1 in range(n_homo_states):
         for s2 in range(s1 + 1, n_homo_states):

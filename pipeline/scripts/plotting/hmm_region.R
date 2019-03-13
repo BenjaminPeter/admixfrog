@@ -1,4 +1,4 @@
-source("scripts/comparison_plot.R")
+source("scripts/plotting/lib.R")
 
 save.image("rdebug")
 
@@ -28,12 +28,12 @@ TRACK =	get_track(data, snakemake@wildcards$TRACK, p_min, p_max)
 d2 = bin_to_long(data) %>% 
 	filter( variable %in% TRACK, value>1e-2) 
 
-P1 = bin_colplot_pos(d2) + 
-	facet_wrap(~sample, ncol=1, strip.position="left") +
-        ggtitle(sprintf("[%s]%d-%d : %s", P1, chrom_, start, end, region)) 
-
-ggsave(snakemake@output$posplot, width=10, height=1 * (n_samples + 1), limitsize=F)
-P2 = bin_colplot_map(d2) + 
+P2 = bin_colplot_map(d2, add_chrom=F) + 
 	facet_wrap(~sample, ncol=1, strip.position="left") +
         ggtitle(sprintf("[%s]%d-%d : %s", chrom_, start, end, region)) 
 ggsave(snakemake@output$mapplot, P2, width=10, height=1 * (n_samples + 1), limitsize=F)
+P1 = bin_colplot_pos(d2, add_chrom=F) + 
+	facet_wrap(~sample, ncol=1, strip.position="left") +
+        ggtitle(sprintf("[%s]%d-%d : %s", chrom_, start, end, region)) 
+
+ggsave(snakemake@output$posplot, width=10, height=1 * (n_samples + 1), limitsize=F)
