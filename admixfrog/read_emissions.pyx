@@ -13,6 +13,8 @@ from scipy.optimize import minimize, minimize_scalar
 from scipy.special import betaln
 from scipy.stats import binom
 
+q=0
+
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function

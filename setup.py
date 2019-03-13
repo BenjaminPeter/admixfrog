@@ -2,12 +2,12 @@ from setuptools import setup#, find_namespace_packages
 from distutils.extension import Extension
 
 
-USE_CYTHON = False
+USE_CYTHON = True
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
-extensions = [Extension("admixfrog.distributions", ["admixfrog/cydistributions"+ext]),
-              Extension("admixfrog.read_emissions", ["admixfrog/cyread_emissions"+ext])]
+extensions = [Extension("admixfrog.distributions", ["admixfrog/distributions"+ext]),
+              Extension("admixfrog.read_emissions", ["admixfrog/read_emissions"+ext])]
 
 if USE_CYTHON:
     from Cython.Build import cythonize
