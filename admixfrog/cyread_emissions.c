@@ -6,7 +6,7 @@
         "depends": [],
         "name": "admixfrog.cyread_emissions",
         "sources": [
-            "/r1/people/benjamin_peter/programs/admixfrog/admixfrog/cyread_emissions.pyx"
+            "/home/benjamin_peter/introgression/admixfrog/cyread_emissions.pyx"
         ]
     },
     "module_name": "admixfrog.cyread_emissions"

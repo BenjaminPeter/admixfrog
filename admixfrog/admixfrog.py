@@ -4,7 +4,7 @@ import pandas as pd
 from collections import Counter
 import pdb
 from .utils import bins_from_bed, data2probs, init_pars, Pars
-from .utils import posterior_table, load_data, load_ref, guess_sex
+from .utils import posterior_table, load_read_data, load_gt_data, load_ref, guess_sex
 from .read_emissions import update_contamination
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
