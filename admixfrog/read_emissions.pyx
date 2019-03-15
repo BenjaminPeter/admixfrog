@@ -20,8 +20,8 @@ from .log import log_
 cdef double get_po_given_c(
     double c, 
     double e,
-    long [:] O,
-    long [:] N,
+    char [:] O,
+    char [:] N,
     double [:] P_cont,
     double [:, :, :] PG,
     long [:] rg2obs,

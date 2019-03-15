@@ -79,8 +79,8 @@ def data2probs(
                 beta[ref_is_der, i] += pder
 
         P = Probs(
-            O=np.array(data.talt),
-            N=np.array(data.tref + data.talt),
+            O=np.array(data.talt, np.int8),
+            N=np.array(data.tref + data.talt, np.int8),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),
@@ -92,7 +92,7 @@ def data2probs(
 
     else:
         if ancestral is None:
-            pa, pb = prior, prior
+            pass
         else:
             # anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
             anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
@@ -102,15 +102,16 @@ def data2probs(
         ca, cb = cont_prior
 
 
+        print(alpha_ix)
         P = Probs(
-            O=np.array(data.talt),
-            N=np.array(data.tref + data.talt),
+            O=np.array(data.talt, np.int8),
+            N=np.array(data.tref + data.talt, np.int8),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),
-            alpha=np.array(ref[alpha_ix]) + pa,
-            beta=np.array(ref[beta_ix]) + pb,
-            lib=np.array(data.lib),
+            alpha=np.array(ref[alpha_ix]) + prior,
+            beta=np.array(ref[beta_ix]) + prior,
+            lib=np.array(data.lib)
         )
         return P
 
@@ -289,7 +290,7 @@ def load_ref(
     return ref
 
 
-def load_data(infile, split_lib=True, downsample=1):
+def load_read_data(infile, split_lib=True, downsample=1):
     dtype_ = dict(chrom="category")
     data = pd.read_csv(infile, dtype=dtype_).dropna()
     data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
@@ -308,6 +309,16 @@ def load_data(infile, split_lib=True, downsample=1):
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 0.999)
     data = data[data.tref + data.talt <= q]
+    return data
+
+
+def load_gt_data(infile):
+    dtype_ = dict(chrom="category")
+    data = pd.read_csv(infile, dtype=dtype_).dropna()
+    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
+
+    # rm sites with extremely high coverage
+    data = data[data.tref + data.talt > 0]
     return data
 
 
@@ -333,3 +344,43 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der / n, anc / n)))
     ab = (H - V) / (V - H / np.nanmean(n))
     return f * ab, (1 - f) * ab
+
+
+def guess_sex(data):
+    cov = data.groupby(data.chrom == "X").apply(
+        lambda df: np.sum(df.tref + df.talt)
+    )
+    cov = cov.astype(float)
+    cov[True] /= np.sum(ref.chrom == "X")
+    cov[False] /= np.sum(ref.chrom != "X")
+
+    if cov[True] / cov[False] < 0.8:
+        sex = "m"
+        log_.info("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
+    else:
+        sex = "f"
+        log_.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
+    return sex
+
+def scale_mat(M):
+    """scale a matrix of probabilities such that it's highest value is one
+
+    modifies M and returns log(scaling)
+    """
+    scaling = np.max(M, 1)[:, np.newaxis]
+    M /= scaling
+    assert np.allclose(np.max(M, 1), 1)
+    log_scaling = np.sum(np.log(scaling))
+    return log_scaling
+
+def scale_mat3d(M):
+    """scale a matrix of probabilities such that it's highest value is one
+
+    modifies M and returns log(scaling)
+    """
+    scaling = np.max(M, (1, 2))[:, np.newaxis, np.newaxis]
+    M /= scaling
+    assert np.allclose(np.max(M, (1, 2)), 1)
+    log_scaling = np.sum(np.log(scaling))
+    return log_scaling
+

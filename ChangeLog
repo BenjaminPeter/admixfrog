@@ -1,0 +1,152 @@
+CHANGES
+=======
+
+0.3.0
+-----
+
+* fix error in tau-only est
+* fix merge error
+* added color
+* merge
+* fix function sig
+* estimating tau parameter
+* added stuff toestimate tau, a parameter for the population structure in the reference (ie.e how distant the reference is from the admixture source)
+* renamed hap arg
+* fixed some edge cases
+* first testing version, with decoding
+* fix logic error with genotypes
+* haploid mode testing
+* added haploid read emissions and contamination updates
+* better setup
+* cleanup all
+* added profile
+* added profiler
+* fix assertion in update\_post\_geno
+* clean up calculations
+* cleanup, moving to numba
+* cleanup, moving to numba
+* cleanup, moving to numba
+* cleanup, moving to numba
+* cleanup
+* cleanup, some reorganization
+* updated figs
+* updated notes
+* Added posterior decoding
+
+0.2.4
+-----
+
+* update with posterior replicates. currently no parameter estimates are performed
+
+0.2.3
+-----
+
+* test version for run lenghts using dp
+* fixed some edge cases
+* test version for run lenghts using dp
+* new runs plot
+* change rle plot
+* broadcast
+* scaling emissions
+* nan raises error
+* cleaning up figs
+* removed ALT conflict between altai/alternative
+* before plot cleanup
+* infer states for rle
+* added cli to do run lengths
+* fix rle
+
+0.2.2
+-----
+
+* rle interface
+* some notes on better transition
+* added rle output
+* added rle
+* added check for infile
+
+0.2.1
+-----
+
+* bam parsing
+* bam parsing
+* compatible with py3.5
+* py3.5 version
+* versioning
+* Update admixfrog.tex
+* fix python version
+* fix python version
+* fixed setup requires
+* added pbr
+* changed req
+* bam parsing
+* disable cy
+* recompiling
+* fixed import
+* added bam processing
+* added pgdirect
+* fix imports
+* getting pw to run
+* build wo cython
+* older setuptools
+* rules fig
+* updated readme
+* added docs
+* added docs
+* moved setup to use pbr
+* moved setup to use pbr
+* ancestral state might be working
+* pipeline
+* added vcf to pipeline
+* pipeline 1st version
+* restore plotting
+* pandas version
+* clean up plotting
+* fast emission
+* removed old functions
+* setup
+* fast betabinomial
+* merge
+* added update stop
+* moved pg to end of loop
+* run black
+* run black
+* posterior calc
+* new update functions
+* haploid state betabinomial emissions are working, still slow
+* some more python functions for betabinomial. still slow
+* updated fwd bwd algorihtm. Now uses global gamma (posterior state decoding) variable. Also, initial state removed from there
+* clean up before chaning fwd bwd
+* emission
+* chr1 seems to work, others do not
+* mv betabinomial stuff
+* cython compiles.
+* cython compiles.
+* cython compiles.
+* cython compiles.
+* moved stuff to other files
+* betabinomial update
+* plotting stuff
+* version without X
+* added option wo hets, run through black
+* fixed underflow issue
+* jit remoed memory stuff
+* added garbage state
+* added garbage state
+* added garbage state
+* before garbage
+* working setup
+* deploy
+* deploy
+* no cython does work again wweee
+* no cython doesnt work
+* cython still working
+* cython still working
+* still working, also X/Y
+* still working, cython cont est doesnt work
+* still working.
+* introgression cleaned
+* revert 6 states
+* working by snp
+* Added simple
+* init
