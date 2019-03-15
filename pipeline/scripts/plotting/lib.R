@@ -129,6 +129,9 @@ bin_colplot_pos <- function(d2, add_chrom=T){
         col_scale() + THEME
 }
 
+facet_chrom <- function(...)facet_wrap(~chrom, ncol=1, strip='left') 
+facet_sample <- function(...)facet_wrap(~sample, ncol=1, strip='left') 
+
 rle_plot_map <- function(data, minlen=0.1, maxlen=1){
     data %>%
 	filter(map_len > minlen) %>%
@@ -136,7 +139,7 @@ rle_plot_map <- function(data, minlen=0.1, maxlen=1){
 	bg_chrom(data) + 
 	geom_tile(aes(x =(map +map_end)/ 2, width = map_end - map, 
 		   y=0.5, height=1, fill=target, alpha=pmin(map_len,maxlen))) + 
-	facet_wrap(~chrom, ncol=1, strip='left') + 
+	facet_chrom() + 
 	THEME + 
 	col_scale() +
 	scale_alpha_continuous(range=c(0.3,1), limits=c(minlen, maxlen), name='Length(cM)') + 

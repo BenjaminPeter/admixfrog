@@ -25,7 +25,8 @@ P = data %>%
     ggplot(aes(x=0, ymin=map, ymax=map_end, color=sample)) +
     geom_linerange(lwd=2, position=position_dodge(.1)) +
     coord_flip() +
-    facet_wrap(~chrom, ncol=1, strip='l') + THEME
+    THEME +
+    facet_chrom()
 ggsave(snakemake@output$tracksimple, width=20, height=11)
 
 df =  data %>% 
@@ -41,7 +42,7 @@ P2= df %>% arrange(-map_len) %>%
     mutate(length = pmin(map_len, 2)) %>%
     ggplot(aes(x=pos/1e6, y=1, fill=length, color=length)) + 
     geom_col() + 
-    facet_wrap(~chrom, ncol=1, strip='l') + 
+    facet_chrom() + 
     THEME + 
     xlab("Position (Mb)") +
     ylab("# individuals") + 
@@ -52,7 +53,7 @@ P3= df %>% arrange(-map_len) %>%
     filter( map_len>MAP_MIN) %>% 
     ggplot(aes(x=map, y=1, group=map_len, color=sample, fill=sample)) + 
     geom_col() + 
-    facet_wrap(~chrom, ncol=1, strip='l') + 
+    facet_chrom() + 
     THEME + 
     xlab("Position (Mb)") +
     ylab("# individuals") 
