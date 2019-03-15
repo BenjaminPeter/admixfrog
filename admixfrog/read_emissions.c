@@ -4,12 +4,12 @@
 {
     "distutils": {
         "depends": [],
-        "name": "admixfrog.cyread_emissions",
+        "name": "admixfrog.read_emissions",
         "sources": [
-            "/home/benjamin_peter/introgression/admixfrog/cyread_emissions.pyx"
+            "/home/benjamin_peter/exe/introgression/admixfrog/read_emissions.pyx"
         ]
     },
-    "module_name": "admixfrog.cyread_emissions"
+    "module_name": "admixfrog.read_emissions"
 }
 END: Cython Metadata */
 
@@ -598,8 +598,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__admixfrog__cyread_emissions
-#define __PYX_HAVE_API__admixfrog__cyread_emissions
+#define __PYX_HAVE__admixfrog__read_emissions
+#define __PYX_HAVE_API__admixfrog__read_emissions
 /* Early includes */
 #include <math.h>
 #include <string.h>
@@ -836,7 +836,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "cyread_emissions.pyx",
+  "read_emissions.pyx",
   "stringsource",
 };
 /* MemviewSliceStruct.proto */
@@ -961,20 +961,20 @@ static CYTHON_INLINE __pyx_t_double_complex __pyx_t_double_complex_from_parts(do
 
 
 /*--- Type declarations ---*/
-struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination;
+struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination;
 struct __pyx_array_obj;
 struct __pyx_MemviewEnum_obj;
 struct __pyx_memoryview_obj;
 struct __pyx_memoryviewslice_obj;
 
-/* "admixfrog/cyread_emissions.pyx":48
+/* "admixfrog/read_emissions.pyx":50
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
  *     """
  *     update emissions by maximizing contamination parameter
  */
-struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination {
+struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination {
   PyObject_HEAD
   PyObject *__pyx_v_IX;
   PyObject *__pyx_v_P;
@@ -1865,13 +1865,16 @@ static int __Pyx_ValidateAndInit_memviewslice(
                 PyObject *original_obj);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_long(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_char(PyObject *, int writable_flag);
 
 /* ObjectToMemviewSlice.proto */
 static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double(PyObject *, int writable_flag);
 
 /* ObjectToMemviewSlice.proto */
 static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dsdsds_double(PyObject *, int writable_flag);
+
+/* ObjectToMemviewSlice.proto */
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_long(PyObject *, int writable_flag);
 
 /* CheckBinaryVersion.proto */
 static int __Pyx_check_binary_version(void);
@@ -1902,8 +1905,8 @@ static PyObject *__pyx_memoryviewslice_assign_item_from_object(struct __pyx_memo
 
 /* Module declarations from 'libc.stdio' */
 
-/* Module declarations from 'admixfrog.cyread_emissions' */
-static PyTypeObject *__pyx_ptype_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination = 0;
+/* Module declarations from 'admixfrog.read_emissions' */
+static PyTypeObject *__pyx_ptype_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination = 0;
 static PyTypeObject *__pyx_array_type = 0;
 static PyTypeObject *__pyx_MemviewEnum_type = 0;
 static PyTypeObject *__pyx_memoryview_type = 0;
@@ -1915,7 +1918,7 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double, double, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice); /*proto*/
+static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double, double, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -1949,13 +1952,14 @@ static void __pyx_memoryview_refcount_objects_in_slice(char *, Py_ssize_t *, Py_
 static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size_t, void *, int); /*proto*/
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
-static __Pyx_TypeInfo __Pyx_TypeInfo_long = { "long", NULL, sizeof(long), { 0 }, 0, IS_UNSIGNED(long) ? 'U' : 'I', IS_UNSIGNED(long), 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_char = { "char", NULL, sizeof(char), { 0 }, 0, 'H', IS_UNSIGNED(char), 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
-#define __Pyx_MODULE_NAME "admixfrog.cyread_emissions"
-extern int __pyx_module_is_main_admixfrog__cyread_emissions;
-int __pyx_module_is_main_admixfrog__cyread_emissions = 0;
+static __Pyx_TypeInfo __Pyx_TypeInfo_long = { "long", NULL, sizeof(long), { 0 }, 0, IS_UNSIGNED(long) ? 'U' : 'I', IS_UNSIGNED(long), 0 };
+#define __Pyx_MODULE_NAME "admixfrog.read_emissions"
+extern int __pyx_module_is_main_admixfrog__read_emissions;
+int __pyx_module_is_main_admixfrog__read_emissions = 0;
 
-/* Implementation of 'admixfrog.cyread_emissions' */
+/* Implementation of 'admixfrog.read_emissions' */
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_all;
 static PyObject *__pyx_builtin_ValueError;
@@ -1971,6 +1975,7 @@ static const char __pyx_k_P[] = "P";
 static const char __pyx_k_c[] = "\tc:[";
 static const char __pyx_k_f[] = "f_";
 static const char __pyx_k_i[] = "i";
+static const char __pyx_k_q[] = "q";
 static const char __pyx_k_x[] = "x";
 static const char __pyx_k_4f[] = ".4f";
 static const char __pyx_k_IX[] = "IX";
@@ -1989,6 +1994,7 @@ static const char __pyx_k_all[] = "all";
 static const char __pyx_k_c_2[] = "c";
 static const char __pyx_k_fun[] = "fun";
 static const char __pyx_k_lib[] = "lib";
+static const char __pyx_k_log[] = "log_";
 static const char __pyx_k_new[] = "__new__";
 static const char __pyx_k_obj[] = "obj";
 static const char __pyx_k_base[] = "base";
@@ -2012,6 +2018,7 @@ static const char __pyx_k_class[] = "__class__";
 static const char __pyx_k_delta[] = "delta";
 static const char __pyx_k_error[] = "error";
 static const char __pyx_k_flags[] = "flags";
+static const char __pyx_k_log_2[] = "log";
 static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_range[] = "range";
 static const char __pyx_k_shape[] = "shape";
@@ -2033,7 +2040,6 @@ static const char __pyx_k_unpack[] = "unpack";
 static const char __pyx_k_update[] = "update";
 static const char __pyx_k_OBS2SNP[] = "OBS2SNP";
 static const char __pyx_k_fortran[] = "fortran";
-static const char __pyx_k_logging[] = "logging";
 static const char __pyx_k_memview[] = "memview";
 static const char __pyx_k_Ellipsis[] = "Ellipsis";
 static const char __pyx_k_getstate[] = "__getstate__";
@@ -2067,8 +2073,8 @@ static const char __pyx_k_setstate_cython[] = "__setstate_cython__";
 static const char __pyx_k_pyx_unpickle_Enum[] = "__pyx_unpickle_Enum";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_get_po_given_c_all[] = "get_po_given_c_all";
+static const char __pyx_k_read_emissions_pyx[] = "read_emissions.pyx";
 static const char __pyx_k_strided_and_direct[] = "<strided and direct>";
-static const char __pyx_k_cyread_emissions_pyx[] = "cyread_emissions.pyx";
 static const char __pyx_k_strided_and_indirect[] = "<strided and indirect>";
 static const char __pyx_k_update_contamination[] = "update_contamination";
 static const char __pyx_k_contiguous_and_direct[] = "<contiguous and direct>";
@@ -2076,8 +2082,8 @@ static const char __pyx_k_MemoryView_of_r_object[] = "<MemoryView of %r object>"
 static const char __pyx_k_MemoryView_of_r_at_0x_x[] = "<MemoryView of %r at 0x%x>";
 static const char __pyx_k_contiguous_and_indirect[] = "<contiguous and indirect>";
 static const char __pyx_k_Cannot_index_with_type_s[] = "Cannot index with type '%s'";
+static const char __pyx_k_admixfrog_read_emissions[] = "admixfrog.read_emissions";
 static const char __pyx_k_Invalid_shape_in_axis_d_d[] = "Invalid shape in axis %d: %d.";
-static const char __pyx_k_admixfrog_cyread_emissions[] = "admixfrog.cyread_emissions";
 static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cython.array";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
@@ -2132,7 +2138,7 @@ static PyObject *__pyx_kp_u__3;
 static PyObject *__pyx_kp_u__4;
 static PyObject *__pyx_kp_u__5;
 static PyObject *__pyx_kp_u__6;
-static PyObject *__pyx_n_s_admixfrog_cyread_emissions;
+static PyObject *__pyx_n_s_admixfrog_read_emissions;
 static PyObject *__pyx_n_s_all;
 static PyObject *__pyx_n_s_allocate_buffer;
 static PyObject *__pyx_n_s_base;
@@ -2148,7 +2154,6 @@ static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_cont;
 static PyObject *__pyx_kp_s_contiguous_and_direct;
 static PyObject *__pyx_kp_s_contiguous_and_indirect;
-static PyObject *__pyx_kp_s_cyread_emissions_pyx;
 static PyObject *__pyx_n_s_delta;
 static PyObject *__pyx_n_s_dict;
 static PyObject *__pyx_n_s_dtype_is_object;
@@ -2172,7 +2177,8 @@ static PyObject *__pyx_n_s_itemsize;
 static PyObject *__pyx_kp_s_itemsize_0_for_cython_array;
 static PyObject *__pyx_n_s_lib;
 static PyObject *__pyx_n_s_libs;
-static PyObject *__pyx_n_s_logging;
+static PyObject *__pyx_n_s_log;
+static PyObject *__pyx_n_s_log_2;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_memview;
 static PyObject *__pyx_n_s_minimize;
@@ -2201,7 +2207,9 @@ static PyObject *__pyx_n_s_pyx_state;
 static PyObject *__pyx_n_s_pyx_type;
 static PyObject *__pyx_n_s_pyx_unpickle_Enum;
 static PyObject *__pyx_n_s_pyx_vtable;
+static PyObject *__pyx_n_s_q;
 static PyObject *__pyx_n_s_range;
+static PyObject *__pyx_kp_s_read_emissions_pyx;
 static PyObject *__pyx_n_s_reduce;
 static PyObject *__pyx_n_s_reduce_cython;
 static PyObject *__pyx_n_s_reduce_ex;
@@ -2228,8 +2236,8 @@ static PyObject *__pyx_n_s_update;
 static PyObject *__pyx_n_s_update_contamination;
 static PyObject *__pyx_n_s_update_contamination_locals_get;
 static PyObject *__pyx_n_s_x;
-static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc); /* proto */
-static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_cont, PyObject *__pyx_v_error, PyObject *__pyx_v_P, PyObject *__pyx_v_PG, PyObject *__pyx_v_IX, PyObject *__pyx_v_libs); /* proto */
+static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc); /* proto */
+static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_cont, PyObject *__pyx_v_error, PyObject *__pyx_v_P, PyObject *__pyx_v_PG, PyObject *__pyx_v_IX, PyObject *__pyx_v_libs); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __pyx_array_obj *__pyx_v_self, PyObject *__pyx_v_shape, Py_ssize_t __pyx_v_itemsize, PyObject *__pyx_v_format, PyObject *__pyx_v_mode, int __pyx_v_allocate_buffer); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array_2__getbuffer__(struct __pyx_array_obj *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_array___pyx_pf_15View_dot_MemoryView_5array_4__dealloc__(struct __pyx_array_obj *__pyx_v_self); /* proto */
@@ -2272,7 +2280,7 @@ static PyObject *__pyx_pf_15View_dot_MemoryView_16_memoryviewslice_4base___get__
 static PyObject *__pyx_pf___pyx_memoryviewslice___reduce_cython__(CYTHON_UNUSED struct __pyx_memoryviewslice_obj *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf___pyx_memoryviewslice_2__setstate_cython__(CYTHON_UNUSED struct __pyx_memoryviewslice_obj *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_pf_15View_dot_MemoryView___pyx_unpickle_Enum(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v___pyx_type, long __pyx_v___pyx_checksum, PyObject *__pyx_v___pyx_state); /* proto */
-static PyObject *__pyx_tp_new_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static PyObject *__pyx_tp_new_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_array(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_Enum(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_memoryview(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
@@ -2313,7 +2321,7 @@ static PyObject *__pyx_codeobj__26;
 static PyObject *__pyx_codeobj__33;
 /* Late includes */
 
-/* "admixfrog/cyread_emissions.pyx":20
+/* "admixfrog/read_emissions.pyx":22
  * @cython.boundscheck(False) # turn off bounds-checking for entire function
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
  * cdef double get_po_given_c(             # <<<<<<<<<<<<<<
@@ -2321,7 +2329,7 @@ static PyObject *__pyx_codeobj__33;
  *     double e,
  */
 
-static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_v_c, double __pyx_v_e, __Pyx_memviewslice __pyx_v_O, __Pyx_memviewslice __pyx_v_N, __Pyx_memviewslice __pyx_v_P_cont, __Pyx_memviewslice __pyx_v_PG, __Pyx_memviewslice __pyx_v_rg2obs, __Pyx_memviewslice __pyx_v_obs2snp) {
+static double __pyx_f_9admixfrog_14read_emissions_get_po_given_c(double __pyx_v_c, double __pyx_v_e, __Pyx_memviewslice __pyx_v_O, __Pyx_memviewslice __pyx_v_N, __Pyx_memviewslice __pyx_v_P_cont, __Pyx_memviewslice __pyx_v_PG, __Pyx_memviewslice __pyx_v_rg2obs, __Pyx_memviewslice __pyx_v_obs2snp) {
   int __pyx_v_i;
   int __pyx_v_s;
   int __pyx_v_g;
@@ -2352,7 +2360,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
   Py_ssize_t __pyx_t_17;
   __Pyx_RefNannySetupContext("get_po_given_c", 0);
 
-  /* "admixfrog/cyread_emissions.pyx":33
+  /* "admixfrog/read_emissions.pyx":35
  *     cdef long n_obs, n_states,
  *     cdef int obs, snp
  *     cdef double p,  ll = 0.             # <<<<<<<<<<<<<<
@@ -2361,7 +2369,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
  */
   __pyx_v_ll = 0.;
 
-  /* "admixfrog/cyread_emissions.pyx":35
+  /* "admixfrog/read_emissions.pyx":37
  *     cdef double p,  ll = 0.
  * 
  *     n_obs = len(rg2obs)             # <<<<<<<<<<<<<<
@@ -2371,7 +2379,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_rg2obs); 
   __pyx_v_n_obs = __pyx_t_1;
 
-  /* "admixfrog/cyread_emissions.pyx":36
+  /* "admixfrog/read_emissions.pyx":38
  * 
  *     n_obs = len(rg2obs)
  *     n_states = PG.shape[1]             # <<<<<<<<<<<<<<
@@ -2380,7 +2388,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
  */
   __pyx_v_n_states = (__pyx_v_PG.shape[1]);
 
-  /* "admixfrog/cyread_emissions.pyx":37
+  /* "admixfrog/read_emissions.pyx":39
  *     n_obs = len(rg2obs)
  *     n_states = PG.shape[1]
  *     for i in range(n_obs):             # <<<<<<<<<<<<<<
@@ -2392,7 +2400,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
     __pyx_v_i = __pyx_t_4;
 
-    /* "admixfrog/cyread_emissions.pyx":38
+    /* "admixfrog/read_emissions.pyx":40
  *     n_states = PG.shape[1]
  *     for i in range(n_obs):
  *         obs = rg2obs[i]             # <<<<<<<<<<<<<<
@@ -2402,7 +2410,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
     __pyx_t_5 = __pyx_v_i;
     __pyx_v_obs = (*((long *) ( /* dim=0 */ (__pyx_v_rg2obs.data + __pyx_t_5 * __pyx_v_rg2obs.strides[0]) )));
 
-    /* "admixfrog/cyread_emissions.pyx":39
+    /* "admixfrog/read_emissions.pyx":41
  *     for i in range(n_obs):
  *         obs = rg2obs[i]
  *         snp = obs2snp[obs]             # <<<<<<<<<<<<<<
@@ -2412,7 +2420,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
     __pyx_t_6 = __pyx_v_obs;
     __pyx_v_snp = (*((long *) ( /* dim=0 */ (__pyx_v_obs2snp.data + __pyx_t_6 * __pyx_v_obs2snp.strides[0]) )));
 
-    /* "admixfrog/cyread_emissions.pyx":40
+    /* "admixfrog/read_emissions.pyx":42
  *         obs = rg2obs[i]
  *         snp = obs2snp[obs]
  *         for g in range(3):             # <<<<<<<<<<<<<<
@@ -2422,7 +2430,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
     for (__pyx_t_7 = 0; __pyx_t_7 < 3; __pyx_t_7+=1) {
       __pyx_v_g = __pyx_t_7;
 
-      /* "admixfrog/cyread_emissions.pyx":41
+      /* "admixfrog/read_emissions.pyx":43
  *         snp = obs2snp[obs]
  *         for g in range(3):
  *             p = c * P_cont[obs] + (1.-c) * g / 2.             # <<<<<<<<<<<<<<
@@ -2432,7 +2440,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
       __pyx_t_8 = __pyx_v_obs;
       __pyx_v_p = ((__pyx_v_c * (*((double *) ( /* dim=0 */ (__pyx_v_P_cont.data + __pyx_t_8 * __pyx_v_P_cont.strides[0]) )))) + (((1. - __pyx_v_c) * __pyx_v_g) / 2.));
 
-      /* "admixfrog/cyread_emissions.pyx":42
+      /* "admixfrog/read_emissions.pyx":44
  *         for g in range(3):
  *             p = c * P_cont[obs] + (1.-c) * g / 2.
  *             p = p * (1-e) + (1-p) * e             # <<<<<<<<<<<<<<
@@ -2441,7 +2449,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
  */
       __pyx_v_p = ((__pyx_v_p * (1.0 - __pyx_v_e)) + ((1.0 - __pyx_v_p) * __pyx_v_e));
 
-      /* "admixfrog/cyread_emissions.pyx":43
+      /* "admixfrog/read_emissions.pyx":45
  *             p = c * P_cont[obs] + (1.-c) * g / 2.
  *             p = p * (1-e) + (1-p) * e
  *             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)             # <<<<<<<<<<<<<<
@@ -2451,9 +2459,9 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
       __pyx_t_9 = __pyx_v_obs;
       __pyx_t_10 = __pyx_v_obs;
       __pyx_t_11 = __pyx_v_obs;
-      __pyx_v_p = (((*((long *) ( /* dim=0 */ (__pyx_v_O.data + __pyx_t_9 * __pyx_v_O.strides[0]) ))) * log(__pyx_v_p)) + (((*((long *) ( /* dim=0 */ (__pyx_v_N.data + __pyx_t_10 * __pyx_v_N.strides[0]) ))) - (*((long *) ( /* dim=0 */ (__pyx_v_O.data + __pyx_t_11 * __pyx_v_O.strides[0]) )))) * log((1.0 - __pyx_v_p))));
+      __pyx_v_p = (((*((char *) ( /* dim=0 */ (__pyx_v_O.data + __pyx_t_9 * __pyx_v_O.strides[0]) ))) * log(__pyx_v_p)) + (((*((char *) ( /* dim=0 */ (__pyx_v_N.data + __pyx_t_10 * __pyx_v_N.strides[0]) ))) - (*((char *) ( /* dim=0 */ (__pyx_v_O.data + __pyx_t_11 * __pyx_v_O.strides[0]) )))) * log((1.0 - __pyx_v_p))));
 
-      /* "admixfrog/cyread_emissions.pyx":44
+      /* "admixfrog/read_emissions.pyx":46
  *             p = p * (1-e) + (1-p) * e
  *             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
  *             for s in range(n_states):             # <<<<<<<<<<<<<<
@@ -2465,7 +2473,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
       for (__pyx_t_14 = 0; __pyx_t_14 < __pyx_t_13; __pyx_t_14+=1) {
         __pyx_v_s = __pyx_t_14;
 
-        /* "admixfrog/cyread_emissions.pyx":45
+        /* "admixfrog/read_emissions.pyx":47
  *             p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
  *             for s in range(n_states):
  *                 ll += PG[snp, s, g] * p             # <<<<<<<<<<<<<<
@@ -2480,7 +2488,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
     }
   }
 
-  /* "admixfrog/cyread_emissions.pyx":46
+  /* "admixfrog/read_emissions.pyx":48
  *             for s in range(n_states):
  *                 ll += PG[snp, s, g] * p
  *     return ll             # <<<<<<<<<<<<<<
@@ -2490,7 +2498,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
   __pyx_r = __pyx_v_ll;
   goto __pyx_L0;
 
-  /* "admixfrog/cyread_emissions.pyx":20
+  /* "admixfrog/read_emissions.pyx":22
  * @cython.boundscheck(False) # turn off bounds-checking for entire function
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
  * cdef double get_po_given_c(             # <<<<<<<<<<<<<<
@@ -2504,7 +2512,7 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
   return __pyx_r;
 }
 
-/* "admixfrog/cyread_emissions.pyx":48
+/* "admixfrog/read_emissions.pyx":50
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -2513,10 +2521,10 @@ static double __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(double __pyx_
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9admixfrog_16cyread_emissions_1update_contamination(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_9admixfrog_16cyread_emissions_update_contamination[] = "\n    update emissions by maximizing contamination parameter\n\n    cont: dict of contamination rates (by library)\n    PG: Pr(G, Z | O)\n\n\n\n    ";
-static PyMethodDef __pyx_mdef_9admixfrog_16cyread_emissions_1update_contamination = {"update_contamination", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_9admixfrog_16cyread_emissions_1update_contamination, METH_VARARGS|METH_KEYWORDS, __pyx_doc_9admixfrog_16cyread_emissions_update_contamination};
-static PyObject *__pyx_pw_9admixfrog_16cyread_emissions_1update_contamination(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_9admixfrog_14read_emissions_1update_contamination(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_9admixfrog_14read_emissions_update_contamination[] = "\n    update emissions by maximizing contamination parameter\n\n    cont: dict of contamination rates (by library)\n    PG: Pr(G, Z | O)\n\n\n\n    ";
+static PyMethodDef __pyx_mdef_9admixfrog_14read_emissions_1update_contamination = {"update_contamination", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_9admixfrog_14read_emissions_1update_contamination, METH_VARARGS|METH_KEYWORDS, __pyx_doc_9admixfrog_14read_emissions_update_contamination};
+static PyObject *__pyx_pw_9admixfrog_14read_emissions_1update_contamination(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_cont = 0;
   PyObject *__pyx_v_error = 0;
   PyObject *__pyx_v_P = 0;
@@ -2557,35 +2565,35 @@ static PyObject *__pyx_pw_9admixfrog_16cyread_emissions_1update_contamination(Py
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_error)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 1); __PYX_ERR(0, 48, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 1); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_P)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 2); __PYX_ERR(0, 48, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 2); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_PG)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 3); __PYX_ERR(0, 48, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 3); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_IX)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 4); __PYX_ERR(0, 48, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 4); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  5:
         if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_libs)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 5); __PYX_ERR(0, 48, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, 5); __PYX_ERR(0, 50, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "update_contamination") < 0)) __PYX_ERR(0, 48, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "update_contamination") < 0)) __PYX_ERR(0, 50, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
       goto __pyx_L5_argtuple_error;
@@ -2606,20 +2614,20 @@ static PyObject *__pyx_pw_9admixfrog_16cyread_emissions_1update_contamination(Py
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 48, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("update_contamination", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 50, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("admixfrog.cyread_emissions.update_contamination", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("admixfrog.read_emissions.update_contamination", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9admixfrog_16cyread_emissions_update_contamination(__pyx_self, __pyx_v_cont, __pyx_v_error, __pyx_v_P, __pyx_v_PG, __pyx_v_IX, __pyx_v_libs);
+  __pyx_r = __pyx_pf_9admixfrog_14read_emissions_update_contamination(__pyx_self, __pyx_v_cont, __pyx_v_error, __pyx_v_P, __pyx_v_PG, __pyx_v_IX, __pyx_v_libs);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "admixfrog/cyread_emissions.pyx":65
+/* "admixfrog/read_emissions.pyx":67
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
@@ -2628,22 +2636,22 @@ static PyObject *__pyx_pw_9admixfrog_16cyread_emissions_1update_contamination(Py
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9admixfrog_16cyread_emissions_20update_contamination_1get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc); /*proto*/
-static PyMethodDef __pyx_mdef_9admixfrog_16cyread_emissions_20update_contamination_1get_po_given_c_all = {"get_po_given_c_all", (PyCFunction)__pyx_pw_9admixfrog_16cyread_emissions_20update_contamination_1get_po_given_c_all, METH_O, 0};
-static PyObject *__pyx_pw_9admixfrog_16cyread_emissions_20update_contamination_1get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc) {
+static PyObject *__pyx_pw_9admixfrog_14read_emissions_20update_contamination_1get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc); /*proto*/
+static PyMethodDef __pyx_mdef_9admixfrog_14read_emissions_20update_contamination_1get_po_given_c_all = {"get_po_given_c_all", (PyCFunction)__pyx_pw_9admixfrog_14read_emissions_20update_contamination_1get_po_given_c_all, METH_O, 0};
+static PyObject *__pyx_pw_9admixfrog_14read_emissions_20update_contamination_1get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_po_given_c_all (wrapper)", 0);
-  __pyx_r = __pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_get_po_given_c_all(__pyx_self, ((PyObject *)__pyx_v_cc));
+  __pyx_r = __pyx_pf_9admixfrog_14read_emissions_20update_contamination_get_po_given_c_all(__pyx_self, ((PyObject *)__pyx_v_cc));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc) {
-  struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *__pyx_cur_scope;
-  struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *__pyx_outer_scope;
+static PyObject *__pyx_pf_9admixfrog_14read_emissions_20update_contamination_get_po_given_c_all(PyObject *__pyx_self, PyObject *__pyx_v_cc) {
+  struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *__pyx_cur_scope;
+  struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *__pyx_outer_scope;
   double __pyx_v_prob;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2658,115 +2666,115 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_g
   __Pyx_memviewslice __pyx_t_9 = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_t_10 = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_RefNannySetupContext("get_po_given_c_all", 0);
-  __pyx_outer_scope = (struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *) __Pyx_CyFunction_GetClosure(__pyx_self);
+  __pyx_outer_scope = (struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *) __Pyx_CyFunction_GetClosure(__pyx_self);
   __pyx_cur_scope = __pyx_outer_scope;
 
-  /* "admixfrog/cyread_emissions.pyx":66
+  /* "admixfrog/read_emissions.pyx":68
  * 
  *         def get_po_given_c_all(cc):
  *             prob = get_po_given_c(c=cc,             # <<<<<<<<<<<<<<
  *                                  e=error,
  *                                  O=P.O,
  */
-  __pyx_t_1 = __pyx_PyFloat_AsDouble(__pyx_v_cc); if (unlikely((__pyx_t_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L1_error)
+  __pyx_t_1 = __pyx_PyFloat_AsDouble(__pyx_v_cc); if (unlikely((__pyx_t_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L1_error)
 
-  /* "admixfrog/cyread_emissions.pyx":67
+  /* "admixfrog/read_emissions.pyx":69
  *         def get_po_given_c_all(cc):
  *             prob = get_po_given_c(c=cc,
  *                                  e=error,             # <<<<<<<<<<<<<<
  *                                  O=P.O,
  *                                  N=P.N,
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_error)) { __Pyx_RaiseClosureNameError("error"); __PYX_ERR(0, 67, __pyx_L1_error) }
-  __pyx_t_2 = __pyx_PyFloat_AsDouble(__pyx_cur_scope->__pyx_v_error); if (unlikely((__pyx_t_2 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_error)) { __Pyx_RaiseClosureNameError("error"); __PYX_ERR(0, 69, __pyx_L1_error) }
+  __pyx_t_2 = __pyx_PyFloat_AsDouble(__pyx_cur_scope->__pyx_v_error); if (unlikely((__pyx_t_2 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 69, __pyx_L1_error)
 
-  /* "admixfrog/cyread_emissions.pyx":68
+  /* "admixfrog/read_emissions.pyx":70
  *             prob = get_po_given_c(c=cc,
  *                                  e=error,
  *                                  O=P.O,             # <<<<<<<<<<<<<<
  *                                  N=P.N,
  *                                  P_cont=P.P_cont,
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_P)) { __Pyx_RaiseClosureNameError("P"); __PYX_ERR(0, 68, __pyx_L1_error) }
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_O); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 68, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_P)) { __Pyx_RaiseClosureNameError("P"); __PYX_ERR(0, 70, __pyx_L1_error) }
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_O); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 70, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_ds_char(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 70, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":69
+  /* "admixfrog/read_emissions.pyx":71
  *                                  e=error,
  *                                  O=P.O,
  *                                  N=P.N,             # <<<<<<<<<<<<<<
  *                                  P_cont=P.P_cont,
  *                                  PG=PG,
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_P)) { __Pyx_RaiseClosureNameError("P"); __PYX_ERR(0, 69, __pyx_L1_error) }
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_N); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 69, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_P)) { __Pyx_RaiseClosureNameError("P"); __PYX_ERR(0, 71, __pyx_L1_error) }
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_N); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 71, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 69, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_ds_char(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 71, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":70
+  /* "admixfrog/read_emissions.pyx":72
  *                                  O=P.O,
  *                                  N=P.N,
  *                                  P_cont=P.P_cont,             # <<<<<<<<<<<<<<
  *                                  PG=PG,
  *                                  rg2obs = IX.RG2OBS[lib],
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_P)) { __Pyx_RaiseClosureNameError("P"); __PYX_ERR(0, 70, __pyx_L1_error) }
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_P_cont); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 70, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_P)) { __Pyx_RaiseClosureNameError("P"); __PYX_ERR(0, 72, __pyx_L1_error) }
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_P_cont); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 72, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_t_3, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 72, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":71
+  /* "admixfrog/read_emissions.pyx":73
  *                                  N=P.N,
  *                                  P_cont=P.P_cont,
  *                                  PG=PG,             # <<<<<<<<<<<<<<
  *                                  rg2obs = IX.RG2OBS[lib],
  *                                  obs2snp = IX.OBS2SNP)
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_PG)) { __Pyx_RaiseClosureNameError("PG"); __PYX_ERR(0, 71, __pyx_L1_error) }
-  __pyx_t_7 = __Pyx_PyObject_to_MemoryviewSlice_dsdsds_double(__pyx_cur_scope->__pyx_v_PG, PyBUF_WRITABLE); if (unlikely(!__pyx_t_7.memview)) __PYX_ERR(0, 71, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_PG)) { __Pyx_RaiseClosureNameError("PG"); __PYX_ERR(0, 73, __pyx_L1_error) }
+  __pyx_t_7 = __Pyx_PyObject_to_MemoryviewSlice_dsdsds_double(__pyx_cur_scope->__pyx_v_PG, PyBUF_WRITABLE); if (unlikely(!__pyx_t_7.memview)) __PYX_ERR(0, 73, __pyx_L1_error)
 
-  /* "admixfrog/cyread_emissions.pyx":72
+  /* "admixfrog/read_emissions.pyx":74
  *                                  P_cont=P.P_cont,
  *                                  PG=PG,
  *                                  rg2obs = IX.RG2OBS[lib],             # <<<<<<<<<<<<<<
  *                                  obs2snp = IX.OBS2SNP)
  *             return -prob
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_IX)) { __Pyx_RaiseClosureNameError("IX"); __PYX_ERR(0, 72, __pyx_L1_error) }
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_IX, __pyx_n_s_RG2OBS); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 72, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_IX)) { __Pyx_RaiseClosureNameError("IX"); __PYX_ERR(0, 74, __pyx_L1_error) }
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_IX, __pyx_n_s_RG2OBS); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 74, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (unlikely(!__pyx_cur_scope->__pyx_v_lib)) { __Pyx_RaiseClosureNameError("lib"); __PYX_ERR(0, 72, __pyx_L1_error) }
-  __pyx_t_8 = __Pyx_PyObject_GetItem(__pyx_t_3, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 72, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_lib)) { __Pyx_RaiseClosureNameError("lib"); __PYX_ERR(0, 74, __pyx_L1_error) }
+  __pyx_t_8 = __Pyx_PyObject_GetItem(__pyx_t_3, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 74, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_9 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_8, PyBUF_WRITABLE); if (unlikely(!__pyx_t_9.memview)) __PYX_ERR(0, 72, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_8, PyBUF_WRITABLE); if (unlikely(!__pyx_t_9.memview)) __PYX_ERR(0, 74, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":73
+  /* "admixfrog/read_emissions.pyx":75
  *                                  PG=PG,
  *                                  rg2obs = IX.RG2OBS[lib],
  *                                  obs2snp = IX.OBS2SNP)             # <<<<<<<<<<<<<<
  *             return -prob
  * 
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_v_IX)) { __Pyx_RaiseClosureNameError("IX"); __PYX_ERR(0, 73, __pyx_L1_error) }
-  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_IX, __pyx_n_s_OBS2SNP); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 73, __pyx_L1_error)
+  if (unlikely(!__pyx_cur_scope->__pyx_v_IX)) { __Pyx_RaiseClosureNameError("IX"); __PYX_ERR(0, 75, __pyx_L1_error) }
+  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_IX, __pyx_n_s_OBS2SNP); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  __pyx_t_10 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_8, PyBUF_WRITABLE); if (unlikely(!__pyx_t_10.memview)) __PYX_ERR(0, 73, __pyx_L1_error)
+  __pyx_t_10 = __Pyx_PyObject_to_MemoryviewSlice_ds_long(__pyx_t_8, PyBUF_WRITABLE); if (unlikely(!__pyx_t_10.memview)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":66
+  /* "admixfrog/read_emissions.pyx":68
  * 
  *         def get_po_given_c_all(cc):
  *             prob = get_po_given_c(c=cc,             # <<<<<<<<<<<<<<
  *                                  e=error,
  *                                  O=P.O,
  */
-  __pyx_v_prob = __pyx_f_9admixfrog_16cyread_emissions_get_po_given_c(__pyx_t_1, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_9, __pyx_t_10);
+  __pyx_v_prob = __pyx_f_9admixfrog_14read_emissions_get_po_given_c(__pyx_t_1, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_9, __pyx_t_10);
   __PYX_XDEC_MEMVIEW(&__pyx_t_4, 1);
   __pyx_t_4.memview = NULL;
   __pyx_t_4.data = NULL;
@@ -2786,7 +2794,7 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_g
   __pyx_t_10.memview = NULL;
   __pyx_t_10.data = NULL;
 
-  /* "admixfrog/cyread_emissions.pyx":74
+  /* "admixfrog/read_emissions.pyx":76
  *                                  rg2obs = IX.RG2OBS[lib],
  *                                  obs2snp = IX.OBS2SNP)
  *             return -prob             # <<<<<<<<<<<<<<
@@ -2794,13 +2802,13 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_g
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_8 = PyFloat_FromDouble((-__pyx_v_prob)); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 74, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble((-__pyx_v_prob)); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 76, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
   __pyx_r = __pyx_t_8;
   __pyx_t_8 = 0;
   goto __pyx_L0;
 
-  /* "admixfrog/cyread_emissions.pyx":65
+  /* "admixfrog/read_emissions.pyx":67
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
@@ -2818,7 +2826,7 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_g
   __Pyx_XDECREF(__pyx_t_8);
   __PYX_XDEC_MEMVIEW(&__pyx_t_9, 1);
   __PYX_XDEC_MEMVIEW(&__pyx_t_10, 1);
-  __Pyx_AddTraceback("admixfrog.cyread_emissions.update_contamination.get_po_given_c_all", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("admixfrog.read_emissions.update_contamination.get_po_given_c_all", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -2826,7 +2834,7 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_g
   return __pyx_r;
 }
 
-/* "admixfrog/cyread_emissions.pyx":48
+/* "admixfrog/read_emissions.pyx":50
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -2834,8 +2842,8 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_g
  *     update emissions by maximizing contamination parameter
  */
 
-static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_cont, PyObject *__pyx_v_error, PyObject *__pyx_v_P, PyObject *__pyx_v_PG, PyObject *__pyx_v_IX, PyObject *__pyx_v_libs) {
-  struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *__pyx_cur_scope;
+static PyObject *__pyx_pf_9admixfrog_14read_emissions_update_contamination(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_cont, PyObject *__pyx_v_error, PyObject *__pyx_v_P, PyObject *__pyx_v_PG, PyObject *__pyx_v_IX, PyObject *__pyx_v_libs) {
+  struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *__pyx_cur_scope;
   Py_ssize_t __pyx_v_n_libs;
   PyObject *__pyx_v_delta = NULL;
   Py_ssize_t __pyx_v_i;
@@ -2858,11 +2866,11 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
   Py_UCS4 __pyx_t_11;
   Py_ssize_t __pyx_t_12;
   __Pyx_RefNannySetupContext("update_contamination", 0);
-  __pyx_cur_scope = (struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *)__pyx_tp_new_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination(__pyx_ptype_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination, __pyx_empty_tuple, NULL);
+  __pyx_cur_scope = (struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *)__pyx_tp_new_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination(__pyx_ptype_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination, __pyx_empty_tuple, NULL);
   if (unlikely(!__pyx_cur_scope)) {
-    __pyx_cur_scope = ((struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *)Py_None);
+    __pyx_cur_scope = ((struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *)Py_None);
     __Pyx_INCREF(Py_None);
-    __PYX_ERR(0, 48, __pyx_L1_error)
+    __PYX_ERR(0, 50, __pyx_L1_error)
   } else {
     __Pyx_GOTREF(__pyx_cur_scope);
   }
@@ -2879,17 +2887,17 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_IX);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_IX);
 
-  /* "admixfrog/cyread_emissions.pyx":58
+  /* "admixfrog/read_emissions.pyx":60
  * 
  *     """
  *     n_libs = len(libs)             # <<<<<<<<<<<<<<
  *     delta = 0.
  *     for i in range(n_libs):
  */
-  __pyx_t_1 = PyObject_Length(__pyx_v_libs); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_t_1 = PyObject_Length(__pyx_v_libs); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 60, __pyx_L1_error)
   __pyx_v_n_libs = __pyx_t_1;
 
-  /* "admixfrog/cyread_emissions.pyx":59
+  /* "admixfrog/read_emissions.pyx":61
  *     """
  *     n_libs = len(libs)
  *     delta = 0.             # <<<<<<<<<<<<<<
@@ -2899,7 +2907,7 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
   __Pyx_INCREF(__pyx_float_0_);
   __pyx_v_delta = __pyx_float_0_;
 
-  /* "admixfrog/cyread_emissions.pyx":60
+  /* "admixfrog/read_emissions.pyx":62
  *     n_libs = len(libs)
  *     delta = 0.
  *     for i in range(n_libs):             # <<<<<<<<<<<<<<
@@ -2911,36 +2919,36 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "admixfrog/cyread_emissions.pyx":61
+    /* "admixfrog/read_emissions.pyx":63
  *     delta = 0.
  *     for i in range(n_libs):
  *         lib = libs[i]             # <<<<<<<<<<<<<<
  *         f_ = IX.RG2OBS[lib]
  *         assert all(lib == P.lib[f_])
  */
-    __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_libs, __pyx_v_i, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 1, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 61, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_libs, __pyx_v_i, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 1, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 63, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_lib);
     __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_lib, __pyx_t_4);
     __Pyx_GIVEREF(__pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":62
+    /* "admixfrog/read_emissions.pyx":64
  *     for i in range(n_libs):
  *         lib = libs[i]
  *         f_ = IX.RG2OBS[lib]             # <<<<<<<<<<<<<<
  *         assert all(lib == P.lib[f_])
  * 
  */
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_IX, __pyx_n_s_RG2OBS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 62, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_IX, __pyx_n_s_RG2OBS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_t_4, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 62, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_t_4, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 64, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_XDECREF_SET(__pyx_v_f_, __pyx_t_5);
     __pyx_t_5 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":63
+    /* "admixfrog/read_emissions.pyx":65
  *         lib = libs[i]
  *         f_ = IX.RG2OBS[lib]
  *         assert all(lib == P.lib[f_])             # <<<<<<<<<<<<<<
@@ -2949,69 +2957,69 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
  */
     #ifndef CYTHON_WITHOUT_ASSERTIONS
     if (unlikely(!Py_OptimizeFlag)) {
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_lib); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 63, __pyx_L1_error)
+      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_P, __pyx_n_s_lib); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 65, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_4 = __Pyx_PyObject_GetItem(__pyx_t_5, __pyx_v_f_); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 63, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyObject_GetItem(__pyx_t_5, __pyx_v_f_); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 65, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_5 = PyObject_RichCompare(__pyx_cur_scope->__pyx_v_lib, __pyx_t_4, Py_EQ); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 63, __pyx_L1_error)
+      __pyx_t_5 = PyObject_RichCompare(__pyx_cur_scope->__pyx_v_lib, __pyx_t_4, Py_EQ); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 65, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_builtin_all, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 63, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_builtin_all, __pyx_t_5); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 65, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 63, __pyx_L1_error)
+      __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 65, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       if (unlikely(!__pyx_t_6)) {
         PyErr_SetNone(PyExc_AssertionError);
-        __PYX_ERR(0, 63, __pyx_L1_error)
+        __PYX_ERR(0, 65, __pyx_L1_error)
       }
     }
     #endif
 
-    /* "admixfrog/cyread_emissions.pyx":65
+    /* "admixfrog/read_emissions.pyx":67
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
  *             prob = get_po_given_c(c=cc,
  *                                  e=error,
  */
-    __pyx_t_4 = __Pyx_CyFunction_NewEx(&__pyx_mdef_9admixfrog_16cyread_emissions_20update_contamination_1get_po_given_c_all, 0, __pyx_n_s_update_contamination_locals_get, ((PyObject*)__pyx_cur_scope), __pyx_n_s_admixfrog_cyread_emissions, __pyx_d, ((PyObject *)__pyx_codeobj__2)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_CyFunction_NewEx(&__pyx_mdef_9admixfrog_14read_emissions_20update_contamination_1get_po_given_c_all, 0, __pyx_n_s_update_contamination_locals_get, ((PyObject*)__pyx_cur_scope), __pyx_n_s_admixfrog_read_emissions, __pyx_d, ((PyObject *)__pyx_codeobj__2)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 67, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_XDECREF_SET(__pyx_v_get_po_given_c_all, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":77
+    /* "admixfrog/read_emissions.pyx":79
  * 
  * 
  *         p0 = get_po_given_c_all(cont[lib])             # <<<<<<<<<<<<<<
  * 
  *         #OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
  */
-    __pyx_t_4 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 77, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 79, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_5 = __pyx_pf_9admixfrog_16cyread_emissions_20update_contamination_get_po_given_c_all(__pyx_v_get_po_given_c_all, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 77, __pyx_L1_error)
+    __pyx_t_5 = __pyx_pf_9admixfrog_14read_emissions_20update_contamination_get_po_given_c_all(__pyx_v_get_po_given_c_all, __pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 79, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_XDECREF_SET(__pyx_v_p0, __pyx_t_5);
     __pyx_t_5 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":83
+    /* "admixfrog/read_emissions.pyx":85
  *         #                                                           cont[lib], OO.x, p0-OO.fun))
  *         #cont[lib] = OO.x
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])             # <<<<<<<<<<<<<<
- *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+ *         log_.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_minimize); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_minimize); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_4 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_7 = PyList_New(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_7 = PyList_New(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_GIVEREF(__pyx_t_4);
     PyList_SET_ITEM(__pyx_t_7, 0, __pyx_t_4);
     __pyx_t_4 = 0;
-    __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_INCREF(__pyx_v_get_po_given_c_all);
     __Pyx_GIVEREF(__pyx_v_get_po_given_c_all);
@@ -3019,11 +3027,11 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __Pyx_GIVEREF(__pyx_t_7);
     PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_t_7);
     __pyx_t_7 = 0;
-    __pyx_t_7 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_7 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_8 = PyFloat_FromDouble((1.0 - 1e-10)); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_8 = PyFloat_FromDouble((1.0 - 1e-10)); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
-    __pyx_t_9 = PyTuple_New(2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_9 = PyTuple_New(2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_INCREF(__pyx_float_0_);
     __Pyx_GIVEREF(__pyx_float_0_);
@@ -3031,14 +3039,14 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __Pyx_GIVEREF(__pyx_t_8);
     PyTuple_SET_ITEM(__pyx_t_9, 1, __pyx_t_8);
     __pyx_t_8 = 0;
-    __pyx_t_8 = PyList_New(1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_8 = PyList_New(1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
     __Pyx_GIVEREF(__pyx_t_9);
     PyList_SET_ITEM(__pyx_t_8, 0, __pyx_t_9);
     __pyx_t_9 = 0;
-    if (PyDict_SetItem(__pyx_t_7, __pyx_n_s_bounds, __pyx_t_8) < 0) __PYX_ERR(0, 83, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_7, __pyx_n_s_bounds, __pyx_t_8) < 0) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-    __pyx_t_8 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_4, __pyx_t_7); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 83, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_4, __pyx_t_7); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -3046,19 +3054,19 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __Pyx_XDECREF_SET(__pyx_v_OO, __pyx_t_8);
     __pyx_t_8 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":84
+    /* "admixfrog/read_emissions.pyx":86
  *         #cont[lib] = OO.x
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
- *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),             # <<<<<<<<<<<<<<
+ *         log_.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),             # <<<<<<<<<<<<<<
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))
  *         delta += abs(cont[lib] - OO.x[0])
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_n_s_logging); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 84, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_n_s_log); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_n_s_info); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 84, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_n_s_info); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __pyx_t_7 = PyTuple_New(10); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 84, __pyx_L1_error)
+    __pyx_t_7 = PyTuple_New(10); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __pyx_t_10 = 0;
     __pyx_t_11 = 127;
@@ -3066,7 +3074,7 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __pyx_t_10 += 1;
     __Pyx_GIVEREF(__pyx_kp_u__3);
     PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_kp_u__3);
-    __pyx_t_5 = __Pyx_PyObject_FormatSimpleAndDecref(PyObject_Unicode(__pyx_cur_scope->__pyx_v_lib), __pyx_empty_unicode); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 84, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_FormatSimpleAndDecref(PyObject_Unicode(__pyx_cur_scope->__pyx_v_lib), __pyx_empty_unicode); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __pyx_t_11 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_5) > __pyx_t_11) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_5) : __pyx_t_11;
     __pyx_t_10 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_5);
@@ -3077,8 +3085,8 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __pyx_t_10 += 2;
     __Pyx_GIVEREF(__pyx_kp_u__4);
     PyTuple_SET_ITEM(__pyx_t_7, 2, __pyx_kp_u__4);
-    __pyx_t_12 = PyObject_Length(__pyx_v_f_); if (unlikely(__pyx_t_12 == ((Py_ssize_t)-1))) __PYX_ERR(0, 84, __pyx_L1_error)
-    __pyx_t_5 = __Pyx_PyUnicode_From_Py_ssize_t(__pyx_t_12, 0, ' ', 'd'); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 84, __pyx_L1_error)
+    __pyx_t_12 = PyObject_Length(__pyx_v_f_); if (unlikely(__pyx_t_12 == ((Py_ssize_t)-1))) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyUnicode_From_Py_ssize_t(__pyx_t_12, 0, ' ', 'd'); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __pyx_t_10 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_5);
     __Pyx_GIVEREF(__pyx_t_5);
@@ -3089,16 +3097,16 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __Pyx_GIVEREF(__pyx_kp_u_c);
     PyTuple_SET_ITEM(__pyx_t_7, 4, __pyx_kp_u_c);
 
-    /* "admixfrog/cyread_emissions.pyx":85
+    /* "admixfrog/read_emissions.pyx":87
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
- *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+ *         log_.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))             # <<<<<<<<<<<<<<
  *         delta += abs(cont[lib] - OO.x[0])
  *         cont[lib] = OO.x[0]
  */
-    __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_9 = __Pyx_PyObject_Format(__pyx_t_5, __pyx_kp_u_4f); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyObject_Format(__pyx_t_5, __pyx_kp_u_4f); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __pyx_t_11 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) > __pyx_t_11) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) : __pyx_t_11;
@@ -3110,12 +3118,12 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __pyx_t_10 += 2;
     __Pyx_GIVEREF(__pyx_kp_u__5);
     PyTuple_SET_ITEM(__pyx_t_7, 6, __pyx_kp_u__5);
-    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_x); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_x); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
-    __pyx_t_5 = __Pyx_GetItemInt(__pyx_t_9, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_GetItemInt(__pyx_t_9, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __pyx_t_9 = __Pyx_PyObject_Format(__pyx_t_5, __pyx_kp_u_4f); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyObject_Format(__pyx_t_5, __pyx_kp_u_4f); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __pyx_t_11 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) > __pyx_t_11) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) : __pyx_t_11;
@@ -3127,12 +3135,12 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __pyx_t_10 += 3;
     __Pyx_GIVEREF(__pyx_kp_u__6);
     PyTuple_SET_ITEM(__pyx_t_7, 8, __pyx_kp_u__6);
-    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_fun); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_fun); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
-    __pyx_t_5 = PyNumber_Subtract(__pyx_v_p0, __pyx_t_9); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_5 = PyNumber_Subtract(__pyx_v_p0, __pyx_t_9); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __pyx_t_9 = __Pyx_PyObject_Format(__pyx_t_5, __pyx_kp_u_4f); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 85, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyObject_Format(__pyx_t_5, __pyx_kp_u_4f); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 87, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __pyx_t_11 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) > __pyx_t_11) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) : __pyx_t_11;
@@ -3141,14 +3149,14 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     PyTuple_SET_ITEM(__pyx_t_7, 9, __pyx_t_9);
     __pyx_t_9 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":84
+    /* "admixfrog/read_emissions.pyx":86
  *         #cont[lib] = OO.x
  *         OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
- *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),             # <<<<<<<<<<<<<<
+ *         log_.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),             # <<<<<<<<<<<<<<
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))
  *         delta += abs(cont[lib] - OO.x[0])
  */
-    __pyx_t_9 = __Pyx_PyUnicode_Join(__pyx_t_7, 10, __pyx_t_10, __pyx_t_11); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 84, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyUnicode_Join(__pyx_t_7, 10, __pyx_t_10, __pyx_t_11); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     __pyx_t_7 = NULL;
@@ -3164,55 +3172,55 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
     __pyx_t_8 = (__pyx_t_7) ? __Pyx_PyObject_Call2Args(__pyx_t_4, __pyx_t_7, __pyx_t_9) : __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_9);
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 84, __pyx_L1_error)
+    if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":86
- *         logging.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
+    /* "admixfrog/read_emissions.pyx":88
+ *         log_.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))
  *         delta += abs(cont[lib] - OO.x[0])             # <<<<<<<<<<<<<<
  *         cont[lib] = OO.x[0]
  * 
  */
-    __pyx_t_8 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyObject_GetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_x); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_x); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_9 = __Pyx_GetItemInt(__pyx_t_4, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_GetItemInt(__pyx_t_4, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __pyx_t_4 = PyNumber_Subtract(__pyx_t_8, __pyx_t_9); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_4 = PyNumber_Subtract(__pyx_t_8, __pyx_t_9); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-    __pyx_t_9 = __Pyx_PyNumber_Absolute(__pyx_t_4); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyNumber_Absolute(__pyx_t_4); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __pyx_t_4 = PyNumber_InPlaceAdd(__pyx_v_delta, __pyx_t_9); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_4 = PyNumber_InPlaceAdd(__pyx_v_delta, __pyx_t_9); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
     __Pyx_DECREF_SET(__pyx_v_delta, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "admixfrog/cyread_emissions.pyx":87
+    /* "admixfrog/read_emissions.pyx":89
  *                                                                    cont[lib], OO.x[0], p0-OO.fun))
  *         delta += abs(cont[lib] - OO.x[0])
  *         cont[lib] = OO.x[0]             # <<<<<<<<<<<<<<
  * 
  *     return delta
  */
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_x); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 87, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_OO, __pyx_n_s_x); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_9 = __Pyx_GetItemInt(__pyx_t_4, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 87, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_GetItemInt(__pyx_t_4, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (unlikely(PyObject_SetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib, __pyx_t_9) < 0)) __PYX_ERR(0, 87, __pyx_L1_error)
+    if (unlikely(PyObject_SetItem(__pyx_v_cont, __pyx_cur_scope->__pyx_v_lib, __pyx_t_9) < 0)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
   }
 
-  /* "admixfrog/cyread_emissions.pyx":89
+  /* "admixfrog/read_emissions.pyx":91
  *         cont[lib] = OO.x[0]
  * 
  *     return delta             # <<<<<<<<<<<<<<
@@ -3222,7 +3230,7 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
   __pyx_r = __pyx_v_delta;
   goto __pyx_L0;
 
-  /* "admixfrog/cyread_emissions.pyx":48
+  /* "admixfrog/read_emissions.pyx":50
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
@@ -3237,7 +3245,7 @@ static PyObject *__pyx_pf_9admixfrog_16cyread_emissions_update_contamination(CYT
   __Pyx_XDECREF(__pyx_t_7);
   __Pyx_XDECREF(__pyx_t_8);
   __Pyx_XDECREF(__pyx_t_9);
-  __Pyx_AddTraceback("admixfrog.cyread_emissions.update_contamination", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("admixfrog.read_emissions.update_contamination", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_delta);
@@ -16025,14 +16033,14 @@ static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *__
   return __pyx_r;
 }
 
-static struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *__pyx_freelist_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination[8];
-static int __pyx_freecount_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination = 0;
+static struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *__pyx_freelist_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination[8];
+static int __pyx_freecount_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination = 0;
 
-static PyObject *__pyx_tp_new_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
+static PyObject *__pyx_tp_new_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
   PyObject *o;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely((__pyx_freecount_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination > 0) & (t->tp_basicsize == sizeof(struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination)))) {
-    o = (PyObject*)__pyx_freelist_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination[--__pyx_freecount_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination];
-    memset(o, 0, sizeof(struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination));
+  if (CYTHON_COMPILING_IN_CPYTHON && likely((__pyx_freecount_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination > 0) & (t->tp_basicsize == sizeof(struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination)))) {
+    o = (PyObject*)__pyx_freelist_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination[--__pyx_freecount_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination];
+    memset(o, 0, sizeof(struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination));
     (void) PyObject_INIT(o, t);
     PyObject_GC_Track(o);
   } else {
@@ -16042,24 +16050,24 @@ static PyObject *__pyx_tp_new_9admixfrog_16cyread_emissions___pyx_scope_struct__
   return o;
 }
 
-static void __pyx_tp_dealloc_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination(PyObject *o) {
-  struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *p = (struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *)o;
+static void __pyx_tp_dealloc_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination(PyObject *o) {
+  struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *p = (struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *)o;
   PyObject_GC_UnTrack(o);
   Py_CLEAR(p->__pyx_v_IX);
   Py_CLEAR(p->__pyx_v_P);
   Py_CLEAR(p->__pyx_v_PG);
   Py_CLEAR(p->__pyx_v_error);
   Py_CLEAR(p->__pyx_v_lib);
-  if (CYTHON_COMPILING_IN_CPYTHON && ((__pyx_freecount_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination < 8) & (Py_TYPE(o)->tp_basicsize == sizeof(struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination)))) {
-    __pyx_freelist_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination[__pyx_freecount_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination++] = ((struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *)o);
+  if (CYTHON_COMPILING_IN_CPYTHON && ((__pyx_freecount_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination < 8) & (Py_TYPE(o)->tp_basicsize == sizeof(struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination)))) {
+    __pyx_freelist_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination[__pyx_freecount_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination++] = ((struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *)o);
   } else {
     (*Py_TYPE(o)->tp_free)(o);
   }
 }
 
-static int __pyx_tp_traverse_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination(PyObject *o, visitproc v, void *a) {
+static int __pyx_tp_traverse_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination(PyObject *o, visitproc v, void *a) {
   int e;
-  struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *p = (struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *)o;
+  struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *p = (struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *)o;
   if (p->__pyx_v_IX) {
     e = (*v)(p->__pyx_v_IX, a); if (e) return e;
   }
@@ -16078,9 +16086,9 @@ static int __pyx_tp_traverse_9admixfrog_16cyread_emissions___pyx_scope_struct__u
   return 0;
 }
 
-static int __pyx_tp_clear_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination(PyObject *o) {
+static int __pyx_tp_clear_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination(PyObject *o) {
   PyObject* tmp;
-  struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *p = (struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination *)o;
+  struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *p = (struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination *)o;
   tmp = ((PyObject*)p->__pyx_v_IX);
   p->__pyx_v_IX = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
@@ -16099,12 +16107,12 @@ static int __pyx_tp_clear_9admixfrog_16cyread_emissions___pyx_scope_struct__upda
   return 0;
 }
 
-static PyTypeObject __pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination = {
+static PyTypeObject __pyx_type_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination = {
   PyVarObject_HEAD_INIT(0, 0)
-  "admixfrog.cyread_emissions.__pyx_scope_struct__update_contamination", /*tp_name*/
-  sizeof(struct __pyx_obj_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination), /*tp_basicsize*/
+  "admixfrog.read_emissions.__pyx_scope_struct__update_contamination", /*tp_name*/
+  sizeof(struct __pyx_obj_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination), /*tp_basicsize*/
   0, /*tp_itemsize*/
-  __pyx_tp_dealloc_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination, /*tp_dealloc*/
+  __pyx_tp_dealloc_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination, /*tp_dealloc*/
   0, /*tp_print*/
   0, /*tp_getattr*/
   0, /*tp_setattr*/
@@ -16126,8 +16134,8 @@ static PyTypeObject __pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct_
   0, /*tp_as_buffer*/
   Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
   0, /*tp_doc*/
-  __pyx_tp_traverse_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination, /*tp_traverse*/
-  __pyx_tp_clear_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination, /*tp_clear*/
+  __pyx_tp_traverse_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination, /*tp_traverse*/
+  __pyx_tp_clear_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination, /*tp_clear*/
   0, /*tp_richcompare*/
   0, /*tp_weaklistoffset*/
   0, /*tp_iter*/
@@ -16142,7 +16150,7 @@ static PyTypeObject __pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct_
   0, /*tp_dictoffset*/
   0, /*tp_init*/
   0, /*tp_alloc*/
-  __pyx_tp_new_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination, /*tp_new*/
+  __pyx_tp_new_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination, /*tp_new*/
   0, /*tp_free*/
   0, /*tp_is_gc*/
   0, /*tp_bases*/
@@ -16279,7 +16287,7 @@ static PyBufferProcs __pyx_tp_as_buffer_array = {
 
 static PyTypeObject __pyx_type___pyx_array = {
   PyVarObject_HEAD_INIT(0, 0)
-  "admixfrog.cyread_emissions.array", /*tp_name*/
+  "admixfrog.read_emissions.array", /*tp_name*/
   sizeof(struct __pyx_array_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_array, /*tp_dealloc*/
@@ -16387,7 +16395,7 @@ static PyMethodDef __pyx_methods_Enum[] = {
 
 static PyTypeObject __pyx_type___pyx_MemviewEnum = {
   PyVarObject_HEAD_INIT(0, 0)
-  "admixfrog.cyread_emissions.Enum", /*tp_name*/
+  "admixfrog.read_emissions.Enum", /*tp_name*/
   sizeof(struct __pyx_MemviewEnum_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_Enum, /*tp_dealloc*/
@@ -16637,7 +16645,7 @@ static PyBufferProcs __pyx_tp_as_buffer_memoryview = {
 
 static PyTypeObject __pyx_type___pyx_memoryview = {
   PyVarObject_HEAD_INIT(0, 0)
-  "admixfrog.cyread_emissions.memoryview", /*tp_name*/
+  "admixfrog.read_emissions.memoryview", /*tp_name*/
   sizeof(struct __pyx_memoryview_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_memoryview, /*tp_dealloc*/
@@ -16764,7 +16772,7 @@ static struct PyGetSetDef __pyx_getsets__memoryviewslice[] = {
 
 static PyTypeObject __pyx_type___pyx_memoryviewslice = {
   PyVarObject_HEAD_INIT(0, 0)
-  "admixfrog.cyread_emissions._memoryviewslice", /*tp_name*/
+  "admixfrog.read_emissions._memoryviewslice", /*tp_name*/
   sizeof(struct __pyx_memoryviewslice_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc__memoryviewslice, /*tp_dealloc*/
@@ -16835,17 +16843,17 @@ static PyMethodDef __pyx_methods[] = {
 #if PY_MAJOR_VERSION >= 3
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 static PyObject* __pyx_pymod_create(PyObject *spec, PyModuleDef *def); /*proto*/
-static int __pyx_pymod_exec_cyread_emissions(PyObject* module); /*proto*/
+static int __pyx_pymod_exec_read_emissions(PyObject* module); /*proto*/
 static PyModuleDef_Slot __pyx_moduledef_slots[] = {
   {Py_mod_create, (void*)__pyx_pymod_create},
-  {Py_mod_exec, (void*)__pyx_pymod_exec_cyread_emissions},
+  {Py_mod_exec, (void*)__pyx_pymod_exec_read_emissions},
   {0, NULL}
 };
 #endif
 
 static struct PyModuleDef __pyx_moduledef = {
     PyModuleDef_HEAD_INIT,
-    "cyread_emissions",
+    "read_emissions",
     0, /* m_doc */
   #if CYTHON_PEP489_MULTI_PHASE_INIT
     0, /* m_size */
@@ -16911,7 +16919,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_u__4, __pyx_k__4, sizeof(__pyx_k__4), 0, 1, 0, 0},
   {&__pyx_kp_u__5, __pyx_k__5, sizeof(__pyx_k__5), 0, 1, 0, 0},
   {&__pyx_kp_u__6, __pyx_k__6, sizeof(__pyx_k__6), 0, 1, 0, 0},
-  {&__pyx_n_s_admixfrog_cyread_emissions, __pyx_k_admixfrog_cyread_emissions, sizeof(__pyx_k_admixfrog_cyread_emissions), 0, 0, 1, 1},
+  {&__pyx_n_s_admixfrog_read_emissions, __pyx_k_admixfrog_read_emissions, sizeof(__pyx_k_admixfrog_read_emissions), 0, 0, 1, 1},
   {&__pyx_n_s_all, __pyx_k_all, sizeof(__pyx_k_all), 0, 0, 1, 1},
   {&__pyx_n_s_allocate_buffer, __pyx_k_allocate_buffer, sizeof(__pyx_k_allocate_buffer), 0, 0, 1, 1},
   {&__pyx_n_s_base, __pyx_k_base, sizeof(__pyx_k_base), 0, 0, 1, 1},
@@ -16927,7 +16935,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_cont, __pyx_k_cont, sizeof(__pyx_k_cont), 0, 0, 1, 1},
   {&__pyx_kp_s_contiguous_and_direct, __pyx_k_contiguous_and_direct, sizeof(__pyx_k_contiguous_and_direct), 0, 0, 1, 0},
   {&__pyx_kp_s_contiguous_and_indirect, __pyx_k_contiguous_and_indirect, sizeof(__pyx_k_contiguous_and_indirect), 0, 0, 1, 0},
-  {&__pyx_kp_s_cyread_emissions_pyx, __pyx_k_cyread_emissions_pyx, sizeof(__pyx_k_cyread_emissions_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_delta, __pyx_k_delta, sizeof(__pyx_k_delta), 0, 0, 1, 1},
   {&__pyx_n_s_dict, __pyx_k_dict, sizeof(__pyx_k_dict), 0, 0, 1, 1},
   {&__pyx_n_s_dtype_is_object, __pyx_k_dtype_is_object, sizeof(__pyx_k_dtype_is_object), 0, 0, 1, 1},
@@ -16951,7 +16958,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_itemsize_0_for_cython_array, __pyx_k_itemsize_0_for_cython_array, sizeof(__pyx_k_itemsize_0_for_cython_array), 0, 0, 1, 0},
   {&__pyx_n_s_lib, __pyx_k_lib, sizeof(__pyx_k_lib), 0, 0, 1, 1},
   {&__pyx_n_s_libs, __pyx_k_libs, sizeof(__pyx_k_libs), 0, 0, 1, 1},
-  {&__pyx_n_s_logging, __pyx_k_logging, sizeof(__pyx_k_logging), 0, 0, 1, 1},
+  {&__pyx_n_s_log, __pyx_k_log, sizeof(__pyx_k_log), 0, 0, 1, 1},
+  {&__pyx_n_s_log_2, __pyx_k_log_2, sizeof(__pyx_k_log_2), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_memview, __pyx_k_memview, sizeof(__pyx_k_memview), 0, 0, 1, 1},
   {&__pyx_n_s_minimize, __pyx_k_minimize, sizeof(__pyx_k_minimize), 0, 0, 1, 1},
@@ -16980,7 +16988,9 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_pyx_type, __pyx_k_pyx_type, sizeof(__pyx_k_pyx_type), 0, 0, 1, 1},
   {&__pyx_n_s_pyx_unpickle_Enum, __pyx_k_pyx_unpickle_Enum, sizeof(__pyx_k_pyx_unpickle_Enum), 0, 0, 1, 1},
   {&__pyx_n_s_pyx_vtable, __pyx_k_pyx_vtable, sizeof(__pyx_k_pyx_vtable), 0, 0, 1, 1},
+  {&__pyx_n_s_q, __pyx_k_q, sizeof(__pyx_k_q), 0, 0, 1, 1},
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
+  {&__pyx_kp_s_read_emissions_pyx, __pyx_k_read_emissions_pyx, sizeof(__pyx_k_read_emissions_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_reduce, __pyx_k_reduce, sizeof(__pyx_k_reduce), 0, 0, 1, 1},
   {&__pyx_n_s_reduce_cython, __pyx_k_reduce_cython, sizeof(__pyx_k_reduce_cython), 0, 0, 1, 1},
   {&__pyx_n_s_reduce_ex, __pyx_k_reduce_ex, sizeof(__pyx_k_reduce_ex), 0, 0, 1, 1},
@@ -17010,8 +17020,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 37, __pyx_L1_error)
-  __pyx_builtin_all = __Pyx_GetBuiltinName(__pyx_n_s_all); if (!__pyx_builtin_all) __PYX_ERR(0, 63, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 39, __pyx_L1_error)
+  __pyx_builtin_all = __Pyx_GetBuiltinName(__pyx_n_s_all); if (!__pyx_builtin_all) __PYX_ERR(0, 65, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(1, 133, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(1, 148, __pyx_L1_error)
   __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(1, 151, __pyx_L1_error)
@@ -17028,17 +17038,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "admixfrog/cyread_emissions.pyx":65
+  /* "admixfrog/read_emissions.pyx":67
  *         assert all(lib == P.lib[f_])
  * 
  *         def get_po_given_c_all(cc):             # <<<<<<<<<<<<<<
  *             prob = get_po_given_c(c=cc,
  *                                  e=error,
  */
-  __pyx_tuple_ = PyTuple_Pack(2, __pyx_n_s_cc, __pyx_n_s_prob); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_tuple_ = PyTuple_Pack(2, __pyx_n_s_cc, __pyx_n_s_prob); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 67, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
-  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_cyread_emissions_pyx, __pyx_n_s_get_po_given_c_all, 65, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_codeobj__2 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple_, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_read_emissions_pyx, __pyx_n_s_get_po_given_c_all, 67, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__2)) __PYX_ERR(0, 67, __pyx_L1_error)
 
   /* "View.MemoryView":133
  * 
@@ -17232,17 +17242,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__24);
   __Pyx_GIVEREF(__pyx_tuple__24);
 
-  /* "admixfrog/cyread_emissions.pyx":48
+  /* "admixfrog/read_emissions.pyx":50
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
  *     """
  *     update emissions by maximizing contamination parameter
  */
-  __pyx_tuple__25 = PyTuple_Pack(15, __pyx_n_s_cont, __pyx_n_s_error, __pyx_n_s_P, __pyx_n_s_PG, __pyx_n_s_IX, __pyx_n_s_libs, __pyx_n_s_n_libs, __pyx_n_s_delta, __pyx_n_s_i, __pyx_n_s_lib, __pyx_n_s_f, __pyx_n_s_get_po_given_c_all, __pyx_n_s_get_po_given_c_all, __pyx_n_s_p0, __pyx_n_s_OO); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __pyx_tuple__25 = PyTuple_Pack(15, __pyx_n_s_cont, __pyx_n_s_error, __pyx_n_s_P, __pyx_n_s_PG, __pyx_n_s_IX, __pyx_n_s_libs, __pyx_n_s_n_libs, __pyx_n_s_delta, __pyx_n_s_i, __pyx_n_s_lib, __pyx_n_s_f, __pyx_n_s_get_po_given_c_all, __pyx_n_s_get_po_given_c_all, __pyx_n_s_p0, __pyx_n_s_OO); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__25);
   __Pyx_GIVEREF(__pyx_tuple__25);
-  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(6, 0, 15, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_cyread_emissions_pyx, __pyx_n_s_update_contamination, 48, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(6, 0, 15, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_read_emissions_pyx, __pyx_n_s_update_contamination, 50, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 50, __pyx_L1_error)
 
   /* "View.MemoryView":286
  *         return self.name
@@ -17368,12 +17378,12 @@ static int __Pyx_modinit_type_init_code(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_modinit_type_init_code", 0);
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
-  __pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination.tp_print = 0;
-  if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination.tp_dictoffset && __pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination.tp_getattro == PyObject_GenericGetAttr)) {
-    __pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination.tp_getattro = __Pyx_PyObject_GenericGetAttrNoDict;
+  if (PyType_Ready(&__pyx_type_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
+  __pyx_type_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination.tp_print = 0;
+  if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination.tp_dictoffset && __pyx_type_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination.tp_getattro == PyObject_GenericGetAttr)) {
+    __pyx_type_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination.tp_getattro = __Pyx_PyObject_GenericGetAttrNoDict;
   }
-  __pyx_ptype_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination = &__pyx_type_9admixfrog_16cyread_emissions___pyx_scope_struct__update_contamination;
+  __pyx_ptype_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination = &__pyx_type_9admixfrog_14read_emissions___pyx_scope_struct__update_contamination;
   __pyx_vtabptr_array = &__pyx_vtable_array;
   __pyx_vtable_array.get_memview = (PyObject *(*)(struct __pyx_array_obj *))__pyx_array_get_memview;
   if (PyType_Ready(&__pyx_type___pyx_array) < 0) __PYX_ERR(1, 105, __pyx_L1_error)
@@ -17465,11 +17475,11 @@ static int __Pyx_modinit_function_import_code(void) {
 
 
 #if PY_MAJOR_VERSION < 3
-__Pyx_PyMODINIT_FUNC initcyread_emissions(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC initcyread_emissions(void)
+__Pyx_PyMODINIT_FUNC initread_emissions(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC initread_emissions(void)
 #else
-__Pyx_PyMODINIT_FUNC PyInit_cyread_emissions(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC PyInit_cyread_emissions(void)
+__Pyx_PyMODINIT_FUNC PyInit_read_emissions(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC PyInit_read_emissions(void)
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 {
   return PyModuleDef_Init(&__pyx_moduledef);
@@ -17536,7 +17546,7 @@ bad:
 }
 
 
-static CYTHON_SMALL_CODE int __pyx_pymod_exec_cyread_emissions(PyObject *__pyx_pyinit_module)
+static CYTHON_SMALL_CODE int __pyx_pymod_exec_read_emissions(PyObject *__pyx_pyinit_module)
 #endif
 #endif
 {
@@ -17547,7 +17557,7 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_cyread_emissions(PyObject *__pyx_p
   #if CYTHON_PEP489_MULTI_PHASE_INIT
   if (__pyx_m) {
     if (__pyx_m == __pyx_pyinit_module) return 0;
-    PyErr_SetString(PyExc_RuntimeError, "Module 'cyread_emissions' has already been imported. Re-initialisation is not supported.");
+    PyErr_SetString(PyExc_RuntimeError, "Module 'read_emissions' has already been imported. Re-initialisation is not supported.");
     return -1;
   }
   #elif PY_MAJOR_VERSION >= 3
@@ -17562,7 +17572,7 @@ if (!__Pyx_RefNanny) {
       Py_FatalError("failed to import 'refnanny' module");
 }
 #endif
-  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_cyread_emissions(void)", 0);
+  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_read_emissions(void)", 0);
   if (__Pyx_check_binary_version() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #ifdef __Pxy_PyFrame_Initialize_Offsets
   __Pxy_PyFrame_Initialize_Offsets();
@@ -17601,7 +17611,7 @@ if (!__Pyx_RefNanny) {
   Py_INCREF(__pyx_m);
   #else
   #if PY_MAJOR_VERSION < 3
-  __pyx_m = Py_InitModule4("cyread_emissions", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
+  __pyx_m = Py_InitModule4("read_emissions", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
   #else
   __pyx_m = PyModule_Create(&__pyx_moduledef);
   #endif
@@ -17620,14 +17630,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_admixfrog__cyread_emissions) {
+  if (__pyx_module_is_main_admixfrog__read_emissions) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name_2, __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "admixfrog.cyread_emissions")) {
-      if (unlikely(PyDict_SetItemString(modules, "admixfrog.cyread_emissions", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "admixfrog.read_emissions")) {
+      if (unlikely(PyDict_SetItemString(modules, "admixfrog.read_emissions", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -17648,50 +17658,38 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "admixfrog/cyread_emissions.pyx":5
+  /* "admixfrog/read_emissions.pyx":5
  * #cython: infer_types=True
  * 
- * import logging             # <<<<<<<<<<<<<<
- * import pandas as pd
- * import numpy as np
- */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_logging, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 5, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_logging, __pyx_t_1) < 0) __PYX_ERR(0, 5, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "admixfrog/cyread_emissions.pyx":6
- * 
- * import logging
  * import pandas as pd             # <<<<<<<<<<<<<<
  * import numpy as np
  * cimport scipy.special.cython_special as scs
  */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_pandas, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 6, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_pandas, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 5, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pd, __pyx_t_1) < 0) __PYX_ERR(0, 6, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pd, __pyx_t_1) < 0) __PYX_ERR(0, 5, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":7
- * import logging
+  /* "admixfrog/read_emissions.pyx":6
+ * 
  * import pandas as pd
  * import numpy as np             # <<<<<<<<<<<<<<
  * cimport scipy.special.cython_special as scs
  * cimport cython
  */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 6, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 6, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":12
+  /* "admixfrog/read_emissions.pyx":11
  * from libc.math cimport pow, log, exp
  * from libc.stdio cimport printf
  * from scipy.optimize import minimize, minimize_scalar             # <<<<<<<<<<<<<<
  * from scipy.special import betaln
  * from scipy.stats import binom
  */
-  __pyx_t_1 = PyList_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_INCREF(__pyx_n_s_minimize);
   __Pyx_GIVEREF(__pyx_n_s_minimize);
@@ -17699,82 +17697,112 @@ if (!__Pyx_RefNanny) {
   __Pyx_INCREF(__pyx_n_s_minimize_scalar);
   __Pyx_GIVEREF(__pyx_n_s_minimize_scalar);
   PyList_SET_ITEM(__pyx_t_1, 1, __pyx_n_s_minimize_scalar);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_scipy_optimize, __pyx_t_1, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_scipy_optimize, __pyx_t_1, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_minimize); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_minimize); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_minimize, __pyx_t_1) < 0) __PYX_ERR(0, 12, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_minimize, __pyx_t_1) < 0) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_minimize_scalar); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_minimize_scalar); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_minimize_scalar, __pyx_t_1) < 0) __PYX_ERR(0, 12, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_minimize_scalar, __pyx_t_1) < 0) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":13
+  /* "admixfrog/read_emissions.pyx":12
  * from libc.stdio cimport printf
  * from scipy.optimize import minimize, minimize_scalar
  * from scipy.special import betaln             # <<<<<<<<<<<<<<
  * from scipy.stats import binom
- * 
+ * from .log import log_
  */
-  __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(__pyx_n_s_betaln);
   __Pyx_GIVEREF(__pyx_n_s_betaln);
   PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_betaln);
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_scipy_special, __pyx_t_2, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_scipy_special, __pyx_t_2, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_1, __pyx_n_s_betaln); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_1, __pyx_n_s_betaln); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_betaln, __pyx_t_2) < 0) __PYX_ERR(0, 13, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_betaln, __pyx_t_2) < 0) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":14
+  /* "admixfrog/read_emissions.pyx":13
  * from scipy.optimize import minimize, minimize_scalar
  * from scipy.special import betaln
  * from scipy.stats import binom             # <<<<<<<<<<<<<<
- * 
+ * from .log import log_
  * 
  */
-  __pyx_t_1 = PyList_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_INCREF(__pyx_n_s_binom);
   __Pyx_GIVEREF(__pyx_n_s_binom);
   PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_binom);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_scipy_stats, __pyx_t_1, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_scipy_stats, __pyx_t_1, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_binom); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_binom); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_binom, __pyx_t_1) < 0) __PYX_ERR(0, 14, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_binom, __pyx_t_1) < 0) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":48
+  /* "admixfrog/read_emissions.pyx":14
+ * from scipy.special import betaln
+ * from scipy.stats import binom
+ * from .log import log_             # <<<<<<<<<<<<<<
+ * 
+ * q=0
+ */
+  __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_INCREF(__pyx_n_s_log);
+  __Pyx_GIVEREF(__pyx_n_s_log);
+  PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_log);
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_log_2, __pyx_t_2, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_1, __pyx_n_s_log); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_log, __pyx_t_2) < 0) __PYX_ERR(0, 14, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "admixfrog/read_emissions.pyx":16
+ * from .log import log_
+ * 
+ * q=0             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_q, __pyx_int_0) < 0) __PYX_ERR(0, 16, __pyx_L1_error)
+
+  /* "admixfrog/read_emissions.pyx":50
  *     return ll
  * 
  * def update_contamination(cont, error, P, PG, IX, libs):             # <<<<<<<<<<<<<<
  *     """
  *     update emissions by maximizing contamination parameter
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_9admixfrog_16cyread_emissions_1update_contamination, NULL, __pyx_n_s_admixfrog_cyread_emissions); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 48, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_update_contamination, __pyx_t_2) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9admixfrog_14read_emissions_1update_contamination, NULL, __pyx_n_s_admixfrog_read_emissions); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 50, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_update_contamination, __pyx_t_1) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "admixfrog/cyread_emissions.pyx":1
+  /* "admixfrog/read_emissions.pyx":1
  * #!python             # <<<<<<<<<<<<<<
  * #cython: language_level=3
  * #cython: infer_types=True
  */
-  __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_2) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "View.MemoryView":209
  *         info.obj = self
@@ -17783,10 +17811,10 @@ if (!__Pyx_RefNanny) {
  * 
  *     def __dealloc__(array self):
  */
-  __pyx_t_2 = __pyx_capsule_create(((void *)(&__pyx_array_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 209, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_array_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_2) < 0) __PYX_ERR(1, 209, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_1 = __pyx_capsule_create(((void *)(&__pyx_array_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 209, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem((PyObject *)__pyx_array_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_1) < 0) __PYX_ERR(1, 209, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_array_type);
 
   /* "View.MemoryView":286
@@ -17796,12 +17824,12 @@ if (!__Pyx_RefNanny) {
  * cdef strided = Enum("<strided and direct>") # default
  * cdef indirect = Enum("<strided and indirect>")
  */
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__27, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 286, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__27, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 286, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(generic);
-  __Pyx_DECREF_SET(generic, __pyx_t_2);
-  __Pyx_GIVEREF(__pyx_t_2);
-  __pyx_t_2 = 0;
+  __Pyx_DECREF_SET(generic, __pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __pyx_t_1 = 0;
 
   /* "View.MemoryView":287
  * 
@@ -17810,12 +17838,12 @@ if (!__Pyx_RefNanny) {
  * cdef indirect = Enum("<strided and indirect>")
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__28, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 287, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__28, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 287, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(strided);
-  __Pyx_DECREF_SET(strided, __pyx_t_2);
-  __Pyx_GIVEREF(__pyx_t_2);
-  __pyx_t_2 = 0;
+  __Pyx_DECREF_SET(strided, __pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __pyx_t_1 = 0;
 
   /* "View.MemoryView":288
  * cdef generic = Enum("<strided and direct or indirect>")
@@ -17824,12 +17852,12 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__29, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 288, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__29, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 288, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(indirect);
-  __Pyx_DECREF_SET(indirect, __pyx_t_2);
-  __Pyx_GIVEREF(__pyx_t_2);
-  __pyx_t_2 = 0;
+  __Pyx_DECREF_SET(indirect, __pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __pyx_t_1 = 0;
 
   /* "View.MemoryView":291
  * 
@@ -17838,12 +17866,12 @@ if (!__Pyx_RefNanny) {
  * cdef indirect_contiguous = Enum("<contiguous and indirect>")
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__30, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 291, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__30, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 291, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(contiguous);
-  __Pyx_DECREF_SET(contiguous, __pyx_t_2);
-  __Pyx_GIVEREF(__pyx_t_2);
-  __pyx_t_2 = 0;
+  __Pyx_DECREF_SET(contiguous, __pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __pyx_t_1 = 0;
 
   /* "View.MemoryView":292
  * 
@@ -17852,12 +17880,12 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__31, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 292, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__31, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 292, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(indirect_contiguous);
-  __Pyx_DECREF_SET(indirect_contiguous, __pyx_t_2);
-  __Pyx_GIVEREF(__pyx_t_2);
-  __pyx_t_2 = 0;
+  __Pyx_DECREF_SET(indirect_contiguous, __pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __pyx_t_1 = 0;
 
   /* "View.MemoryView":316
  * 
@@ -17892,10 +17920,10 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_2 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 545, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_memoryview_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_2) < 0) __PYX_ERR(1, 545, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_1 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 545, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem((PyObject *)__pyx_memoryview_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_1) < 0) __PYX_ERR(1, 545, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_memoryview_type);
 
   /* "View.MemoryView":991
@@ -17905,10 +17933,10 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_2 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 991, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem((PyObject *)__pyx_memoryviewslice_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_2) < 0) __PYX_ERR(1, 991, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_1 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 991, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem((PyObject *)__pyx_memoryviewslice_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_1) < 0) __PYX_ERR(1, 991, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   PyType_Modified(__pyx_memoryviewslice_type);
 
   /* "(tree fragment)":1
@@ -17916,10 +17944,10 @@ if (!__Pyx_RefNanny) {
  *     cdef object __pyx_PickleError
  *     cdef object __pyx_result
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_15View_dot_MemoryView_1__pyx_unpickle_Enum, NULL, __pyx_n_s_View_MemoryView); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 1, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pyx_unpickle_Enum, __pyx_t_2) < 0) __PYX_ERR(1, 1, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_15View_dot_MemoryView_1__pyx_unpickle_Enum, NULL, __pyx_n_s_View_MemoryView); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 1, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pyx_unpickle_Enum, __pyx_t_1) < 0) __PYX_ERR(1, 1, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "(tree fragment)":11
  *         __pyx_unpickle_Enum__set_state(<Enum> __pyx_result, __pyx_state)
@@ -17937,11 +17965,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_2);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init admixfrog.cyread_emissions", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init admixfrog.read_emissions", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_CLEAR(__pyx_m);
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init admixfrog.cyread_emissions");
+    PyErr_SetString(PyExc_ImportError, "init admixfrog.read_emissions");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -22750,7 +22778,7 @@ no_fail:
 }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_long(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_char(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED) };
@@ -22761,7 +22789,7 @@ no_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
                                                  PyBUF_RECORDS_RO | writable_flag, 1,
-                                                 &__Pyx_TypeInfo_long, stack,
+                                                 &__Pyx_TypeInfo_char, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
@@ -22808,6 +22836,29 @@ __pyx_fail:
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
                                                  PyBUF_RECORDS_RO | writable_flag, 3,
                                                  &__Pyx_TypeInfo_double, stack,
+                                                 &result, obj);
+    if (unlikely(retcode == -1))
+        goto __pyx_fail;
+    return result;
+__pyx_fail:
+    result.memview = NULL;
+    result.data = NULL;
+    return result;
+}
+
+/* ObjectToMemviewSlice */
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_long(PyObject *obj, int writable_flag) {
+    __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
+    __Pyx_BufFmt_StackElem stack[1];
+    int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED) };
+    int retcode;
+    if (obj == Py_None) {
+        result.memview = (struct __pyx_memoryview_obj *) Py_None;
+        return result;
+    }
+    retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
+                                                 PyBUF_RECORDS_RO | writable_flag, 1,
+                                                 &__Pyx_TypeInfo_long, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;

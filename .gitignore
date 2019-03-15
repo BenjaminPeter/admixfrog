@@ -3,4 +3,6 @@
 *html
 *so
 build/
+admixfrog.egg-info/
+__pycache__/
 

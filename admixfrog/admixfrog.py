@@ -4,11 +4,12 @@ import pandas as pd
 from collections import Counter
 import pdb
 from .utils import bins_from_bed, data2probs, init_pars, Pars
-from .utils import posterior_table, load_data, load_ref
-from .read_emissions import update_contamination
+from .utils import posterior_table, load_read_data, load_gt_data, load_ref, guess_sex
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .genotype_emissions import update_emissions, update_Ftau, update_tau
+from .gtmode_emissions import update_geno_emissions_gt
+from .read_emissions import update_contamination
 from .rle import get_rle
 from .decode import pred_sims
 from .log import log_, setup_log
@@ -29,20 +30,25 @@ def baum_welch(
     freq_contamination=1,
     freq_F=1,
     est_inbreeding=False,
+    gt_mode=False
 ):
     alpha0, trans_mat, cont, error, F, tau, gamma_names, sex = pars
 
     libs = np.unique(P.lib)
+    gll_mode = not gt_mode
     ll = -np.inf
     n_states = len(alpha0)
-    n_gt = 3
+    n_gt = 1 if gt_mode else 3
 
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
     # P(O, G | Z), scaled such that max for each row is 1
+    #if gll_mode:
     SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
     PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
+    #else:
+    #    SNP = np.zeros((IX.n_snps, n_states))  # P(G | Z)
 
     gamma, emissions = [], []
     hap_gamma, hap_emissions = [], []
@@ -62,9 +68,15 @@ def baum_welch(
                 emissions.append(E[row0 : (row0 + r)])
             row0 += r
 
+    #if gll_mode:
     s_scaling = update_snp_prob(
-        SNP, P, IX, cont, error, F, tau, est_inbreeding
+        SNP, P, IX, cont, error, F, tau, est_inbreeding, gt_mode
     )  # P(O, G | Z)
+    #else:
+    #    s_scaling = update_geno_emissions_gt(
+    #        SNP, P, IX, F, tau, est_inbreeding
+    #    )  # P(O, G | Z)
+
     e_scaling = update_emissions(E, SNP, P, IX, est_inbreeding)  # P(O | Z)
     scaling = e_scaling + s_scaling
 
@@ -121,66 +133,76 @@ def baum_welch(
             log_.info("\t".join(gamma_names))
         log_.info("\t".join(["%.3f" % a for a in alpha0]))
 
-        # updating parameters
-        cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
-        cond_F = est_F and (it % freq_F == 0 or it < 3)
-        cond_tau = est_tau and (it % freq_F == 0 or it < 3)
-        cond_Ftau = cond_F and cond_tau
+        scaling, est_contamination, est_F, est_tau = update_emission_stuff(
+            it,
+            E, P, PG, SNP, Z, IX, libs,
+            cont, error, F, tau,
+            est_contamination, est_F, est_tau, est_inbreeding,
+            freq_contamination, freq_F,
+            gt_mode)
 
-        if cond_F or cond_cont or cond_tau:
-            update_post_geno(PG, SNP, Z, IX)
-        if cond_cont:
-            # need P(G, Z|O') =  P(Z | O') P(G | Z, O')
-            delta = update_contamination(cont, error, P, PG, IX, libs)
-            if delta < 1e-5:  # when we converged, do not update contamination
-                est_contamination, cond_cont = False, False
-                log_.info("stopping contamination updates")
-        if cond_Ftau:
-            delta = update_Ftau(F, tau, PG, P, IX)
-            if delta < 1e-5:  # when we converged, do not update F
-                est_F, est_tau = False, False
-                cond_Ftau, cond_F, cond_tau = False, False, False
-                log_.info("stopping Ftau updates")
-        elif cond_F:
-            # need P(G, Z | O') =  P(Z| O') P(G | Z, O')
-            delta = update_F(F, tau, PG, P, IX)
-            if delta < 1e-5:  # when we converged, do not update F
-                est_F, cond_F = False, False
-                log_.info("stopping F updates")
-        elif cond_tau:
-            delta = update_tau(F, tau, PG, P, IX)
-            if delta < 1e-5:  # when we converged, do not update F
-                est_tau, cond_tau = False, False
-                log_.info("stopping F updates")
-        if cond_F or cond_cont or cond_tau:
-            s_scaling = update_snp_prob(
-                SNP, P, IX, cont, error, F, tau, est_inbreeding=est_inbreeding
-            )  # P(O, G | Z)
-            e_scaling = update_emissions(
-                E, SNP, P, IX, est_inbreeding=est_inbreeding
-            )  # P(O | Z)
-            log_.info("e-scaling: %s", e_scaling)
-            log_.info("s-scaling: %s", s_scaling)
-            scaling = e_scaling + s_scaling
 
     pars = Pars(alpha0, trans_mat, dict(cont), error, F, tau, gamma_names, sex)
     return Z, PG, pars, ll, emissions, (alpha, beta, n)
 
-def guess_sex(data):
-    cov = data.groupby(data.chrom == "X").apply(
-        lambda df: np.sum(df.tref + df.talt)
-    )
-    cov = cov.astype(float)
-    cov[True] /= np.sum(ref.chrom == "X")
-    cov[False] /= np.sum(ref.chrom != "X")
+def update_emission_stuff(it, 
+                          E, P, PG, SNP, Z, IX, libs,
+                          cont, error, F, tau,
+                          est_contamination, est_F, est_tau,  est_inbreeding,
+                          freq_contamination, freq_F,
+                          gt_mode):
+    cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
+    cond_F = est_F and (it % freq_F == 0 or it < 3)
+    cond_tau = est_tau and (it % freq_F == 0 or it < 3)
+    cond_Ftau = cond_F and cond_tau
 
-    if cov[True] / cov[False] < 0.8:
-        sex = "m"
-        log_.info("guessing sex is male, %.4f/%.4f" % (cov[True], cov[False]))
-    else:
-        sex = "f"
-        log_.info("guessing sex is female, %.4f/%.4f" % (cov[True], cov[False]))
-    return sex
+    if (cond_F or cond_cont or cond_tau): # and gll_mode:
+        update_post_geno(PG, SNP, Z, IX)
+    #elif gt_mode:
+    #    PG = Z
+    if cond_cont and not gt_mode:
+        # need P(G, Z|O') =  P(Z | O') P(G | Z, O')
+        delta = update_contamination(cont, error, P, PG, IX, libs)
+        if delta < 1e-5:  # when we converged, do not update contamination
+            est_contamination, cond_cont = False, False
+            log_.info("stopping contamination updates")
+    if cond_Ftau:
+        delta = update_Ftau(F, tau, PG, P, IX)
+        if delta < 1e-5:  # when we converged, do not update F
+            est_F, est_tau = False, False
+            cond_Ftau, cond_F, cond_tau = False, False, False
+            log_.info("stopping Ftau updates")
+    elif cond_F:
+        # need P(G, Z | O') =  P(Z| O') P(G | Z, O')
+        delta = update_F(F, tau, PG, P, IX)
+        if delta < 1e-5:  # when we converged, do not update F
+            est_F, cond_F = False, False
+            log_.info("stopping F updates")
+    elif cond_tau:
+        delta = update_tau(F, tau, PG, P, IX)
+        if delta < 1e-5:  # when we converged, do not update F
+            est_tau, cond_tau = False, False
+            log_.info("stopping F updates")
+    if cond_F or cond_cont or cond_tau:
+        #    if gll_mode:
+        s_scaling = update_snp_prob(
+            SNP, P, IX, cont, error, F, tau, est_inbreeding=est_inbreeding,
+            gt_mode=gt_mode
+        )  # P(O, G | Z)
+        #    else:
+        #        s_scaling = update_geno_emissions_gt(
+        #            SNP, P, IX, F, tau, est_inbreeding
+    #        )  # P(O, G | Z)
+        e_scaling = update_emissions(
+            E, SNP, P, IX, est_inbreeding=est_inbreeding
+        )  # P(O | Z)
+        log_.info("e-scaling: %s", e_scaling)
+        log_.info("s-scaling: %s", s_scaling)
+        scaling = e_scaling + s_scaling
+
+    return scaling, est_contamination, est_tau, est_F
+
+
 
 def run_admixfrog(
     infile,
@@ -202,6 +224,7 @@ def run_admixfrog(
     run_penalty=0.9,
     n_post_replicates=100,
     est_inbreeding=False,
+    gt_mode=False,
     **kwargs
 ):
 
@@ -215,15 +238,16 @@ def run_admixfrog(
 
 
     #loading data and reference
-    data = load_data(infile, split_lib, downsample)
+    if gt_mode:   # gt mode does not do read emissions, assumes genotypes are known
+        data = load_read_data(infile)
+    else:
+        data = load_read_data(infile, split_lib, downsample)
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
     ref = ref.drop_duplicates(COORDS)
     if pos_mode:
         ref.map = ref.pos
 
     # sexing stuff
-    if "Y" in data.chrom.values:
-        sex = "m"
     if sex is None and "X" in data.chrom.values:
         sex = guess_sex(data)
 
@@ -264,7 +288,8 @@ def run_admixfrog(
     log_.info("done loading data")
 
     Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(
-        P, IX, pars, est_inbreeding=est_inbreeding, **kwargs
+        P, IX, pars, est_inbreeding=est_inbreeding, gt_mode=gt_mode,
+        **kwargs
     )
 
     pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
@@ -295,8 +320,11 @@ def run_admixfrog(
         .agg({"tref": sum, "talt": sum})
         .reset_index()
     )
-    T = posterior_table(G, Z, IX)
-    snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    if gt_mode:
+        snp_df = pd.concat((D, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    else:
+        T = posterior_table(G, Z, IX)
+        snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
 
     df_libs = pd.DataFrame(pars.cont.items(), columns=["lib", "cont"])
     rgs, deams, len_bins = [], [], []
