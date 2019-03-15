@@ -1,3 +1,4 @@
+from logging import Formatter
 import logging
 log_ = logging.getLogger(__name__)
 
@@ -8,7 +9,7 @@ def setup_log():
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter('[%(asctime)s]: %(message)s')
+    formatter = Formatter('[%(asctime)s]: %(message)s')
     ch.setFormatter(formatter)
 
     logger.addHandler(ch)

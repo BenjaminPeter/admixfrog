@@ -182,7 +182,6 @@ rule plot_hmm_panel_region:
     input:
         bins = _panel_bin,
         script_ = "scripts/plotting/hmm_region.R",
-        colors = "scripts/plotting/cols.rds"
     params:
         pmax = 0.7,
         pmin = 1e-4

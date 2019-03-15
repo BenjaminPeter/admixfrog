@@ -171,8 +171,8 @@ def guess_sex(data):
         lambda df: np.sum(df.tref + df.talt)
     )
     cov = cov.astype(float)
-    cov[True] /= np.sum(ref.chrom == "X")
-    cov[False] /= np.sum(ref.chrom != "X")
+    cov[True] /= np.sum(data.chrom == "X")
+    cov[False] /= np.sum(data.chrom != "X")
 
     if cov[True] / cov[False] < 0.8:
         sex = "m"
