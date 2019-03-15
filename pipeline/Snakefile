@@ -95,7 +95,7 @@ rule index_bam:
     shell: "samtools index {input}"
 
 """plotting"""
-rule plot_hmm_sample_overview:
+rule plot_sample_overview:
     input:
         bin = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
         #snp = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
@@ -110,7 +110,7 @@ rule plot_hmm_sample_overview:
     script:
         "scripts/plotting/hmm_overview.R"
 
-rule plot_hmm_sample_runs:
+rule plot_sample_runs:
     input:
         rle = "rle/{bin_size}/{states}/{sample}_{snpset}.rle{penalty}.xz",
         script_ = "scripts/plotting/hmm_runs.R"
@@ -125,7 +125,7 @@ rule plot_hmm_sample_runs:
     script:
         "scripts/plotting/hmm_runs.R"
 
-rule plot_hmm_sample_multitrack:
+rule plot_sample_multitrack:
     input:
         bin = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
         snp = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
@@ -137,7 +137,7 @@ rule plot_hmm_sample_multitrack:
     script:
         "scripts/plotting/hmm_overview.R"
 
-rule plot_hmm_sample_cont:
+rule plot_sample_cont:
     input:
         cont = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
         script_ = "scripts/plotting/hmm_cont.R"
@@ -168,7 +168,17 @@ def _panel_rle2(wc):
         snpset=["{snpset}"],
         sample=config['panels'][wc.panel])
     return l
-rule plot_hmm_panel_marginal:
+rule plot_rle2:
+    input:
+        rle=_panel_rle2,
+    params:
+        n_reps=200,
+    output:
+        rle="figures/{states}/{panel}_rle2_{bin_size, \d+}_{snpset}.png",
+        logrle="figures/{states}/{panel}_rle3_{bin_size, \d+}_{snpset}.png",
+    script: "scripts/plotting/rle2.R"
+
+rule plot_panel_marginal:
     input:
         bins = _panel_bin,
         script_ = "scripts/plotting/hmm_panel_marginal.R"
@@ -178,7 +188,7 @@ rule plot_hmm_panel_marginal:
     script:
         "scripts/plotting/hmm_panel_marginal.R"
 
-rule plot_hmm_panel_region:
+rule plot_panel_region:
     input:
         bins = _panel_bin,
         script_ = "scripts/plotting/hmm_region.R",
@@ -191,7 +201,7 @@ rule plot_hmm_panel_region:
     script:
         "scripts/plotting/hmm_region.R"
 
-rule plot_hmm_panel_pw:
+rule plot_panel_pw:
     input:
         rle = _panel_rle,
         bins = _panel_bin,
@@ -209,7 +219,7 @@ rule plot_hmm_panel_pw:
 
 """not done"""
 
-rule plot_hmm_panel_rle2:
+rule plot_panel_rle2:
     input:
         rle = _panel_rle2,
         ages = 'config/ages.yaml',
@@ -225,7 +235,7 @@ rule plot_hmm_panel_rle2:
         fit="tables/{states}/{target}__{trunc}/{panel}_rle_{bin_size,\d+}_{snpset}.csv.gz",
     script:
         "scripts/plotting/hmm_rlepred.R"
-rule plot_hmm_panel_rle:
+rule plot_panel_rle:
     input:
         rle = _panel_rle,
         ages = 'config/ages.yaml',
@@ -264,7 +274,7 @@ def _panel_all_by_obs(wc):
         penalty=[0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5],
         sample = config['panels'][wc.panel])
     return s1 + s2 + s3
-rule plot_hmm_panel_all: 
+rule plot_panel_all: 
     input: 
         marg = "figures/{states}/{panel}_marginal_{bin_size,\d+}_{snpset}.png",
         bysample = _panel_all_by_obs,
@@ -275,7 +285,7 @@ def _panel_all_track(wc):
     s3= expand("figures/{{states}}/{sample}_mt__{{TRACK}}__{{bin_size,\d+}}_{{snpset}}.png",
         sample = config['panels'][wc.panel])
     return s3
-rule plot_hmm_panel_track:
+rule plot_panel_track:
     input:
         x = _panel_all_track,
         rleplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
