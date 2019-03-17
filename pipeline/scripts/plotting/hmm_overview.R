@@ -19,9 +19,11 @@ d2 = bin_to_long(data) %>% filter( variable %in% TRACK)  %>%
     filter(value > 1e-3)
 
 
-P1 = bin_colplot_pos(d2) + facet_chrom()
+P1 = bin_colplot_pos(d2) + 
+        facet_wrap(~chrom, ncol=1, strip.position="left")
 
 ggsave(snakemake@output$posplot, P1, width=20, height=11)
-P2 = bin_colplot_map(d2) + facet_chrom()
+P2 = bin_colplot_map(d2) + 
+        facet_wrap(~chrom, ncol=1, strip.position="left")
 ggsave(snakemake@output$mapplot, P2, width=20, height=11)
 
