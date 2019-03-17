@@ -136,7 +136,7 @@ def baum_welch(
         scaling, est_contamination, est_F, est_tau = update_emission_stuff(
             it,
             E, P, PG, SNP, Z, IX, libs,
-            cont, error, F, tau,
+            cont, error, F, tau, scaling,
             est_contamination, est_F, est_tau, est_inbreeding,
             freq_contamination, freq_F,
             gt_mode)
@@ -147,7 +147,7 @@ def baum_welch(
 
 def update_emission_stuff(it, 
                           E, P, PG, SNP, Z, IX, libs,
-                          cont, error, F, tau,
+                          cont, error, F, tau, scaling,
                           est_contamination, est_F, est_tau,  est_inbreeding,
                           freq_contamination, freq_F,
                           gt_mode):
@@ -201,7 +201,6 @@ def update_emission_stuff(it,
         scaling = e_scaling + s_scaling
 
     return scaling, est_contamination, est_tau, est_F
-
 
 
 def run_admixfrog(
