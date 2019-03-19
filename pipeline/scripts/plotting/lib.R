@@ -1,6 +1,6 @@
 suppressPackageStartupMessages({
 library(tidyverse)
-library(VGAM)
+source("scripts/plotting/fit.R")
 source("scripts/plotting/meancol.R")
 })
 get_track <- function(bin_data, TRACK, p_min, p_max){
@@ -145,112 +145,16 @@ rle_plot_map <- function(data, minlen=0.1, maxlen=1){
 }
 
 
-fit_lomax=function(l, trunc=0.01){
-    try({
-    o = tlomax_opt2(l[l>trunc], trunc)
-    res = optim(c(4, 4), o, method="L-BFGS-B", lower=c(1e-5, 1))
-    pars = res$par
-    return(data.frame(scale=pars[1], shape=pars[2], ll_lomax=res$value))
-    })
-    return(data.frame(scale=NA, shape=NA, ll_lomax=NA))
-}
-
-fit_exp=function(l, trunc=4){
-    try({
-    o = texp_opt(l, trunc)
-    res = optim(c(-1), o, method="L-BFGS-B")
-    par =exp(res$par)
-    return(data.frame(rate=par, ll_exp = res$value))
-    })
-    return(data.frame(rate=NA, ll_exp=NA))
-}
-#' lomax copy stufff 
-dtlomax <- function(x, scale, shape, trunc, log=T){
-    if(log){
-        k <- VGAM::dlomax(x, scale=scale, shape=shape, log=T) - 
-        VGAM::plomax(trunc, scale=scale, shape=shape, lower=F, log=T)
-        k[x<trunc] <- -Inf
-        return(k)
-    } else {
-        print("lomax normal")
-        k <- VGAM::dlomax(x, scale=scale, shape=shape, log=F) / 
-        VGAM::plomax(trunc, scale=scale, shape=shape, lower=F, log=F)
-        k[x<trunc] <- NA#0
-        return(k)
-    }
-}
-
-texp_opt <- function(x, trunc=3){
-    f <- function(par){
-        -sum(dtexp(x, exp(par[1]), trunc=trunc))
-    }
-    return(f)
-}
-dtexp <- function(x, rate=1, trunc=0, log=T){
-    x = x[x>=trunc]
-    if(log){
-	dexp(x, rate, log=T) - pexp(trunc, rate, lower=F, log=T)
-    } else {
-	dexp(x, rate, log=F) / pexp(trunc, rate, lower=F, log=F)
-    }
-}
-tlomax_opt2 <- function(x, trunc=0){
-    f <- function(par){
-        x = x[x>=trunc]
-        a=-sum(dtlomax(x, scale=par[1], shape=par[2], trunc=trunc))
-	return(a)
-    }
-}
-
-rle_fit_pars <- function(data, trunc=0.05){
-    df <- data %>% group_by(sample) 
-
-    x1 = df %>% do( p2=fit_exp(.$map_len, trunc=trunc)) %>% 
-	    unnest(p2) %>%
-	    mutate(emean=rate)
-    x2 = df %>% do( p2=fit_lomax(.$map_len, trunc=trunc)) %>% 
-	    unnest(p2) %>%
-	    mutate(lmean=(shape-1)/scale)
-
-    return(inner_join(x1, x2) %>% mutate(delta_ll = ll_lomax - ll_exp))
-}
-
-rle_fit_plot <- function(data, R, trunc=0.049, xmax=6){
-    data2 = data %>% filter(map_len > trunc)
-    P = data2 %>%
-        ggplot(aes(x=map_len, group=sample)) +
-        geom_point(aes(y=1-..y..), stat='ecdf', pad=F) +
-        scale_y_log10(expand=expand_scale(0,0), name='Quantile') +
-        scale_x_continuous(expand=expand_scale(0,0), name = "Length (cM)") +
-        coord_cartesian(xlim=c(trunc, xmax), ylim=c(1e-5, 1)) +
-        facet_wrap(~sample, scale='free') 
-
-    s = seq(trunc, max(data$map_len), .01)
-    lpred = R %>% rowwise %>% 
-        do(l = data.frame(lengths=s, 
-			  lomax=plomax(s, shape=.$shape, scale=.$scale, lower=F)/
-                  plomax(trunc, shape=.$shape, scale=.$scale, lower=F)))
-    epred = R %>% rowwise %>% 
-        do(e = data.frame(lengths=s, 
-			  exp=exp(-(s - trunc) * .$rate)))
-
-    pred = inner_join(unnest(bind_cols(R, lpred)), unnest(bind_cols(R, epred))) %>%
-        select(lengths, sample, lomax, exp) %>%
-        gather(k, v, lomax, exp)
-
-     
-    P + geom_step(data=pred, mapping=aes(color=k, x=lengths, y=v, group=k))
-}
 plot_m_gamma <- function(R, generation_time){
     SCALING = generation_time * 100 #* 2
-    tmax = pmin(150000 / SCALING, max(R$semean, R$slmean, na.rm=T))
+    tmax = pmin(100000 / SCALING, max(R$semean, R$slmean, na.rm=T))
     t <- seq(0, tmax, 0.01)
     n_samples = length(unique(R$sample))
 
 
     gpred = R %>% 
         rowwise %>% 
-        do(l = data.frame(time=t+.$sage, 
+        do(l = data.frame(time=t+.$scaled_age, 
 			  mig=dgamma(t, shape=.$shape, scale=1/.$scale))) %>%
         bind_cols(R) %>% 
         filter(!is.na(lmean + emean), slmean < tmax * 1.1) %>%
