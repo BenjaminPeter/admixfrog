@@ -1,6 +1,5 @@
 source("scripts/plotting/lib.R")
 
-save.image("rdebug")
 
 bin_size = as.integer(snakemake@wildcards$bin_size)
 infile = snakemake@input$bin

@@ -1,4 +1,5 @@
 source("scripts/plotting/meancol.R")
+source("scripts/plotting/lib.R")
 library(tidyverse)
 #files = list.files("admixfrog/2000/AFR_VIN_DEN/", "archaicadmixture.res.xz", full=T)
 files = snakemake@input$rle
@@ -26,7 +27,19 @@ P = b %>%
     col_scale()
 
 ggsave(snakemake@output$rle, P, width=20, height=11)
+
 P2 = P + scale_y_log10()
-
-
 ggsave(snakemake@output$logrle, P2, width=20, height=11)
+
+P = P+
+    facet_wrap(~sample, scale="free_y", ncol=1, strip='left') + 
+    coord_cartesian(xlim=c(0,4)) + 
+    ylim(0, 5 / bin_size) + 
+    col_scale() +
+    theme_gray(7) + 
+    THEME + 
+    scale_y_log10() +
+    theme(legend.position = "none")
+
+
+ggsave(snakemake@output$rle3, P, width=2, height=8)

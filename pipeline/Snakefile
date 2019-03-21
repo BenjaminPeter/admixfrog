@@ -75,6 +75,48 @@ rule run_admixfrog:
         s += " --female"
         shell(s)
 
+rule run_admixfrog_ds:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.4,
+        max_iter = 250,
+        n_post_rep = 200,
+    version: ".3"
+    output:
+        res_bin = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.pars.xz",
+        res_rle = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        s += " --ancestral {params.ancestral} "
+        s += " --downsample {wildcards.ds} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --female"
+        shell(s)
+
+
 rule call_runs:
     input:
         rle = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
@@ -176,7 +218,27 @@ rule plot_rle2:
     output:
         rle="figures/{states}/{panel}_rle2_{bin_size, \d+}_{snpset}.png",
         logrle="figures/{states}/{panel}_rle3_{bin_size, \d+}_{snpset}.png",
+        rle3="figures/{states}/{panel}_rle4_{bin_size, \d+}_{snpset}.png",
     script: "scripts/plotting/rle2.R"
+
+def _panel_rle2(wc):
+    l = expand("admixfrog/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        bin_size=["{bin_size}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel])
+    return l
+rule plot_rle2_fit:
+    input:
+        rle=_panel_rle2,
+        fit=expand("tables/{{states}}/{target}__{{trunc}}/{{panel}}_rle_{{bin_size}}_{{snpset}}.csv.gz",
+            target=["VIN", "DEN"])
+    params:
+        n_reps=200,
+    output:
+        rle="figures/{states}/{panel}_rle2fit{trunc}_{bin_size, \d+}_{snpset}.png",
+        logrle="figures/{states}/{panel}_rle3fit{trunc}_{bin_size, \d+}_{snpset}.png",
+    script: "scripts/plotting/rle2fit.R"
 
 rule plot_panel_marginal:
     input:
@@ -185,6 +247,7 @@ rule plot_panel_marginal:
     output:
         plot="figures/{states}/{panel}_marginal_{bin_size,\d+}_{snpset}.png",
         plot2="figures/{states}/{panel}_marginal2_{bin_size,\d+}_{snpset}.png",
+        plot3="figures/{states}/{panel}_marginal3_{bin_size,\d+}_{snpset}.png",
     script:
         "scripts/plotting/hmm_panel_marginal.R"
 
@@ -207,7 +270,7 @@ rule plot_panel_pw:
         bins = _panel_bin,
         script_ = "scripts/plotting/hmm_panel_pw.R"
     params:
-        lengths= [0, .33, .66, 1, 1.33, 1.66] # in cM
+        lengths= [1, 0, .33, .66, 1.33, 1.66] # in cM
     output:
         pwplot="figures/{states}/{type}_{target}_{penalty}/{panel}_pwcor_{bin_size,\d+}_{snpset}.png",
         pwplot2="figures/{states}/{type}_{target}_{penalty}/{panel}_pwamount_{bin_size,\d+}_{snpset}.png",
@@ -217,7 +280,7 @@ rule plot_panel_pw:
     script:
         "scripts/plotting/hmm_panel_pw.R"
 
-"""not done"""
+
 
 rule plot_panel_rle2:
     input:
@@ -256,11 +319,6 @@ rule plot_panel_rle:
         fit="tables/{states}/{target}_{penalty}_{trunc}/{panel}_rle_{bin_size,\d+}_{snpset}.csv.gz",
     script:
         "scripts/plotting/hmm_rle.R"
-rule all_rle_panels:
-    input: 
-        expand("figures/AFR_VIN_DEN/VIN_{penalty}_{trunc}/mhsmall_rle_10000_archaicadmixture.png",
-                penalty = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5],
-                trunc = [0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.2])
 
 """CONTROLLERS"""
 def _panel_all_by_obs(wc):
@@ -292,3 +350,12 @@ rule plot_panel_track:
         trackplot="figures/hmm/{states}/{TRACK}/{cutoff}/{panel}_trackall_{bin_size,\d+}_{snpset}.png",
     output:
         touch("controller/track/{states}/{TRACK}/{cutoff}/{panel}_{bin_size,\d+}_{snpset}.figs")
+
+rule ust_ishim_test:
+    input:
+        expand("figures/AFR_VIN_DEN/UstIshim_overview_map_{bs}_thirdallele.png", 
+            bs=[1000, 2000,5000,10000,20000]),
+        expand("figures/AFR_VIN_DEN/UstIshim_overview_map_5000_{set}.png", 
+            set=["thirdallele", "twomillion", "A1240k", "archaicadmixture"]),
+        expand("admixfrog_ds{ds}/5000/AFR_VIN_DEN/UstIshim_archaicadmixture.res.xz", 
+            ds=[0.01, 0.05, 0.1, 0.2, 0.5, 1])
