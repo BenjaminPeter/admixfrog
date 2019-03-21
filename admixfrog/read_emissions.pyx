@@ -13,8 +13,6 @@ from scipy.special import betaln
 from scipy.stats import binom
 from .log import log_
 
-q=0
-
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
