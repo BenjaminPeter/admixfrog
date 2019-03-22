@@ -338,9 +338,13 @@ def run_admixfrog(
     df_libs["rg"] = rgs
     df_libs["len_bin"] = len_bins
     df_libs["deam"] = deams
-    CC = Counter(data.lib)
-    snp = pd.DataFrame([CC[l] for l in df_libs.lib], columns=["n_snps"])
-    df_libs = pd.concat((df_libs, snp), axis=1)
+
+    CC = data.groupby(['lib']).agg(({"tref": sum, "talt": sum})).reset_index()
+    CC['n_snps'] = CC.tref + CC.talt
+    del CC.tref
+    del CC.talt
+
+    df_libs = pd.concat((df_libs, CC), axis=1)
     df_libs.sort_values("n_snps", ascending=False)
 
     df_pars = pd.DataFrame(pars.trans_mat, columns=pars.gamma_names)

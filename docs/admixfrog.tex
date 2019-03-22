@@ -317,4 +317,28 @@ C(s) &= E[\exp(si [(1-m)L + (1-m)m (L+L')+ \dots  ] )]\nonumber\\
 \end{align}
 which is the characteristic function of an exponential distribution with parameter $rt(1-m)$.
 
+\subsection{SMC'}
+Under the SMC'-model, the rate is 
+\begin{align}
+r &= 2 N (1-m) \left(1 - exp\left({-\frac{t}{2N}}\right)\right).\\
+& \approx t (1-m) \left( 1- \frac{\tau}{2}\right) + O\left(N^{-3}\right)
+\end{align}
+where $\tau = t/2N$ is the admixture time in coalescence units. This follows from Liang \& Nielsen and a Taylor expansion in $N$.
+
+
+\subsection{Ralph coop theory}
+Let $N(x)$ denote the number of IBD blocks of genetic length at least $x$ shared by two individual chromosomes, and $N_n(x)$ the number of blocks inherited through a path of $n$ meioses. $N(x) = \sum_n N_n(x)$ and
+$$\BE{N(x)} = \sum_n \BE{N_n(x)}$$. $K_n(x)$ denotes the number of pieces of length at least $x$ after $n$ meioses. $\mu(n)$ denotes the probability that the tract introgressed $n$ meioses ago. 
+
+$$\BE{N(x)} = \sum_n \BE{\mu(n) K_n (x)}$$.
+
+Wen we consider introgression from a Neandertal, the same logic applies, except we stop when we enter a Neandertal population. I.e. $n$ measures the number of meioses after the introgression event.
+
+$$K_t(x) = (t(G - x) +22) exp(-x t)$$
+
+
+
+
+
+
 \end{document}

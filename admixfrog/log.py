@@ -14,3 +14,5 @@ def setup_log():
 
     log_.addHandler(ch)
     return log_
+
+#setup_log()

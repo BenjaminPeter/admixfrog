@@ -80,7 +80,7 @@ def data2probs(
 
         P = Probs(
             O=np.array(data.talt, np.int8),
-            N=np.array(data.tref + data.talt, np.int8),
+            N=np.array(data.tref + data.talt, np.int9),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),
@@ -339,11 +339,13 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     # H = ref * alt / n / n
     H = f * (1.0 - f)  # alt formulation
     if H == 0.0:
-        return 1e-10, 1e-10
+        return 1e-6, 1e-6
 
     V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der / n, anc / n)))
     ab = (H - V) / (V - H / np.nanmean(n))
-    return f * ab, (1 - f) * ab
+    pa = max((f * ab, 1e-5))
+    pb = max(((1-f) * ab, 1e-5))
+    return pa, pb
 
 
 def guess_sex(data):

@@ -104,7 +104,6 @@ def do_rle():
 def run():
     logger = setup_log()
 
-
     parser = argparse.ArgumentParser(
         description="Infer admixture frogments from low-coverage and contaminated genomes"
         #        formatter_class=argparse.RawTextHelpFormatter
@@ -334,10 +333,10 @@ def run():
     add_rle_parse_group(parser)
 
     from . import __version__
-    logger.info("running admixfrog version %s", __version__)
+    log_.info("running admixfrog version %s", __version__)
     args = parser.parse_args()
     V = vars(args)
-    logger.info(pformat(V))
+    log_.info(pformat(V))
     force_bam = V.pop("force_bam")
 
     if V["infile"] is not None and V["bamfile"] is not None:
@@ -370,7 +369,7 @@ def run():
 
     from . import __version__
 
-    logger.info("admixfrog %s", __version__)
+    log_.info("admixfrog %s", __version__)
     bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")

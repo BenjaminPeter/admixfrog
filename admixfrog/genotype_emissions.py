@@ -10,7 +10,7 @@ from .gtmode_emissions import update_Ftau_gtmode
 from .gllmode_emissions import update_Ftau_gllmode, _p_gt_homo, update_geno_emissions
 
 
-@njit(fastmath=True)
+@njit
 def snp2bin(e_out, e_in, ix):
     for i, row in enumerate(ix):
         e_out[row] *= e_in[i]
