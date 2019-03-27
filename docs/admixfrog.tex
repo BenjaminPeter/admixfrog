@@ -72,12 +72,13 @@ yields the complete data likelihood
 + \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T) \label{eq:ll:simple}
 \end{equation}
 
-The model is further improved by taking into account the each bin has $S_L$ snps, and we have $R$ distinct read groups.
+The model is further improved by taking into account the each bin has $S_L$ snps, and we have $R$ distinct read groups. To take LD into account, we use the geometric mean, i.e.
+$$\log P(G_{s_1}, \dots G_{l_{S_l}}| Z_l) = \frac{1}{S_l}\sum_s^{S_l}\log P(G_{s} | Z_l)$$
 \begin{align}
 \mathcal{L}  &= P(O, Z, G | \theta)  \nonumber\\
 &=\log P(Z_0) \nonumber\\
-&+ \sum_{r=1}^R\sum_{s=1}^{S_L}\sum_{l=1}^L \log P(O_r | G_s, c)\nonumber\\
-&+ \sum_{s=1}^{S_L}\sum_{l=1}^L \log P(G_s | Z_l = k, F)\nonumber\\
+&+ \sum_{r=1}^R\sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rs} | G_{sl}, c)\nonumber\\
+&+ \sum_{l=1}^L \sum_{s=1}^{S_l} \frac{1}{S_l}\log P(G_s | Z_l = k, F)\nonumber\\
 &+ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T) \label{eq:ll:correct}
 \end{align}
 
@@ -124,7 +125,7 @@ Conceptually, genetic drift will increase the chance that the two alleles in the
 \begin{align}
 P(G=2 | a,d, F) &= \int P(G|p) P(p | a, d) dp \nonumber\\
 &= \int \left[ F p + (1-F) p^2\right] P(p | a, d) df\nonumber\\
-&= F \BE{p|a, d} + (1-F)  \BE{p^2|a, d}\nonumber\\
+&= F \BE{p|a, d} + (1-F)  \BE{p^2|a, d}\\
 &= F \frac{d}{a+d} + (1-F)  \frac{d (d+1)}{(a+d)(a+d+1)}\nonumber\\
 &= \frac{d^2 + d + adF}{(a+d)(a+d+1)}
 \end{align}
@@ -199,29 +200,29 @@ P(G=1) &= \frac{d}{a+d}\label{eq:ll:hap}
 
 \subsection{Estimating F and $\tau$}
 \begin{align}
-Q(F, \tau|F', \tau' )&= E[\log P(O, Z, G )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
-&=\sum_{Z \in \mathcal{Z}, G \in \mathcal{G}} \log P(G  | Z, A, B, \tau) P(G|Z, \theta') P(Z | O, \theta')\nonumber\\
-&=\sum_k\sum_{g=0}^2\sum_{l=1}^L \log P(G_t | Z_l=k, A_{lk}, B_{lk}, F)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta')
+Q(F, \tau|F', \tau' )&= E[\log P(O, Z, G | F, \tau)  P(G, Z | \tau', F', O) ]\nonumber\\
+&=\sum_{Z \in \mathcal{Z}, G \in \mathcal{G}} \log P(G  | Z, F, \tau) P(G|Z, O, F', \theta') P(Z | O, F', \tau')\nonumber\\
+&=\sum_k\sum_{g=0}^2\sum_{l=1}^L\frac{1}{S_l}\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau')
 \end{align}
 Since the $F_k$-parameters are independent for each homozygous state, these likelihoods are optimized numerically and independently.
 
 \begin{equation}
-\hat{F}_k =\operatorname*{argmax}_F \left[ \sum_{g=0}^2\sum_{l=1}^L \log P(G_t | Z_l=k, A_{lk}, B_{lk}, F)  P(G_l|Z_l, F', O) P(Z_l=k | O, \theta') 
+(\hat{F}_k \hat{\tau}_k) =\operatorname*{argmax}_{F, \tau} \left[ \sum_{g=0}^2\sum_{l=1}^L\frac{1}{S_l}\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau') 
 \right]\label{eq:opt:F}
 \end{equation}
 
 where $P(Z_l = k |O, \theta')$ is the output of the forward-backward algorithm, $P(G_s | Z_l=k, A_{sk}, B_{sk}, F_k)$ is given by (\ref{eq:ll:homo}).   and
 \begin{equation}
-P(G_i | Z_i=k, O) = \frac{P(O_i | G_i, c') P(G_i | Z_i=k, F')}{ \sum_{g=0}^2 P(O_i | G_i=g, c') P(G_i=g | Z=k, F_k') }
+P(G_s | Z_l=k, O) = \frac{P(O_s | G_s, c') P(G_s | Z_l=k, F')}{ \sum_{g=0}^2 P(O_s | G_s=g, c') P(G_s=g | Z_l=k, F_k') }
 \label{eq:em:G}
 \end{equation}
-This equation follows from 
+This equation follows by applying Bayes theorem: 
 \begin{align}
 P(G,Z| O) &= P(G|Z, O)P(Z|O)\nonumber\\
 &=P(G | Z, O_i) P(Z | O)\nonumber\\
 &= \frac{P(O_i | G) P(G|Z)}{P(O_i | Z)} P(Z|O)
 \end{align}
-as $G_i | Z_i$ is independent of all observations except $O_i$ and Bayes theorem.
+as $G_i | Z_i$ is independent of all observations except $O_i$.
 
 
 

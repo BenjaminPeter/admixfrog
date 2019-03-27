@@ -1,4 +1,5 @@
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, Counter
+import pdb
 import numpy as np
 import pandas as pd
 try:
@@ -80,7 +81,7 @@ def data2probs(
 
         P = Probs(
             O=np.array(data.talt, np.int8),
-            N=np.array(data.tref + data.talt, np.int9),
+            N=np.array(data.tref + data.talt, np.int8),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),
@@ -116,7 +117,8 @@ def data2probs(
         return P
 
 
-def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
+def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
+                  ld_weighting=False):
     """create a bunch of auxillary data frames for binning
 
     - bins: columns are chrom_id, chrom, bin_pos, bin_id, map
@@ -202,6 +204,20 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
     IX.n_snps = len(IX.SNP2BIN)
     IX.n_obs = len(IX.OBS2SNP)
     IX.n_reads = np.sum(data.tref + data.talt)
+
+    # ld weighting:
+    # IX.snp_weight give for each SNP how it is supposed to be downweighted
+    if ld_weighting:
+        ctr = Counter(IX.SNP2BIN)  # counter[bin] : n_snp
+        IX.snp_weight = np.ones(IX.n_snps)
+        c = 0
+        for i in range(IX.n_bins):
+            for j in range(ctr[i]):
+                IX.snp_weight[c] = 1. / ctr[i]
+                c += 1
+        pdb.set_trace()
+    else:
+        IX.snp_weight = 1
 
     log_.debug("done creating bins")
     return bins, IX  # , data_bin
@@ -353,8 +369,8 @@ def guess_sex(data):
         lambda df: np.sum(df.tref + df.talt)
     )
     cov = cov.astype(float)
-    cov[True] /= np.sum(ref.chrom == "X")
-    cov[False] /= np.sum(ref.chrom != "X")
+    cov[True] /= np.sum(data.chrom == "X")
+    cov[False] /= np.sum(data.chrom != "X")
 
     if cov[True] / cov[False] < 0.8:
         sex = "m"

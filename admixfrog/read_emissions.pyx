@@ -68,7 +68,7 @@ def update_contamination(cont, error, P, PG, IX, libs):
                                  O=P.O,
                                  N=P.N,
                                  P_cont=P.P_cont,
-                                 PG=PG,
+                                 PG=PG * IX.snp_weight,
                                  rg2obs = IX.RG2OBS[lib],
                                  obs2snp = IX.OBS2SNP)
             return -prob

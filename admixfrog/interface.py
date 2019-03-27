@@ -93,7 +93,9 @@ def do_rle():
     logger.info(pformat(args))
     import pandas as pd
 
-    data = pd.read_csv(args.infile)
+    dtype_ = dict(chrom="category")
+    data = pd.read_csv(args.infile, dtype=dtype_)
+    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
     states = list(data.columns)[6:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
 
@@ -297,6 +299,12 @@ def run():
         default=0,
         #help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
         help="initial log-tau (default 0), at most 1 per source",
+    )
+    parser.add_argument(
+        "--ld-weighting", "--ld", 
+        default=False,
+        action="store_true",
+        help="""downweight SNP in the same bins to counter ancient LD"""
     )
     parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"

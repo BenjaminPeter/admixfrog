@@ -29,6 +29,7 @@ def baum_welch(
     est_tau=True,
     freq_contamination=1,
     freq_F=1,
+    ld_weighting=False,
     est_inbreeding=False,
     gt_mode=False
 ):
@@ -45,8 +46,8 @@ def baum_welch(
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
     # P(O, G | Z), scaled such that max for each row is 1
     #if gll_mode:
-    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
-    PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
+    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z) ** w
+    PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O) ** w
     #else:
     #    SNP = np.zeros((IX.n_snps, n_states))  # P(G | Z)
 
@@ -70,7 +71,8 @@ def baum_welch(
 
     #if gll_mode:
     s_scaling = update_snp_prob(
-        SNP, P, IX, cont, error, F, tau, est_inbreeding, gt_mode
+        SNP, P, IX, cont, error, F, tau, est_inbreeding, gt_mode,
+        ld_weighting=ld_weighting
     )  # P(O, G | Z)
     #else:
     #    s_scaling = update_geno_emissions_gt(
@@ -81,7 +83,6 @@ def baum_welch(
     scaling = e_scaling + s_scaling
 
     for it in range(max_iter):
-
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
         if sex == "m":
             # print("male ll doens't take x into account", end="\t")
@@ -222,6 +223,7 @@ def run_admixfrog(
     tau0=1,
     run_penalty=0.9,
     n_post_replicates=100,
+    ld_weighting=False,
     est_inbreeding=False,
     gt_mode=False,
     **kwargs
@@ -265,7 +267,8 @@ def run_admixfrog(
     data = data.merge(snp)
 
     bins, IX = bins_from_bed(
-        bed=ref.iloc[:, :5], snp=snp, data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
+        bed=ref.iloc[:, :5], snp=snp, data=data, bin_size=bin_size, 
+        pos_mode=pos_mode, sex=sex, ld_weighting=ld_weighting
     )
 
     ref = ref.merge(snp[COORDS], 'right')
@@ -287,7 +290,11 @@ def run_admixfrog(
     log_.info("done loading data")
 
     Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(
-        P, IX, pars, est_inbreeding=est_inbreeding, gt_mode=gt_mode,
+        P, IX,
+        pars,
+        est_inbreeding=est_inbreeding,
+        gt_mode=gt_mode,
+        ld_weighting=ld_weighting,
         **kwargs
     )
 
@@ -341,10 +348,11 @@ def run_admixfrog(
 
     CC = data.groupby(['lib']).agg(({"tref": sum, "talt": sum})).reset_index()
     CC['n_snps'] = CC.tref + CC.talt
-    del CC.tref
-    del CC.talt
+    #pdb.set_trace()
+    del CC['tref']
+    del CC['talt']
 
-    df_libs = pd.concat((df_libs, CC), axis=1)
+    df_libs = df_libs.merge(CC)
     df_libs.sort_values("n_snps", ascending=False)
 
     df_pars = pd.DataFrame(pars.trans_mat, columns=pars.gamma_names)

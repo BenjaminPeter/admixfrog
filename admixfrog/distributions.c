@@ -6,7 +6,7 @@
         "depends": [],
         "name": "admixfrog.distributions",
         "sources": [
-            "/home/benjamin_peter/exe/introgression/admixfrog/distributions.pyx"
+            "/r1/people/benjamin_peter/programs/admixfrog/admixfrog/distributions.pyx"
         ]
     },
     "module_name": "admixfrog.distributions"
