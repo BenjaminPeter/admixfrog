@@ -57,6 +57,7 @@ def update_contamination(cont, error, P, PG, IX, libs):
     """
     n_libs = len(libs)
     delta = 0.
+
     for i in range(n_libs):
         lib = libs[i]
         f_ = IX.RG2OBS[lib]
@@ -68,7 +69,7 @@ def update_contamination(cont, error, P, PG, IX, libs):
                                  O=P.O,
                                  N=P.N,
                                  P_cont=P.P_cont,
-                                 PG=PG * IX.snp_weight,
+                                 PG=PG,
                                  rg2obs = IX.RG2OBS[lib],
                                  obs2snp = IX.OBS2SNP)
             return -prob

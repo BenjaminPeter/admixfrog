@@ -16,24 +16,35 @@ def snp2bin(e_out, e_in, ix):
         e_out[row] *= e_in[i]
 
 
+@njit
+def snp2bin2(e_out, e_in, ix, weight):
+    """version with ld weight"""
+    if np.all(weight==1.):
+        for i, row in enumerate(ix):
+            e_out[row] *= e_in[i]
+    else:
+        for i, row in enumerate(ix):
+            e_out[row] += e_in[i] * weight[i] - weight[i]
+
+
 
 def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-250):
-    """main function to calculate emission probabilities
-    P(O | Z) = (\prod_G P(P(O, G | Z) ** w) 
+    """main function to calculate emission probabilities for each bin
+    P(O | Z) = 1/S  \sum_G P(O, G | Z)  
 
     """
     n_homo_states = P.alpha.shape[1]
 
     if len(SNP.shape) == 3:
-        # P(O|Z) = sum_G P(O, G | Z)
+        # P(O|Z) = 1/n sum_G P(O, G | Z)
         snp_emissions = np.sum(SNP, 2)
     else:
-        # if we get genotyp emissions directly, nothing to be done here
-        snp_emissions = SNP
-    log_scaling = scale_mat(snp_emissions)
+        # if we get genotyp emissions directly
+        snp_emissions = SNP 
 
     E[:] = 1  # reset
-    snp2bin(E, snp_emissions, IX.SNP2BIN)
+    snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
+    log_.debug("mean emission %s" % np.mean(E))
     if not est_inbreeding:
         E[IX.HAPBIN, n_homo_states:] = 0
 
@@ -42,7 +53,7 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-250)
         log_.warning("%s underflow bins: %s", sum(bad_bins), np.where(bad_bins)[0])
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
 
-    log_scaling += scale_mat(E)
+    log_scaling = scale_mat(E)
     return log_scaling
 
 
@@ -58,13 +69,18 @@ def update_post_geno(PG, SNP, Z, IX):
 
     PG[n_snp x n_geno]: P( G| O'), prob of genotype given observations,
         parameters from previous iteration
-    SNP[n_snp x n_states x n_geno]: P(O, G | Z) ** w
-    Z[n_snp x n_states]: P(Z | O')
+    SNP[n_snp x n_states x n_geno]: P(O, G | Z) 
+    Z[n_bin x n_states]: P(Z | O')
+
+
+    update Mar27: now returns 1/S P(G, Z |O), to scale for LD
     """
-    PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z) ** w
+    PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z) 
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
-    PG[np.isnan(PG)] = 0.0  # 1.0 / 3. / Z.shape[1]
+    PG[np.isnan(PG)] = 0.0 
     PG = np.minimum(np.maximum(PG, 0), 1)  # rounding error
+
+
     try:
         assert np.all(PG >= 0)
         assert np.all(PG <= 1)
@@ -72,23 +88,21 @@ def update_post_geno(PG, SNP, Z, IX):
     except AssertionError:
         pdb.set_trace()
 
+    PG *= IX.snp_weight[:, np.newaxis, np.newaxis]
+
     return PG
 
 
 def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False,
-                    gt_mode=False, ld_weighting=False):
+                    gt_mode=False):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
-    change 190327: scale this if ld_weighting is true
-        i.e. return P(O, G | Z) ** w 
-        where w is the reciproc of snp in bin
     """
     n_snps = P.alpha.shape[0]
     cflat = np.array([cont[lib] for lib in P.lib])
 
     # get P(G | Z)
-    # if ld_weighting: return P(G | Z) ** (1/k), where k is the number of snps
     # save in the same array as SNP - size is the same, and
     # we do not need to allocate more memory
     update_geno_emissions(
@@ -96,14 +110,11 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False,
         est_inbreeding=est_inbreeding
     )
 
-    if ld_weighting:
-        SNP *= IX.snp_weight
-
     # get P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX, gt_mode)
 
     SNP *= ll_snp[:, np.newaxis, :]
-    log_scaling = scale_mat3d(SNP)
+    log_scaling = 0. #scale_mat3d(SNP)
 
     return log_scaling
 
@@ -111,11 +122,10 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False,
 def update_F(F, tau, PG, P, IX):
     n_states = len(F)
     delta = 0.0
-    w = IX.snp_weight
     for s in range(n_states):
 
         def f(t):
-            x = np.log(_p_gt_homo(s, P, t[0], tau=exp(tau[s])) + 1e-10) * PG[:, s, :] * w
+            x = np.log(_p_gt_homo(s, P, t[0], tau=exp(tau[s])) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -148,11 +158,10 @@ def update_Ftau(F, tau, PG, P, IX, gt_mode=False):
 def update_tau(F, tau, PG, P, IX):
     n_states = len(F)
     delta = 0.0
-    w = IX.snp_weight
     for s in range(n_states):
 
         def f(t):
-            x = np.log(_p_gt_homo(s, P, F=F[s], tau=exp(t[0])) + 1e-10) * PG[:, s, :] * w
+            x = np.log(_p_gt_homo(s, P, F=F[s], tau=exp(t[0])) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0

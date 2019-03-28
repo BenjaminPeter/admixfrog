@@ -29,7 +29,6 @@ def baum_welch(
     est_tau=True,
     freq_contamination=1,
     freq_F=1,
-    ld_weighting=False,
     est_inbreeding=False,
     gt_mode=False
 ):
@@ -71,8 +70,7 @@ def baum_welch(
 
     #if gll_mode:
     s_scaling = update_snp_prob(
-        SNP, P, IX, cont, error, F, tau, est_inbreeding, gt_mode,
-        ld_weighting=ld_weighting
+        SNP, P, IX, cont, error, F, tau, est_inbreeding, gt_mode
     )  # P(O, G | Z)
     #else:
     #    s_scaling = update_geno_emissions_gt(
@@ -243,6 +241,7 @@ def run_admixfrog(
         data = load_read_data(infile)
     else:
         data = load_read_data(infile, split_lib, downsample)
+
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
     ref = ref.drop_duplicates(COORDS)
     if pos_mode:
@@ -294,7 +293,6 @@ def run_admixfrog(
         pars,
         est_inbreeding=est_inbreeding,
         gt_mode=gt_mode,
-        ld_weighting=ld_weighting,
         **kwargs
     )
 

@@ -207,17 +207,15 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
 
     # ld weighting:
     # IX.snp_weight give for each SNP how it is supposed to be downweighted
+    IX.snp_weight = np.ones(IX.n_snps)
     if ld_weighting:
         ctr = Counter(IX.SNP2BIN)  # counter[bin] : n_snp
-        IX.snp_weight = np.ones(IX.n_snps)
         c = 0
         for i in range(IX.n_bins):
             for j in range(ctr[i]):
                 IX.snp_weight[c] = 1. / ctr[i]
                 c += 1
-        pdb.set_trace()
-    else:
-        IX.snp_weight = 1
+        log_.debug("mean ld-weight %s" % np.mean(IX.snp_weight))
 
     log_.debug("done creating bins")
     return bins, IX  # , data_bin

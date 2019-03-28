@@ -49,6 +49,197 @@ The model can be summarized as
 		\item $Z_0 \sim \alpha_0$
 	\end{itemize}
 	Where we want to estimate the $c_r, F_k, T$ and $\alpha_0$
+\section{Algorithm details dependence}
+
+A standard trick is to assume the latent variables $G, Z, U$ are known. $U$ here is a sequence of discrete uniform random variables picking one SNP in each bin at random.
+
+The complete data log likelihood is
+
+\begin{align}
+\mathcal{L}  &= P(O, Z, G, U | \theta)  \nonumber\\
+&= \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T)\nonumber\\
+&+ \sum_{l=1}^L P(U_l) \\
+&+ \sum_{l=1}^L \log P(G_s | U_l, Z_l)\nonumber\\
+&+ \sum_{l=1}^L\sum_{s=1}^{S_l}\sum_{r=1}^R \log P(O_{rs} | G_{sl}, c)\nonumber\\
+& +\log P(Z_0)  \label{eq:ll:correct}\\
+\end{align}
+
+The parameters we want to estimate are the contamination rate $c_r$ for each read group, the $F_{ST}$ for each source population, and the sequence of hidden states $Z$.
+
+\subsection{Genotype Likelihood}
+\begin{equation}
+P(O_{rs}| G_s, c_r, n_{rs}) \sim Binom(O_{rs}; n_{rs}, p) \label{eq:ll:geno}
+\end{equation}
+where $p = (1-e) p' + e (1-p')$
+and $p' =c_{rs} p_c + (1-c_{rs}) G_s$
+\subsection{State Likelihood}
+We want to calculate the probability of a single locus, given the hidden state (i.e ancestry) is known. For homozygous ancestry, if the allele frequency of the introgressed individual were known to be $p$, the genotype probabilities would be $p, 2p(1-p), (1-p)^2$, respectively However, we do not observe $p$, but instead need  to estimate it from a possibly distant proxy. There are three causes of uncertainty that we will take into account.
+\begin{enumerate}
+	\item Sampling uncertainty from the reference.	
+	\item Genetic drift between the reference and introgressing population
+	\item Population substructure in the reference population
+\end{enumerate}
+
+
+\subsubsection{Homozygous Hidden States}
+As we deal with a single hidden-state bin and locus, subscripts designating the genomic location are omitted in this section. We start with the simplest possible model, and add complexity in sequence.
+\paragraph{Direct samples}
+We wish to calculate the probability that the individual is homozygous, given the SNP of interest derives two haplotypes from a population whose allele frequency is known to be $p$. If, $p$ is not known, 
+\begin{equation}
+G \sim Binom(2, p)
+\end{equation}
+however, we may need to infer it from a panel where we observe $a', d'$ ancestral and derived alleles, respectively. In this case
+\begin{align}
+p &\sim Beta(d' + d_0, a' + a_0)
+\end{align}
+The prior $d_0, a_0$ can be justified by noting that even if we only observe ancestral alleles in our sample, there is still a small chance that some individuals might have a derived allele in this locus. There are differing opinions about the values of $d_0, a_0$. Balding \& Nichols proposed a uniform prior, i.e. $a_0=d_0=1$. By noting that the derived allele occurs proportionally to $\theta/p$, one can justify $d_0=0, a_0=1$. A third option is an empirical Bayes prior: In the absence of data at a particular locus, a sensible guess for the allele frequency at this locus would be the genome wide average. Hence, we obtain an empirical prior by fitting a $Beta(d_0, a_0)$ distribution to all loci in the reference panel. In particular for ascertained data, this might be most suitable.
+
+Writing $d = d' + d_0, a = a'+a_0$
+\begin{eqnarray}
+P(G | d, a, d_0, a_0) &\sim& Betabinom(2, d+d_0, a+a_0)\nonumber\\
+&=& \binom{2}{G} \frac{B[G+d, 2-G + a]}{B[ d + a]} \label{eq:ll:homo}
+\end{eqnarray}
+where $B[.]$ denotes the beta function.
+\paragraph{Genetic drift between reference and target}
+In many cases, the target individual will not be sampled immediately after admixture, but thousands of generations after. Thus, we need to take into account that the allele frequency might have changed.
+
+Conceptually, genetic drift will increase the chance that the two alleles in the target are derived from the same ancestor: If the target is very very distant from the panel, the probability $F$ that the two alleles are identical by descent approaches one.  Conversely, if we have a very close reference, that probability is zero. 
+\begin{align}
+P(G=2 | a,d, F) &= \int P(G|p) P(p | a, d) dp \nonumber\\
+&= \int \left[ F p + (1-F) p^2\right] P(p | a, d) df\nonumber\\
+&= F \BE{p|a, d} + (1-F)  \BE{p^2|a, d}\\
+&= F \frac{d}{a+d} + (1-F)  \frac{d (d+1)}{(a+d)(a+d+1)}\nonumber\\
+&= \frac{d^2 + d + adF}{(a+d)(a+d+1)}
+\end{align}
+Hence we have an excess of homozygous emissions. The probability for $G=0$ is obtained by switching $A$ and $D$, and for $G=1$ by subtracting them from one:
+\begin{equation}
+P(G=1 | a,d) = \frac{2ad(1-F)}{(a+d)(a+d+1)}
+\end{equation} 
+
+\paragraph{Drift to reference, population structure in source}
+As a final complication, the reference may be subdivided. For example, we want to infer Neandertal introgression by using the Altai Neandertal \\citep{prufer2014} as a reference, despite it being substantially diverged. This will lead to additional uncertainty in the allele frequency, but should not change our belief in the average allele frequency. For this purpose, we introduce a parameter $\tau$
+
+\begin{equation}
+p| a, d, \tau \sim Beta (d\tau, a\tau)
+\end{equation}
+
+
+
+\begin{align}
+P(G=2 | a,d, F, \tau) &= \int P(G|p) P(p | a, d, \tau) df\nonumber\\
+&= \int \left[ F p + (1-F) p^2\right] P(p | a, d, \tau) df\nonumber\\
+&= F E[p|a,d] + (1-F)  E[p^2|a, d, \tau]\nonumber\\
+&= F \frac{d}{a+d} + (1-F)  \frac{d (d\tau+1)}{(a+d)(a\tau+d\tau+1)}\nonumber\\
+&= \frac{\tau d^2 + d + adF\tau}{(a+d)(\tau a+\tau d+1)}
+\end{align}
+The probability for $G=0$ is again obtained by switching $a$ and $d$, and for $G=1$ by subtracting them from one:
+\begin{equation}
+P(G=1 | a,d, F, \tau) = \frac{2ad(1-F)\tau}{(a+d)(\tau a+\tau d+1)}
+\end{equation} 
+
+In the limit as $\tau=1$, we have the same as without subdivision. In the 
+other limit as $\tau=0$, we get
+\begin{equation}
+P(G=2|a, d, F, \tau) = d / (a+d)
+\end{equation}
+
+\paragraph{Drift to reference / subdivided source / alt}
+A more complex model is
+\begin{equation}
+p| a, d, \tau \sim Beta (d'\tau + d_0, a'\tau + a_0)
+\end{equation}
+
+
+
+
+\subsubsection{Heterozygous States}
+For a heterozygous state, we know the allele frequencies in the two source pops, and we know they contribute one haplotype each. If we assume that the sources have allele frequencies $p_i$ with prior $d_i, a_i$, respectively.
+
+\begin{align}
+P(G_i = 1 | \tau_i, F_i, d_i, a_i) &=  \int p P(p| d_i, a_i, p \tau_i, F_i) df\nonumber\\
+&= E[f| d_i, a_i, F_i, \tau_i]\nonumber\\
+&=\frac{d_i}{a_i+d_i}\label{eq:ll:het}
+\end{align}
+and hence is independent from $F$ and $\tau$. Intuitively, this is because if we just sample one allele from a population, that population's allele frequency is the best guess for the state of our sample. The distance increases our uncertainty, but not the mean.
+Thus for sources $S_i, S_j$, 
+\begin{align*}
+P(G=0) &= \frac{a_i a_j}{(d_i+a_i)(d_j+a_j)}\\
+P(G=1) &= \frac{a_id_j + a_jd_i}{(d_i+a_i)(d_j+a_j)}\\
+P(G=2) &= \frac{d_i d_j}{(d_i+a_i)(d_j+a_j)}\\
+\end{align*}
+
+
+
+\subsubsection{Haploid States}
+On the sex chromosome, or when inbreeding is present, we further encounter haploid regions. Here, the heterozygous states have emission probability 0, and we just have one allele of the heterozygous case: $F_{ST}$ does not matter.
+\begin{align}
+P(G=0) &= \frac{a}{a+d}\nonumber\\
+P(G=1) &= \frac{d}{a+d}\label{eq:ll:hap}
+\end{align}
+
+
+
+
+\subsection{Estimating F and $\tau$}
+\begin{align}
+Q(F, \tau|F', \tau' )&= E[\log P(O, Z, G | F, \tau)  P(G, Z | \tau', F', O) ]\nonumber\\
+&=\sum_{Z \in \mathcal{Z}, G \in \mathcal{G}} \log P(G  | Z, F, \tau) P(G|Z, O, F', \theta') P(Z | O, F', \tau')\nonumber\\
+&=\sum_k\sum_{g=0}^2\sum_{l=1}^L\frac{1}{S_l}\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau')
+\end{align}
+Since the $F_k$-parameters are independent for each homozygous state, these likelihoods are optimized numerically and independently.
+
+\begin{equation}
+(\hat{F}_k \hat{\tau}_k) =\operatorname*{argmax}_{F, \tau} \left[ \sum_{g=0}^2\sum_{l=1}^L\frac{1}{S_l}\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau') 
+\right]\label{eq:opt:F}
+\end{equation}
+
+where $P(Z_l = k |O, \theta')$ is the output of the forward-backward algorithm, $P(G_s | Z_l=k, A_{sk}, B_{sk}, F_k)$ is given by (\ref{eq:ll:homo}).   and
+\begin{equation}
+P(G_s | Z_l=k, O) = \frac{P(O_s | G_s, c') P(G_s | Z_l=k, F')}{ \sum_{g=0}^2 P(O_s | G_s=g, c') P(G_s=g | Z_l=k, F_k') }
+\label{eq:em:G}
+\end{equation}
+This equation follows by applying Bayes theorem: 
+\begin{align}
+P(G,Z| O) &= P(G|Z, O)P(Z|O)\nonumber\\
+&=P(G | Z, O_i) P(Z | O)\nonumber\\
+&= \frac{P(O_i | G) P(G|Z)}{P(O_i | Z)} P(Z|O)
+\end{align}
+as $G_i | Z_i$ is independent of all observations except $O_i$.
+
+
+
+
+\subsection{Estimating Contamination}
+\begin{align}
+Q(c|c' )&= E[\log P(O, Z, G )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
+&=\sum_{Z \in \mathcal{Z}}\sum_{G \in \mathcal{G}} \log P( O | G, c) P(G|Z, \theta') P(Z | O, \theta')\nonumber\\
+&=\sum_{r=1}^R\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{lr} | G_s=g, c_r)  P(G_s|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
+\end{align}
+
+We thus optimize
+\begin{align}
+\hat{c}_r = \operatorname*{argmax}_{c_r}\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{lr} | G_s=g, c_r)  P(G_s|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
+\end{align}
+using (\ref{eq:em:G}) and (\ref{eq:ll:geno}).
+\subsection{Estimationg Transitions and Initial State}
+$T$ is estimated using standard Baum-welch, $\alpha_0$ is set to the stationary distribution of $T$.
+\subsubsection{Transitions(HWE)}
+$$\hat{T}_{ij} = \frac{\sum_l P(X_l=i, X_{l+1}=j| \theta', O)}{ P(O | \theta')}$$
+However, the two haplotypes might change ancestry independently from each other. If the transitions from haploid states $H_{ab}$ is known, then 
+$$T_i(j) = T_{i_1, i_2}(j_1, j_2) = \frac{H_{i_1}(j_1)H_{i_2}(j_2) + H_{i_1}(j_2)H_{i_2}(j_1)}{2}$$
+i.e. there are always two possible transitions. We can introduce another inbreeding parameter $f$, so that when $i_1=i_2, j_1=j_2$ 
+$T_i(j) = f H_i(j) + (1-f) H_i(j)^2$. Conversely, if there is only a single introgressed lineage, we would only ever expect haploid introgressed segments:
+
+
+
+Compared to standard BW
+$$\xi_{ij}(t) \propto P(O_{[1\dots l]}, Z_l | \theta') T_{ij}  P(O_{[l+2\dots L]}|Z_{l+1}, \theta') P(O_{l+1}|Z_{l+1}=k)$$
+
+\begin{align}
+P(H_l = N, H_{l+1} = A, O |\theta) &=  P(O_{[1\dots l]}, H_l | \theta') P(H_{l+1} | H_l) P(O_{[l+2\dots L]}|H_{l+1}, \theta') P(O_{l+1}|H_{l+1})\\
+&=P(AN \to NN) + P(AA \to AN) + P(AA \to NN)
+\end{align}
+
 
 \section{Algorithm details}
 We factor the likelihood as 
