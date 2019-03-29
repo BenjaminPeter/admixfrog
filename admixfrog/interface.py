@@ -43,9 +43,9 @@ def add_rle_parse_group(parser):
     g.add_argument(
         "--run-penalty",
         type=float,
-        default=0.5,
+        default=0.2,
         help="""penalty for runs. Lower value means runs are called more
-        stringently (default 0.5)""",
+        stringently (default 0.2)""",
     )
 
 
@@ -163,7 +163,6 @@ def run():
         additional ones:
         - REF : always reference allele
         - NRE : always non-ref allele
-        - SFS : allele frequencies are drawn from a  Beta(prior, prior) distribution
         - UNIF : allele frequencies are drawn from a uniform / Beta(1, 1) distribution
         - HALF : allele frequencies are drawn from a  Beta(0.5, 0.5) distribution
         - ZERO : allele frequencies are drawn from a  Beta(0, 0) distribution
@@ -198,7 +197,7 @@ def run():
         "-p",
         type=float,
         default=None,
-        help="""Prior of reference allele frequencies. IF None (default), this is 
+        help="""Prior of reference allele frequencies. If None (default, recommended), this is 
         estimated from the data
         
         This number is added to both the
@@ -263,7 +262,7 @@ def run():
         action="store_const",
         const="m",
         default=None,
-        help="Assumes haploid X chromosome. Default is guess from coverage",
+        help="Assumes haploid X chromosome. Default is guess from coverage. currently broken",
     )
     parser.add_argument(
         "--female",
@@ -283,7 +282,7 @@ def run():
         "--downsample",
         type=float,
         default=1.0,
-        help="downsample coveragem keep only DS",
+        help="downsample coverage to a proportion of reads"
     )
     parser.add_argument(
         "--F0",
@@ -304,7 +303,7 @@ def run():
         "--ld-weighting", "--ld", 
         default=False,
         action="store_true",
-        help="""downweight SNP in the same bins to counter ancient LD"""
+        help="""downweight SNP in the same bins to counter ancient LD. Very experimental, optimization appears to be broken"""
     )
     parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"
@@ -334,7 +333,7 @@ def run():
         "-I",
         default=False,
         action="store_true",
-        help="""allow  haploid (i.e. inbreed) stretches""",
+        help="""allow  haploid (i.e. inbreed) stretches. Experimental""",
     )
 
     add_bam_parse_group(parser)
