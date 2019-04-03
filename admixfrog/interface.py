@@ -3,9 +3,11 @@ from .admixfrog import run_admixfrog
 from pprint import pprint, pformat
 from .bam import process_bam
 from .rle import get_rle
+from .vcf import load_pop_file, vcf_to_ref,load_random_read_samples
 from os.path import isfile
 import admixfrog
 from .log import log_, setup_log
+import pdb
 
 
 def add_bam_parse_group(parser):
@@ -39,13 +41,73 @@ def add_bam_parse_group(parser):
 
 
 def add_rle_parse_group(parser):
-    g = parser.add_argument_group("bam parsing")
+    g = parser.add_argument_group("call introgressed fragments")
     g.add_argument(
         "--run-penalty",
         type=float,
         default=0.2,
         help="""penalty for runs. Lower value means runs are called more
         stringently (default 0.2)""",
+    )
+
+
+def add_ref_parse_group(parser):
+    g = parser.add_argument_group("creating reference file")
+    g.add_argument(
+        "--vcf-file",
+        "--vcf",
+        help="""VCF File to process. Choose this or reffile. 
+                   The resulting ref file will be writen as {out}.ref.xz,
+                   so it doesn't need to be regenerated.
+                   If the input file exists, an error is generated unless
+                   --force-vcf is set
+                   """,
+    )
+    g.add_argument(
+        "--pop-file",
+        default=None,
+        help="""Population assignments (yaml format)"""
+    )
+    g.add_argument(
+        "--rec-file", "--rec",
+        help="""Recombination rate file. Modelled after 
+        https://www.well.ox.ac.uk/~anjali/AAmap/
+        If file is split by chromosome, use {CHROM} as 
+        wildcards where the chromosome id will be included
+        """
+    )
+    g.add_argument(
+        "--rec-rate", 
+        default=1e-8,
+        type=float,
+        help="""Constant recombination rate (per generation per base-pair)"""
+    )
+    g.add_argument(
+        "--pops", 
+        nargs="*",
+        help="""Populations to be parsed. Need to be either present in the pop-file,
+        or, as single sample, in the vcf-file. If unset, all clusters defined in the 
+        pop-file will be used
+        """
+    )
+    g.add_argument(
+        "--pos-id", 
+        default="Physical_Pos",
+        help="""column name for position (default: Physical_Pos)
+        """
+    )
+    g.add_argument(
+        "--map-id", 
+        default="AA_Map",
+        help="""column name for genetic map (default: AA_Map)
+        """
+    )
+    g.add_argument(
+        "--random-read-file", 
+        default=None,
+        help="""yaml file with (reference) samples that were randomly read sampled.
+        only one allele will be read for those files.
+        """
     )
 
 
@@ -102,6 +164,25 @@ def do_rle():
     rle = get_rle(data, homo, args.run_penalty)
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
+def do_ref():
+    logger = setup_log()
+    parser = argparse.ArgumentParser(description="create reference file from vcf")
+    parser.add_argument(
+        "--outfile", "--out", required=True, help="output file name (xz-zipped)"
+    )
+
+    add_ref_parse_group(parser)
+    args = parser.parse_args()
+    logger.info(pformat(args))
+
+    pop2sample = load_pop_file(args.pop_file, args.pops)
+    random_read_samples = load_random_read_samples(args.random_read_file)
+    logger.debug(pformat(random_read_samples))
+    vcf_to_ref(args.outfile, args.vcf_file, args.rec_file, 
+               pop2sample, 
+               random_read_samples,
+               args.pos_id, args.map_id,
+               rec_rate=args.rec_rate)
 
 def run():
     logger = setup_log()

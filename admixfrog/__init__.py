@@ -1,5 +1,5 @@
 from .admixfrog import run_admixfrog
-from .interface import run, bam, do_rle, profile
+from .interface import run, bam, do_rle, profile, do_ref
 from pkg_resources import get_distribution, DistributionNotFound
 
 try:
