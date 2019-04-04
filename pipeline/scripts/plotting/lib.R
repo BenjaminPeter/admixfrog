@@ -13,7 +13,7 @@ get_track <- function(bin_data, TRACK, p_min, p_max){
     select(-1:-7) %>%
     summarize_all(.funs=mean)  %>% 
     unlist 
-    TRACK <- names(v[v<p_max& v>p_min])                                                           
+    TRACK <- names(v[ (v<p_max& v>p_min) |  str_length(names(v)) >4   ])                                                           
     return(TRACK)
 }
 FACET_THEME = theme(panel.background = element_rect(color='#eeeeee'),
@@ -54,12 +54,15 @@ make_chrom_limits <- function(){
 
 }
 
-bg_chrom <- function(ref=NULL, map="AA_Map"){
+bg_chrom <- function(ref=NULL, map="AA_Map", flip=F){
     x = read_csv("ref/chrom_limits.csv", col_types=cols(chrom=col_factor())) %>% 
         select('chrom', min=sprintf('%s_min', map), max=sprintf("%s_max", map))
     if(!is.null(ref)) x = filter(x, chrom %in% unique(ref$chrom))
+    if(flip){
+	return(geom_rect(data=x, color=NA, mapping=aes(ymin=min, ymax=max, xmin=-Inf, xmax=Inf), fill='#efefef'))
+    }
 
-    return(geom_rect(data=x, mapping=aes(xmin=min, xmax=max, ymin=-Inf, ymax=Inf), fill='#efefef'))
+    return(geom_rect(data=x, color=NA, mapping=aes(xmin=min, xmax=max, ymin=-Inf, ymax=Inf), fill='#efefef'))
 
 }
 
@@ -71,6 +74,11 @@ read_run <- function(rfile){
 
 load_runs_data <- function(files, name){
     a <- lapply(files, read_run)
+    names(a) <- name
+    a <- bind_rows(a, .id="sample")
+}
+load_cont_data <- function(contfiles, name){
+    a <- lapply(contfiles, read_csv, col_types='cdcici')
     names(a) <- name
     a <- bind_rows(a, .id="sample")
 }

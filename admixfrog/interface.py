@@ -109,6 +109,7 @@ def add_ref_parse_group(parser):
         only one allele will be read for those files.
         """
     )
+    g.add_argument("--force-vcf", default=False, action="store_true")
 
 
 def bam():
@@ -164,6 +165,7 @@ def do_rle():
     rle = get_rle(data, homo, args.run_penalty)
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
+
 def do_ref():
     logger = setup_log()
     parser = argparse.ArgumentParser(description="create reference file from vcf")
@@ -183,6 +185,7 @@ def do_ref():
                random_read_samples,
                args.pos_id, args.map_id,
                rec_rate=args.rec_rate)
+
 
 def run():
     logger = setup_log()
@@ -219,6 +222,7 @@ def run():
     parser.add_argument(
         "--ref-file",
         "--ref",
+        default=None,
         help="""refernce input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
@@ -418,6 +422,7 @@ def run():
     )
 
     add_bam_parse_group(parser)
+    add_ref_parse_group(parser)
     add_rle_parse_group(parser)
 
     from . import __version__
@@ -426,20 +431,53 @@ def run():
     V = vars(args)
     log_.info(pformat(V))
     force_bam = V.pop("force_bam")
+    force_vcf = V.pop("force_vcf")
 
-    if V["infile"] is not None and V["bamfile"] is not None:
-        raise ValueError("cant specify csv and bam input")
-    # elif V["bamfile"] is not None and V["bedfile"] is None:
-    #    raise ValueError("require bed file to create input from bam")
-    # if V["bamfile"] is not None and V["bedfile"] is not None:
+    if V["vcf_file"] is not None:
+        if V["ref_file"] is not None:
+            raise ValueError("cant specify ref and vcf input")
+        V["ref_file"] = V["out"] + ".ref.xz"
+        if isfile(V["ref_file"]) and not force_vcf:
+            raise ValueError(
+                """ref-file exists. Use this or set --force-ref to 
+                regenerate the file"""
+            )
+        log_.info("creating ref from vcf file")
+
+        pop2sample = load_pop_file(V.pop('pop_file'), V.pop('pops'))
+        random_read_samples = load_random_read_samples(V.pop('random_read_file'))
+        logger.debug(pformat(random_read_samples))
+        vcf_to_ref(V.pop('ref_file'), 
+                   V.pop('vcf_file'),
+                   V.pop('rec_file'),
+                   pop2sample, 
+                   random_read_samples,
+                   V.pop('pos_id'),
+                   V.pop('map_id')
+                   rec_rate=V.pop('rec_rate')
+    else:
+        del V['pos_id']
+        del V['map_id']
+        del V['vcf_file']
+        del V['rec_file']
+        del V['randm_read_samples']
+        del V['rec_rate']
+        del V['pops']
+        del V['pop_file']
+
+
+
+
     if V["bamfile"] is not None:
+        if V["infile"] is not None:
+            raise ValueError("cant specify csv and bam input")
         V["infile"] = V["out"] + ".in.xz"
         if isfile(V["infile"]) and not force_bam:
             raise ValueError(
                 """infile exists. Use this or set --force-bam to 
                              regenerate"""
             )
-        print("creating input from bam file")
+        log_.info("creating input from bam file")
         process_bam(
             outfile=V["infile"],
             bamfile=V.pop("bamfile"),

@@ -1,6 +1,4 @@
 source("scripts/plotting/lib.R")
-save.image(sprintf(".%s.rdebug", basename(snakemake@output$mapplot)))
-
 
 
 bin_size = as.integer(snakemake@wildcards$bin_size)
