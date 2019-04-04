@@ -264,10 +264,12 @@ def init_pars(
 def load_ref(
     ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
 ):
-    if ancestral is None:
-        states = list(set(list(state_ids) + [cont_id]))
-    else:
-        states = list(set(list(state_ids) + [cont_id, ancestral]))
+    states = list(set(list(state_ids)))
+    if ancestral is not None:
+        states = list(set(list(states) + [ancestral]))
+    if cont_id is not None:
+        states = list(set(list(states) + [cont_id]))
+
     dtype_ = dict(chrom="category")
     ref = pd.read_csv(ref_file, dtype=dtype_)
     ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)

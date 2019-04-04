@@ -32,7 +32,8 @@ set of potential source populations).
 
 A typical command is
 ```
-admixfrog --infile {x}.in.xz --ref {y}.ref.xz --out {z} -b 10000 --ancestral PAN --states AFR NEA DEN
+admixfrog --infile {x}.in.xz --ref {y}.ref.xz --out {z} -b 10000 \
+    --ancestral PAN --states AFR NEA DEN --contamination AFR
 ```
 there are three required parameters:
 
@@ -45,8 +46,16 @@ there are a few optional parameters, the most important are
  - `--ancestral`: a taxon in that specifies the ancestral allele (must be in the
    reference file)
  - `--states`: the potential admixture sources. (Must be in the reference)
+ - `--contamination`: the source of contamination. (Must also be in the reference)
 
 For other parameters, see below or type `admixfrog --help`
+
+There are also utilities to create the input file (from a bam file ) and the reference file (from a vcf file) 
+from standard formats. These can be called using `admixfrog-bam` or
+`admixfrog-ref`, respectively. Their arguments are also accepted by the main 
+`admixfrog` program. However, as parsing and creating these files takes typically much
+longer than running admixfrog, I recommend generating them first.
+
 
 The input file is optionally generated from a bam-file:
 ```
@@ -54,31 +63,37 @@ admixfrog --bamfile {x}.bam --ref {y}.ref.xz --out {z} -b 10000 --ancestral PAN 
 ```
 but this takes quite long for high-coverage genomes.
 
-#### Infile:
-the infile has 5 columns, called `chrom`, `pos`, `tref` and `talt`.  `lib` is optional.
-It optionally can be created automatically from a bam-file. 
-
-- `chrom` is the chromosome (or contig) id
-- `pos` is the physical position of this chromosome
-- `lib` is a library/read group id. Reads are split by `lib` for contamination
-  estimates
-- `tref`, `talt` are the number of refernce and non-reference reads observed for
-  this position.
-
-```
-    chrom,pos,lib,tref,talt
-    1,570094,L5733_0_deam,1,0
-    1,570094,R9873_0_deam,1,0
-    1,714019,R9880_2_nodeam,0,1
-    1,724289,L5736_0_nodeam,1,0
-    1,724289,L5736_1_nodeam,1,0
-    1,724289,L5734_0_nodeam,1,0
-    1,724290,L5736_0_nodeam,1,0
-    1,724290,L5736_1_nodeam,1,0
-    1,724290,L5734_0_nodeam,1,0
+### Creating the Reference File:
+The input file for `admixfrog` can be created from an (indexed) vcf-file using the 
+`admixfrog-ref` subprogram:
+```bash
+    admixfrog-ref --vcf x_{CHROM}.vcf.gz --out x.ref.xz  \
+        --states AFR VIN=Vindija33.19 DEN=Denisova \
+        --pop-file data.yaml \
+        --rec-file rec.{CHROM}
 ```
 
-#### Reference
+The options are:
+    - `--vcf` : an indexed file in vcf format. Non-biallelic variants are
+      skipped,but everything else is used. Hence, filtering should be done on this file. Use the wildcard `{CHROM}` if files are split by chromosome
+    - `--out` : the name of the output file
+    - `--states` : the names of the states, which will be used as sources of
+      admixture, contamination and ancestral alleles. By convention I use
+      all-caps, 3-4 letter abbreviations. There are three possibilities:
+
+        1. a population define in the `pop file`
+        2. a sample name from the vcf file. This will create a single-sample
+           reference with the same name as the sample
+        3. a string of the form `NEA=Altai,Vindija33.19`. This will create a 
+           reference named NEA from the samples `Altai` and `Vindija33.19`
+
+    - `--pop-file`: A `yaml`-format file that defines
+        which  samples are in which population, and which samples are
+        (pseudo)-haploid
+
+    - `--rec-file` A file specifying the recombination map. I use the file  from here: [https://www.well.ox.ac.uk/~anjali/AAmap/](https://www.well.ox.ac.uk/~anjali/AAmap/)
+
+#### File Format Specification
 The refernce file has the following columns:
 - `chrom` is the chromosome (or contig) id
 - `pos` is the physical position of this chromosome
@@ -95,6 +110,79 @@ respectively.
     1,724289,C,A,0,0,0,1,0,0,0,0,1,0,0,0,414,80,1,2,2,94,148,5,2,2,2
     1,724290,A,C,0,0,0,1,0,0,0,0,1,0,0,0,414,80,1,2,2,94,148,5,2,2,2
     1,725389,C,T,0,5,0,2,2,1,0,0,6,2,0,2,409,0,0,0,1,0,0,0,0,2,0
+```
+
+#### Population file format
+I use `yaml`-formatted files to define populations, as they are an easily
+readable data storage format. The format specification is as follows:
+The `sampleset`-section defines sources. For example, below we make a source
+panel containing the two Neandertals (AltaiNeandertal and Vindija33.19), and a 
+source named `EUR` containing three individuals from the SGDP data set. Finally,
+I create a panel named `ANC` which contains the aligned chimp (`panTro4`)
+sequence.
+
+In addition, I designate two samples (`panTro4` and `Denisova11`) as
+pseudo-haploid by listing them under `pseudo_haploid`. For the outgroup
+`panTro4`, this is because we do not care about within-chimp variation, and for
+Denisova 11, because it is a low-coverage genome and we cannot get confident
+genotype calls.
+
+                         
+```yaml
+    sampleset:               
+        NEA:                 
+            - AltaiNeandertal
+            - Vindija33.19   
+        EUR:             
+            - "B_Crete-1"    
+            - "B_Crete-2"    
+            - "B_French-3"   
+        ANC:                 
+            - panTro4        
+                         
+    pseudo_haploid:     
+        - Denisova11
+        - panTro4            
+```
+
+
+### Creating the Input File:
+The input file for `admixfrog` can be created from a bam-file using the 
+`admixfrog-bam` subprogram:
+
+```
+    admixfrog-bam --bam {x}.bam --ref {y}.ref.xz --deam-cutoff 3 --length-bin-size 35  --out {x}.in.xz
+```
+This will create a file named `{x}.in.xz` in admixfrog input format from
+`{x}.bam`. The site will be ascertained on the sites in `{y}.ref.xz`. Reads with
+a deamination (C-\>T) in strand direction in the first 3 bases will be considered
+separately for purposes of contamination estimations. Reads will also be binned
+in bins of size 35bp for contamination estimation.
+
+
+##### File Format
+the infile has 5 columns, called `chrom`, `pos`, `tref` and `talt`.  `lib` is optional.
+
+The columns are
+
+    - `chrom` is the chromosome (or contig) id
+    - `pos` is the physical position of this chromosome
+    - `lib` is a library/read group id. Reads are split by `lib` for contamination
+      estimates
+    - `tref`, `talt` are the number of refernce and non-reference reads observed for
+      this position.
+
+```
+    chrom,pos,lib,tref,talt
+    1,570094,L5733_0_deam,1,0
+    1,570094,R9873_0_deam,1,0
+    1,714019,R9880_2_nodeam,0,1
+    1,724289,L5736_0_nodeam,1,0
+    1,724289,L5736_1_nodeam,1,0
+    1,724289,L5734_0_nodeam,1,0
+    1,724290,L5736_0_nodeam,1,0
+    1,724290,L5736_1_nodeam,1,0
+    1,724290,L5734_0_nodeam,1,0
 ```
 
 

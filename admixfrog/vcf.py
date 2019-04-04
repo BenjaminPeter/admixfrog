@@ -31,6 +31,9 @@ def load_pop_file(pop_file=None, pops=None):
         for p in pops:
             if p in P:
                 P2[p] = P[p]
+            elif "=" in p:
+                k, v = p.split("=")
+                P2[k] = v.split(",")
             else:
                 P2[p] = [p]
         return P2
@@ -47,13 +50,12 @@ def load_random_read_samples(pop_file=None):
 def vcf_to_ref(outfile, vcf_file, rec_file, 
                pop2sample, random_read_samples=[],
                pos_id='Physical_Pos', map_id='AA_Map',
-               rec_rate = 1e-8
+               rec_rate = 1e-8, chrom0='1'
                ):
 
-    data_cols = [f"{p}_{e}"  for p in pop2sample.keys() for e in EXT]
 
     #  get chromosomes
-    with  VariantFile(vcf_file) as vcf:
+    with  VariantFile(vcf_file.format(CHROM=chrom0)) as vcf:
         chroms = [i for i in vcf.header.contigs]
 
         sample2pop = defaultdict(list)
@@ -63,7 +65,11 @@ def vcf_to_ref(outfile, vcf_file, rec_file,
                     sample2pop[sample].append(pop)
 
     samples = sample2pop.keys()
+    pops = [pop for s, v in sample2pop.items() for pop in v]
     pprint(sample2pop)
+    pprint(pops)
+
+    data_cols = [f"{p}_{e}"  for p in pops for e in EXT]
 
     with lzma.open(outfile, 'wt') as ref:
         ref.write("chrom,pos,ref,alt,map,")
@@ -81,7 +87,7 @@ def vcf_to_ref(outfile, vcf_file, rec_file,
                 R0 = next(rec_iter)[1]
                 R1 = next(rec_iter)[1]
             
-            with  VariantFile(vcf_file) as vcf:
+            with  VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
                 vcf.subset_samples(samples)
                 for row in vcf.fetch(chrom):
                     if len(row.alleles) != 2: 

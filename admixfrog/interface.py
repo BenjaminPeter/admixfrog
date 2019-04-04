@@ -83,14 +83,6 @@ def add_ref_parse_group(parser):
         help="""Constant recombination rate (per generation per base-pair)"""
     )
     g.add_argument(
-        "--pops", 
-        nargs="*",
-        help="""Populations to be parsed. Need to be either present in the pop-file,
-        or, as single sample, in the vcf-file. If unset, all clusters defined in the 
-        pop-file will be used
-        """
-    )
-    g.add_argument(
         "--pos-id", 
         default="Physical_Pos",
         help="""column name for position (default: Physical_Pos)
@@ -103,10 +95,10 @@ def add_ref_parse_group(parser):
         """
     )
     g.add_argument(
-        "--random-read-file", 
-        default=None,
-        help="""yaml file with (reference) samples that were randomly read sampled.
-        only one allele will be read for those files.
+        "--chrom0",
+        default='1',
+        help="""chromosome id for first chromosome/contig to be read for split-chromosome files.
+        All chromosomes should be present in the header of this vcf file.
         """
     )
     g.add_argument("--force-vcf", default=False, action="store_true")
@@ -172,19 +164,28 @@ def do_ref():
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
     )
+    parser.add_argument(
+        "--states", 
+        nargs="*",
+        help="""Populations to be parsed. Need to be either present in the pop-file,
+        or, as single sample, in the vcf-file. If unset, all clusters defined in the 
+        pop-file will be used
+        """
+    )
 
     add_ref_parse_group(parser)
     args = parser.parse_args()
     logger.info(pformat(args))
 
-    pop2sample = load_pop_file(args.pop_file, args.pops)
-    random_read_samples = load_random_read_samples(args.random_read_file)
+    pop2sample = load_pop_file(args.pop_file, args.states)
+    random_read_samples = load_random_read_samples(args.pop_file)
     logger.debug(pformat(random_read_samples))
     vcf_to_ref(args.outfile, args.vcf_file, args.rec_file, 
                pop2sample, 
                random_read_samples,
                args.pos_id, args.map_id,
-               rec_rate=args.rec_rate)
+               rec_rate=args.rec_rate,
+               chrom0=args.chrom0)
 
 
 def run():
@@ -439,13 +440,13 @@ def run():
         V["ref_file"] = V["out"] + ".ref.xz"
         if isfile(V["ref_file"]) and not force_vcf:
             raise ValueError(
-                """ref-file exists. Use this or set --force-ref to 
+                """ref-file exists. Use this or set --force-vcf to 
                 regenerate the file"""
             )
         log_.info("creating ref from vcf file")
 
-        pop2sample = load_pop_file(V.pop('pop_file'), V.pop('pops'))
-        random_read_samples = load_random_read_samples(V.pop('random_read_file'))
+        pop2sample = load_pop_file(V['pop_file'], V['states'])
+        random_read_samples = load_random_read_samples(V.pop('pop_file'))
         logger.debug(pformat(random_read_samples))
         vcf_to_ref(V.pop('ref_file'), 
                    V.pop('vcf_file'),
@@ -453,19 +454,17 @@ def run():
                    pop2sample, 
                    random_read_samples,
                    V.pop('pos_id'),
-                   V.pop('map_id')
-                   rec_rate=V.pop('rec_rate')
+                   V.pop('map_id'),
+                   rec_rate=V.pop('rec_rate'),
+                   chrom0=V.pop('chrom0'))
     else:
         del V['pos_id']
         del V['map_id']
         del V['vcf_file']
         del V['rec_file']
-        del V['randm_read_samples']
         del V['rec_rate']
-        del V['pops']
         del V['pop_file']
-
-
+        del V['chrom0']
 
 
     if V["bamfile"] is not None:

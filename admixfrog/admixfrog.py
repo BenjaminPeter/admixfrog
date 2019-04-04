@@ -223,6 +223,7 @@ def run_admixfrog(
     n_post_replicates=100,
     ld_weighting=False,
     est_inbreeding=False,
+    est_contamination=True,
     gt_mode=False,
     **kwargs
 ):
@@ -241,6 +242,9 @@ def run_admixfrog(
         data = load_read_data(infile)
     else:
         data = load_read_data(infile, split_lib, downsample)
+
+    if not est_contamination and c0 ==0:
+        cont_id = None
 
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
     ref = ref.drop_duplicates(COORDS)
@@ -292,6 +296,7 @@ def run_admixfrog(
         P, IX,
         pars,
         est_inbreeding=est_inbreeding,
+        est_contamination=est_contamination,
         gt_mode=gt_mode,
         **kwargs
     )
