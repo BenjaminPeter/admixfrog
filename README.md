@@ -10,10 +10,14 @@ We fit a hidden Markov Model across the genome, with the hidden states being all
 combinations of ancestry between one or two sources.
 
 ## Installation
-Requires `python3`
+Requires `python3.6+`
 Install dependencies:
 ```
 pip install cython scipy  --upgrade
+```
+Install `admixfrog` (from github):
+```
+pip install git+https://github.com/benjaminpeter/admixfrog
 ```
 
 Install `admixfrog` (from source directory):
