@@ -1,6 +1,7 @@
 from collections import namedtuple, defaultdict, Counter
 import pdb
 import numpy as np
+from numba import njit
 import pandas as pd
 try:
     from .log import log_
@@ -259,6 +260,48 @@ def init_pars(
     except TypeError:
         tau = [tau0] * n_homo
     return Pars(alpha0, trans_mat, cont, e0, F, tau, gamma_names, sex=sex)
+
+
+def filter_ref(ref, states, filter_delta = None, filter_pos = None):
+    n_states = len(states)
+
+
+    if filter_delta is not None:
+        kp = np.zeros(ref.shape[0], np.bool)
+        for i, s1 in enumerate(states):
+            for j in range(i+1, n_states):
+                s2 = states[j]
+                f1 = np.nan_to_num(ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"]))
+                f2 = np.nan_to_num(ref[s2 + "_alt"] / (ref[s2 + "_alt"] + ref[s2 + "_ref"]))
+                delta = np.abs(f1 -f2)
+                kp = np.logical_or(kp, delta >= filter_delta)
+
+        log_.info("filtering %s SNP due to delta", np.sum(1-kp))
+        ref = ref[kp]
+
+    if filter_pos is not None:
+        chrom = pd.factorize(ref.chrom)[0]
+        pos = np.array(ref.pos)
+        kp = nfp(chrom ,pos, ref.shape[0], filter_pos)
+        log_.info("filtering %s SNP due to pos filter", np.sum(1-kp))
+        ref = ref[kp]
+
+    return ref
+
+@njit
+def nfp(chrom, pos, n_snps, filter_pos):
+    kp = np.ones(n_snps, np.bool_)
+    prev_chrom, prev_pos = -1, -10000000
+    for i in range(n_snps):
+        if prev_chrom != chrom[i]:
+            prev_chrom, prev_pos = chrom[i], pos[i]
+            continue
+        if pos[i] - prev_pos < filter_pos:
+            kp[i] = False
+        else:
+            prev_pos = pos[i]
+
+    return kp
 
 
 def load_ref(

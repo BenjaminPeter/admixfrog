@@ -5,6 +5,7 @@ from collections import defaultdict
 import pandas as pd
 import yaml
 from pprint import pprint, pformat
+from .log import log_
 
 EXT = "ref", "alt"
 
@@ -57,6 +58,7 @@ def vcf_to_ref(outfile, vcf_file, rec_file,
     #  get chromosomes
     with  VariantFile(vcf_file.format(CHROM=chrom0)) as vcf:
         chroms = [i for i in vcf.header.contigs]
+        log_.info("chroms found: %s", chroms)
 
         sample2pop = defaultdict(list)
         for pop, v in pop2sample.items():

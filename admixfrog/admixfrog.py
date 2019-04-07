@@ -5,6 +5,7 @@ from collections import Counter
 import pdb
 from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_read_data, load_gt_data, load_ref, guess_sex
+from .utils import filter_ref
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .genotype_emissions import update_emissions, update_Ftau, update_tau
@@ -224,6 +225,8 @@ def run_admixfrog(
     ld_weighting=False,
     est_inbreeding=False,
     est_contamination=True,
+    filter_delta=None,
+    filter_pos=None,
     gt_mode=False,
     **kwargs
 ):
@@ -247,6 +250,7 @@ def run_admixfrog(
         cont_id = None
 
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
+    ref = filter_ref(ref, state_ids, filter_delta, filter_pos)
     ref = ref.drop_duplicates(COORDS)
     if pos_mode:
         ref.map = ref.pos

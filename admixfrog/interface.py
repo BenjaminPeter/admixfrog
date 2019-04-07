@@ -266,6 +266,7 @@ def run():
         "-P",
         "--pos-mode",
         default=False,
+        action="store_true",
         help="""Instad of recombination distances, use physical distances for binning""",
     )
     parser.add_argument(
@@ -420,6 +421,16 @@ def run():
         default=False,
         action="store_true",
         help="""allow  haploid (i.e. inbreed) stretches. Experimental""",
+    )
+    parser.add_argument(
+        "--filter-delta",
+        type=float,
+        help="""only use sites with allele frequency difference bigger than DELTA (default off)"""
+    )
+    parser.add_argument(
+        "--filter-pos",
+        type=int,
+        help="""greedily prune sites to be at least POS positions apart"""
     )
 
     add_bam_parse_group(parser)
