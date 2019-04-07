@@ -21,26 +21,27 @@ data = load_rle_data(rlefiles, names) %>%
 bins = load_bin_data(binfiles[1], names[1])
 coords =  bins %>% select(chrom, id, pos, map) %>% distinct()
 
-P = data %>% 
-    ggplot(aes(x=0, ymin=map, ymax=map_end, color=sample)) +
-    geom_linerange(lwd=2, position=position_dodge(.1)) +
+P = ggplot(mapping=aes(x=0, ymin=map, ymax=map_end, color=sample)) +
+    bg_chrom(flip=T) + 
+    geom_linerange(data=data, lwd=2, position=position_dodge(.1)) +
     coord_flip() +
     facet_wrap(~chrom, ncol=1, strip='l') + THEME
 ggsave(snakemake@output$tracksimple, width=20, height=11)
 
+MAP_MIN = .2
 df =  data %>% 
     rowwise %>% 
     do(id=seq(.$id, .$id_end)) %>% 
     bind_cols(data %>% select(sample, score, map_len), .) %>%
-    unnest %>% right_join(coords, .)
+    unnest %>% right_join(coords, .) %>%
+    arrange(-map_len) %>% 
+    filter(map_len > MAP_MIN) %>%
+    mutate(length = pmin(map_len, 2)) 
 
-MAP_MIN = .2
 # second overview plot: genomic positions and lengths, no indiv info
-P2= df %>% arrange(-map_len) %>% 
-    filter( map_len>MAP_MIN) %>% 
-    mutate(length = pmin(map_len, 2)) %>%
-    ggplot(aes(x=pos/1e6, y=1, fill=length, color=length)) + 
-    geom_col() + 
+P2= ggplot() + 
+    bg_chrom() +
+    geom_col(data=df, mapping=aes(x=map, y=1, fill=length, color=length)) + 
     facet_wrap(~chrom, ncol=1, strip='l') + 
     THEME + 
     xlab("Position (Mb)") +
