@@ -5,6 +5,7 @@ from collections import Counter
 import pdb
 from .utils import bins_from_bed, data2probs, init_pars, Pars
 from .utils import posterior_table, load_read_data, load_gt_data, load_ref, guess_sex
+from .utils import filter_ref
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .genotype_emissions import update_emissions, update_Ftau, update_tau
@@ -45,8 +46,8 @@ def baum_welch(
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
     # P(O, G | Z), scaled such that max for each row is 1
     #if gll_mode:
-    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
-    PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
+    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z) ** w
+    PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O) ** w
     #else:
     #    SNP = np.zeros((IX.n_snps, n_states))  # P(G | Z)
 
@@ -81,7 +82,6 @@ def baum_welch(
     scaling = e_scaling + s_scaling
 
     for it in range(max_iter):
-
         alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma)
         if sex == "m":
             # print("male ll doens't take x into account", end="\t")
@@ -222,7 +222,12 @@ def run_admixfrog(
     tau0=1,
     run_penalty=0.9,
     n_post_replicates=100,
+    ld_weighting=False,
     est_inbreeding=False,
+    est_contamination=True,
+    filter_delta=None,
+    filter_pos=None,
+    init_guess=None,
     gt_mode=False,
     **kwargs
 ):
@@ -241,7 +246,12 @@ def run_admixfrog(
         data = load_read_data(infile)
     else:
         data = load_read_data(infile, split_lib, downsample)
+
+    if not est_contamination and c0 ==0:
+        cont_id = None
+
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
+    ref = filter_ref(ref, state_ids, filter_delta, filter_pos)
     ref = ref.drop_duplicates(COORDS)
     if pos_mode:
         ref.map = ref.pos
@@ -265,7 +275,8 @@ def run_admixfrog(
     data = data.merge(snp)
 
     bins, IX = bins_from_bed(
-        bed=ref.iloc[:, :5], snp=snp, data=data, bin_size=bin_size, pos_mode=pos_mode, sex=sex
+        bed=ref.iloc[:, :5], snp=snp, data=data, bin_size=bin_size, 
+        pos_mode=pos_mode, sex=sex, ld_weighting=ld_weighting
     )
 
     ref = ref.merge(snp[COORDS], 'right')
@@ -283,11 +294,15 @@ def run_admixfrog(
     assert ref.shape[0] == P.alpha.shape[0]
     del ref, snp
 
-    pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding)
+    pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding, init_guess=init_guess)
     log_.info("done loading data")
 
     Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(
-        P, IX, pars, est_inbreeding=est_inbreeding, gt_mode=gt_mode,
+        P, IX,
+        pars,
+        est_inbreeding=est_inbreeding,
+        est_contamination=est_contamination,
+        gt_mode=gt_mode,
         **kwargs
     )
 
@@ -338,9 +353,14 @@ def run_admixfrog(
     df_libs["rg"] = rgs
     df_libs["len_bin"] = len_bins
     df_libs["deam"] = deams
-    CC = Counter(data.lib)
-    snp = pd.DataFrame([CC[l] for l in df_libs.lib], columns=["n_snps"])
-    df_libs = pd.concat((df_libs, snp), axis=1)
+
+    CC = data.groupby(['lib']).agg(({"tref": sum, "talt": sum})).reset_index()
+    CC['n_snps'] = CC.tref + CC.talt
+    #pdb.set_trace()
+    del CC['tref']
+    del CC['talt']
+
+    df_libs = df_libs.merge(CC)
     df_libs.sort_values("n_snps", ascending=False)
 
     df_pars = pd.DataFrame(pars.trans_mat, columns=pars.gamma_names)

@@ -4,7 +4,7 @@ from numba import njit
 from math import lgamma, exp
 
 
-@njit(fastmath=True)
+@njit
 def binom_pmf(O, N, p):
     res = np.power(p, O) * np.power(1.0 - p, N - O)
     for i, (o, n) in enumerate(zip(O, N)):
@@ -53,7 +53,7 @@ def p_reads_given_gt_gtmode(O, N, Pcont, c, error, n_obs):
     return read_emissions
 
 
-@njit(fastmath=True)
+@njit
 def read2snp_emissions(read_emissions, n_snps, ix):
     n_gt = 3
     snp_emissions = np.ones((n_snps, n_gt))
@@ -88,7 +88,7 @@ def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
     return ll
 
 
-@njit(fastmath=True)
+@njit
 def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
     """
     UNUSED, as cython version appears to be faster

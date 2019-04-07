@@ -77,18 +77,14 @@ class Blocks(ABC):
 
     def __init__(
         self,
-        bed,
+        file,
         chroms=AUTOSOMES,
         starts=defaultdict(lambda: 0),
         ends=defaultdict(lambda: int(1e12)),
         snp_alleles=True,
         max_snps=None,
     ):
-        if type(bed) is BedTool:
-            self.bed = bed
-        else:
-            self.bed = BedTool(bed)
-        self.chroms = chroms
+        self.file = file
         self.starts = starts
         self.ends = ends
         self.has_snp_alleles = snp_alleles
@@ -106,6 +102,22 @@ class Blocks(ABC):
     def __iter__(self):
         return self.blocks()
 
+    @abstractmethod
+    def blocks(self):
+        pass
+
+
+class BedBlocks(Blocks):
+    """
+    blocks by bed file
+    """
+
+    def __init__(self, file, *args, **kwargs):
+        super.__init__(file, *args, **kwargs)
+        if type(file) is not BedTool:
+            self.file = BedTool(file)
+
+
     def blocks(self):
         """Joint iterator over all sites and the corresponding block id.
         
@@ -121,6 +133,7 @@ class Blocks(ABC):
             return zip(block_ids, snp_positions)
         else:
             return itertools.islice(zip(block_ids, snp_positions), self.max_snps)
+
 
     def _get_snps_interval(self):
         """iterate over positions of a single interval in bed files
@@ -141,8 +154,7 @@ class Blocks(ABC):
                     yield pos
         return
 
-
-class SNPBlocks(Blocks):
+class SNPBlocks(BedBlocks):
     """Genome-wide blocking
     
     .. testsetup:: *
@@ -235,7 +247,7 @@ class SNPBlocks(Blocks):
                 yield self.block_start[chrom] + (i // self.sizes[chrom])
 
 
-class BPBlocks(Blocks):
+class BPBlocks(BedBlocks):
     """Genome-wide blocking by base-pairs
 
     See :class:`Blocks` for details. Note that the specified
@@ -338,7 +350,7 @@ class BPBlocks(Blocks):
                 yield int(self.block_start[b.chrom] + offset)
 
 
-class NoBlocks(Blocks):
+class NoBlocks(BedBlocks):
     """All SNP are assigned to one block
 
     See :class:`Blocks` for details
@@ -371,7 +383,7 @@ class NoBlocks(Blocks):
             yield 0
 
 
-class SingleBlocks(Blocks):
+class SingleBlocks(BedBlocks):
     """Each SNP is its own block
 
     .. testsetup:: *
@@ -405,7 +417,7 @@ class SingleBlocks(Blocks):
             block += 1
 
 
-class ChromBlocks(Blocks):
+class ChromBlocks(BedBlocks):
     """each chromosome is its own block
 
     See :class:`Blocks` for details
@@ -439,7 +451,7 @@ class ChromBlocks(Blocks):
                 yield b.chrom
 
 
-class MorganBlocks(Blocks):
+class MorganBlocks(BedBlocks):
     """Not yet implemented"""
 
     def __init__(self):

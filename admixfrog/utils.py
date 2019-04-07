@@ -1,5 +1,7 @@
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, Counter
+import pdb
 import numpy as np
+from numba import njit
 import pandas as pd
 try:
     from .log import log_
@@ -116,7 +118,8 @@ def data2probs(
         return P
 
 
-def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
+def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
+                  ld_weighting=False):
     """create a bunch of auxillary data frames for binning
 
     - bins: columns are chrom_id, chrom, bin_pos, bin_id, map
@@ -203,12 +206,27 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
     IX.n_obs = len(IX.OBS2SNP)
     IX.n_reads = np.sum(data.tref + data.talt)
 
+    # ld weighting:
+    # IX.snp_weight give for each SNP how it is supposed to be downweighted
+    IX.snp_weight = np.ones(IX.n_snps)
+    if ld_weighting:
+        ctr = Counter(IX.SNP2BIN)  # counter[bin] : n_snp
+        c = 0
+        for i in range(IX.n_bins):
+            for j in range(ctr[i]):
+                IX.snp_weight[c] = 1. / ctr[i]
+                c += 1
+        log_.debug("mean ld-weight %s" % np.mean(IX.snp_weight))
+
     log_.debug("done creating bins")
     return bins, IX  # , data_bin
 
 
 def init_pars(
-    state_ids, sex=None, F0=0.001, tau0=1, e0=1e-2, c0=1e-2, est_inbreeding=False
+    state_ids, sex=None, F0=0.001, tau0=1, e0=1e-2, c0=1e-2,
+    est_inbreeding=False,
+    init_guess = None
+
 ):
     homo = [s for s in state_ids]
     het = []
@@ -219,6 +237,9 @@ def init_pars(
     if est_inbreeding:
         gamma_names.extend(["h%s" % s for s in homo])
 
+    #
+
+
     n_states = len(gamma_names)
     n_homo = len(state_ids)
 
@@ -226,6 +247,13 @@ def init_pars(
     trans_mat = np.zeros((n_states, n_states)) + 2e-2
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
+
+    if init_guess is not None:
+        #guess = [i for i, n in enumerate(gamma_names) if init_guess in n]
+        guess = [i for i, n in enumerate(gamma_names) if init_guess == n]
+        trans_mat[:, guess] = trans_mat[:, guess] + 1
+        trans_mat /= np.sum(trans_mat,1)[:, np.newaxis] 
+
     try:
         if len(F0) == n_homo:
             F = F0
@@ -247,13 +275,57 @@ def init_pars(
     return Pars(alpha0, trans_mat, cont, e0, F, tau, gamma_names, sex=sex)
 
 
+def filter_ref(ref, states, filter_delta = None, filter_pos = None):
+    n_states = len(states)
+
+
+    if filter_delta is not None:
+        kp = np.zeros(ref.shape[0], np.bool)
+        for i, s1 in enumerate(states):
+            for j in range(i+1, n_states):
+                s2 = states[j]
+                f1 = np.nan_to_num(ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"]))
+                f2 = np.nan_to_num(ref[s2 + "_alt"] / (ref[s2 + "_alt"] + ref[s2 + "_ref"]))
+                delta = np.abs(f1 -f2)
+                kp = np.logical_or(kp, delta >= filter_delta)
+
+        log_.info("filtering %s SNP due to delta", np.sum(1-kp))
+        ref = ref[kp]
+
+    if filter_pos is not None:
+        chrom = pd.factorize(ref.chrom)[0]
+        pos = np.array(ref.pos)
+        kp = nfp(chrom ,pos, ref.shape[0], filter_pos)
+        log_.info("filtering %s SNP due to pos filter", np.sum(1-kp))
+        ref = ref[kp]
+
+    return ref
+
+@njit
+def nfp(chrom, pos, n_snps, filter_pos):
+    kp = np.ones(n_snps, np.bool_)
+    prev_chrom, prev_pos = -1, -10000000
+    for i in range(n_snps):
+        if prev_chrom != chrom[i]:
+            prev_chrom, prev_pos = chrom[i], pos[i]
+            continue
+        if pos[i] - prev_pos < filter_pos:
+            kp[i] = False
+        else:
+            prev_pos = pos[i]
+
+    return kp
+
+
 def load_ref(
     ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
 ):
-    if ancestral is None:
-        states = list(set(list(state_ids) + [cont_id]))
-    else:
-        states = list(set(list(state_ids) + [cont_id, ancestral]))
+    states = list(set(list(state_ids)))
+    if ancestral is not None:
+        states = list(set(list(states) + [ancestral]))
+    if cont_id is not None:
+        states = list(set(list(states) + [cont_id]))
+
     dtype_ = dict(chrom="category")
     ref = pd.read_csv(ref_file, dtype=dtype_)
     ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)
@@ -339,11 +411,13 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     # H = ref * alt / n / n
     H = f * (1.0 - f)  # alt formulation
     if H == 0.0:
-        return 1e-10, 1e-10
+        return 1e-6, 1e-6
 
     V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der / n, anc / n)))
     ab = (H - V) / (V - H / np.nanmean(n))
-    return f * ab, (1 - f) * ab
+    pa = max((f * ab, 1e-5))
+    pb = max(((1-f) * ab, 1e-5))
+    return pa, pb
 
 
 def guess_sex(data):
@@ -351,8 +425,8 @@ def guess_sex(data):
         lambda df: np.sum(df.tref + df.talt)
     )
     cov = cov.astype(float)
-    cov[True] /= np.sum(ref.chrom == "X")
-    cov[False] /= np.sum(ref.chrom != "X")
+    cov[True] /= np.sum(data.chrom == "X")
+    cov[False] /= np.sum(data.chrom != "X")
 
     if cov[True] / cov[False] < 0.8:
         sex = "m"

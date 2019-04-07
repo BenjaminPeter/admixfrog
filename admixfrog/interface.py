@@ -3,9 +3,11 @@ from .admixfrog import run_admixfrog
 from pprint import pprint, pformat
 from .bam import process_bam
 from .rle import get_rle
+from .vcf import load_pop_file, vcf_to_ref,load_random_read_samples
 from os.path import isfile
 import admixfrog
 from .log import log_, setup_log
+import pdb
 
 
 def add_bam_parse_group(parser):
@@ -39,14 +41,67 @@ def add_bam_parse_group(parser):
 
 
 def add_rle_parse_group(parser):
-    g = parser.add_argument_group("bam parsing")
+    g = parser.add_argument_group("call introgressed fragments")
     g.add_argument(
         "--run-penalty",
         type=float,
-        default=0.5,
+        default=0.2,
         help="""penalty for runs. Lower value means runs are called more
-        stringently (default 0.5)""",
+        stringently (default 0.2)""",
     )
+
+
+def add_ref_parse_group(parser):
+    g = parser.add_argument_group("creating reference file")
+    g.add_argument(
+        "--vcf-file",
+        "--vcf",
+        help="""VCF File to process. Choose this or reffile. 
+                   The resulting ref file will be writen as {out}.ref.xz,
+                   so it doesn't need to be regenerated.
+                   If the input file exists, an error is generated unless
+                   --force-vcf is set
+                   """,
+    )
+    g.add_argument(
+        "--pop-file",
+        default=None,
+        help="""Population assignments (yaml format)"""
+    )
+    g.add_argument(
+        "--rec-file", "--rec",
+        help="""Recombination rate file. Modelled after 
+        https://www.well.ox.ac.uk/~anjali/AAmap/
+        If file is split by chromosome, use {CHROM} as 
+        wildcards where the chromosome id will be included
+        """
+    )
+    g.add_argument(
+        "--rec-rate", 
+        default=1e-8,
+        type=float,
+        help="""Constant recombination rate (per generation per base-pair)"""
+    )
+    g.add_argument(
+        "--pos-id", 
+        default="Physical_Pos",
+        help="""column name for position (default: Physical_Pos)
+        """
+    )
+    g.add_argument(
+        "--map-id", 
+        default="AA_Map",
+        help="""column name for genetic map (default: AA_Map)
+        """
+    )
+    g.add_argument(
+        "--chrom0",
+        default='1',
+        help="""chromosome id for first chromosome/contig to be read for split-chromosome files.
+        All chromosomes should be present in the header of this vcf file.
+        """
+    )
+    g.add_argument("--force-vcf", default=False, action="store_true")
 
 
 def bam():
@@ -93,7 +148,9 @@ def do_rle():
     logger.info(pformat(args))
     import pandas as pd
 
-    data = pd.read_csv(args.infile)
+    dtype_ = dict(chrom="category")
+    data = pd.read_csv(args.infile, dtype=dtype_)
+    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
     states = list(data.columns)[6:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
 
@@ -101,9 +158,38 @@ def do_rle():
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
 
 
+def do_ref():
+    logger = setup_log()
+    parser = argparse.ArgumentParser(description="create reference file from vcf")
+    parser.add_argument(
+        "--outfile", "--out", required=True, help="output file name (xz-zipped)"
+    )
+    parser.add_argument(
+        "--states", 
+        nargs="*",
+        help="""Populations to be parsed. Need to be either present in the pop-file,
+        or, as single sample, in the vcf-file. If unset, all clusters defined in the 
+        pop-file will be used
+        """
+    )
+
+    add_ref_parse_group(parser)
+    args = parser.parse_args()
+    logger.info(pformat(args))
+
+    pop2sample = load_pop_file(args.pop_file, args.states)
+    random_read_samples = load_random_read_samples(args.pop_file)
+    logger.debug(pformat(random_read_samples))
+    vcf_to_ref(args.outfile, args.vcf_file, args.rec_file, 
+               pop2sample, 
+               random_read_samples,
+               args.pos_id, args.map_id,
+               rec_rate=args.rec_rate,
+               chrom0=args.chrom0)
+
+
 def run():
     logger = setup_log()
-
 
     parser = argparse.ArgumentParser(
         description="Infer admixture frogments from low-coverage and contaminated genomes"
@@ -137,6 +223,7 @@ def run():
     parser.add_argument(
         "--ref-file",
         "--ref",
+        default=None,
         help="""refernce input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
@@ -162,7 +249,6 @@ def run():
         additional ones:
         - REF : always reference allele
         - NRE : always non-ref allele
-        - SFS : allele frequencies are drawn from a  Beta(prior, prior) distribution
         - UNIF : allele frequencies are drawn from a uniform / Beta(1, 1) distribution
         - HALF : allele frequencies are drawn from a  Beta(0.5, 0.5) distribution
         - ZERO : allele frequencies are drawn from a  Beta(0, 0) distribution
@@ -180,6 +266,7 @@ def run():
         "-P",
         "--pos-mode",
         default=False,
+        action="store_true",
         help="""Instad of recombination distances, use physical distances for binning""",
     )
     parser.add_argument(
@@ -197,7 +284,7 @@ def run():
         "-p",
         type=float,
         default=None,
-        help="""Prior of reference allele frequencies. IF None (default), this is 
+        help="""Prior of reference allele frequencies. If None (default, recommended), this is 
         estimated from the data
         
         This number is added to both the
@@ -262,7 +349,7 @@ def run():
         action="store_const",
         const="m",
         default=None,
-        help="Assumes haploid X chromosome. Default is guess from coverage",
+        help="Assumes haploid X chromosome. Default is guess from coverage. currently broken",
     )
     parser.add_argument(
         "--female",
@@ -282,7 +369,7 @@ def run():
         "--downsample",
         type=float,
         default=1.0,
-        help="downsample coveragem keep only DS",
+        help="downsample coverage to a proportion of reads"
     )
     parser.add_argument(
         "--F0",
@@ -298,6 +385,12 @@ def run():
         default=0,
         #help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
         help="initial log-tau (default 0), at most 1 per source",
+    )
+    parser.add_argument(
+        "--ld-weighting", "--ld", 
+        default=False,
+        action="store_true",
+        help="""downweight SNP in the same bins to counter ancient LD. Very experimental, optimization appears to be broken"""
     )
     parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"
@@ -327,32 +420,80 @@ def run():
         "-I",
         default=False,
         action="store_true",
-        help="""allow  haploid (i.e. inbreed) stretches""",
+        help="""allow  haploid (i.e. inbreed) stretches. Experimental""",
+    )
+    parser.add_argument(
+        "--filter-delta",
+        type=float,
+        help="""only use sites with allele frequency difference bigger than DELTA (default off)"""
+    )
+    parser.add_argument(
+        "--filter-pos",
+        type=int,
+        help="""greedily prune sites to be at least POS positions apart"""
+    )
+    parser.add_argument(
+        "--init-guess",
+        nargs="*",
+        help="""init transition so that one state is favored. should be a 
+        state in --state-ids """
     )
 
     add_bam_parse_group(parser)
+    add_ref_parse_group(parser)
     add_rle_parse_group(parser)
 
     from . import __version__
-    logger.info("running admixfrog version %s", __version__)
+    log_.info("running admixfrog version %s", __version__)
     args = parser.parse_args()
     V = vars(args)
-    logger.info(pformat(V))
+    log_.info(pformat(V))
     force_bam = V.pop("force_bam")
+    force_vcf = V.pop("force_vcf")
 
-    if V["infile"] is not None and V["bamfile"] is not None:
-        raise ValueError("cant specify csv and bam input")
-    # elif V["bamfile"] is not None and V["bedfile"] is None:
-    #    raise ValueError("require bed file to create input from bam")
-    # if V["bamfile"] is not None and V["bedfile"] is not None:
+    if V["vcf_file"] is not None:
+        if V["ref_file"] is not None:
+            raise ValueError("cant specify ref and vcf input")
+        V["ref_file"] = V["out"] + ".ref.xz"
+        if isfile(V["ref_file"]) and not force_vcf:
+            raise ValueError(
+                """ref-file exists. Use this or set --force-vcf to 
+                regenerate the file"""
+            )
+        log_.info("creating ref from vcf file")
+
+        pop2sample = load_pop_file(V['pop_file'], V['states'])
+        random_read_samples = load_random_read_samples(V.pop('pop_file'))
+        logger.debug(pformat(random_read_samples))
+        vcf_to_ref(V.pop('ref_file'), 
+                   V.pop('vcf_file'),
+                   V.pop('rec_file'),
+                   pop2sample, 
+                   random_read_samples,
+                   V.pop('pos_id'),
+                   V.pop('map_id'),
+                   rec_rate=V.pop('rec_rate'),
+                   chrom0=V.pop('chrom0'))
+    else:
+        del V['pos_id']
+        del V['map_id']
+        del V['vcf_file']
+        del V['rec_file']
+        del V['rec_rate']
+        del V['pop_file']
+        del V['chrom0']
+
+
     if V["bamfile"] is not None:
+        if V["infile"] is not None:
+            raise ValueError("cant specify csv and bam input")
         V["infile"] = V["out"] + ".in.xz"
         if isfile(V["infile"]) and not force_bam:
             raise ValueError(
                 """infile exists. Use this or set --force-bam to 
                              regenerate"""
             )
-        print("creating input from bam file")
+        log_.info("creating input from bam file")
         process_bam(
             outfile=V["infile"],
             bamfile=V.pop("bamfile"),
@@ -370,7 +511,7 @@ def run():
 
     from . import __version__
 
-    logger.info("admixfrog %s", __version__)
+    log_.info("admixfrog %s", __version__)
     bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")

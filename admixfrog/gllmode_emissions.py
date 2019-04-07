@@ -61,7 +61,7 @@ def update_Ftau_gllmode(F, tau, PG, P, IX):
 
         def f(t):
             F, tau = t
-            x = np.log(_p_gt_homo(s, P, F, exp(tau)) + 1e-10) * PG[:, s, :]
+            x = np.log(_p_gt_homo(s, P, F, exp(tau)) + 1e-10) * PG[:, s, :] 
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -118,10 +118,9 @@ def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
         GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
         GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
         for s in range(n_homo_states):
-            a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s]
-            GT[IX.HAPSNP, s, 0] = b / (a + b)  # if a +b > 0 else 0
-            GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0
-
+            a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s] 
+            GT[IX.HAPSNP, s, 0] = b / (a + b)  #if a +b > 0 else 0 
+            GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0 
     return GT
 
 

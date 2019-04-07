@@ -200,6 +200,49 @@ rule run_admixfrog_posmode:
         s += " --female"
         shell(s)
 
+rule run_admixfrog_ds:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.4,
+        max_iter = 250,
+        n_post_rep = 200,
+    version: ".3"
+    output:
+        res_bin = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.pars.xz",
+        res_rle = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --dont-est-contamination --c0 0 "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        s += " --ancestral {params.ancestral} "
+        s += " --downsample {wildcards.ds} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --female"
+        shell(s)
+
+
 rule call_runs:
     input:
         rle = "admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
@@ -293,6 +336,20 @@ def _panel_pars(wc):
     l = expand("admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.pars.xz",
         bin_size=["{bin_size}"],
         type=["{type}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel])
+    return l
+def _panel_cont(wc):
+    l = expand("admixfrog/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        bin_size=["{bin_size}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel])
+    return l
+def _panel_pars(wc):
+    l = expand("admixfrog/{bin_size}/{states}/{sample}_{snpset}.pars.xz",
+        bin_size=["{bin_size}"],
         states=["{states}"],
         snpset=["{snpset}"],
         sample=config['panels'][wc.panel])
@@ -486,6 +543,31 @@ ruleorder: plot_sample_overview_paper > plot_sample_overview
 rule plot_sample_overview_paper:
     input:
         bin = "admixfrog/basic/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+    params:
+        pmax = 0.7, #state with avg posterior larger than this is omitted
+        pmin = 1e-4 #states with avg posterior lower than this are omitted
+    output:
+        touch("controller/track/{states}/{TRACK}/{cutoff}/{panel}_{bin_size,\d+}_{snpset}.figs")
+
+rule ust_ishim_test:
+    input:
+        expand("figures/AFR_VIN_DEN/UstIshim_overview_map_{bs}_thirdallele.png", 
+            bs=[1000, 2000,5000,10000,20000]),
+        expand("figures/AFR_VIN_DEN/UstIshim_overview_map_5000_{set}.png", 
+            set=["thirdallele", "twomillion", "A1240k", "A3700k", "archaicadmixture"]),
+        expand("admixfrog_ds{ds}/5000/AFR_VIN_DEN/UstIshim_archaicadmixture.res.xz", 
+            ds=[0.001, 0.002, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1]),
+        expand("figures/{states}/UstIshim_overview_map_5000_archaicadmixture.png", 
+            states=["AFR_VIN_DEN", "AFR_VIN", "AFR_CHA_DEN", "AFR_ALT_DEN",
+                    "AFR_VIN_CHA_ALT_DEN", "AFR_VIN_CHA_ALT",
+                    "AFR_NEA_DEN", "AFR_NEA", "AFK_NEA", "AFR_EUR_NEA",
+                    "EUR_NEA"
+                    ])
+
+ruleorder: plot_sample_overview_paper > plot_sample_overview
+rule plot_sample_overview_paper:
+    input:
+        bin = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
     params:
         pmax = 0.7, #state with avg posterior larger than this is omitted
         pmin = 1e-4 #states with avg posterior lower than this are omitted

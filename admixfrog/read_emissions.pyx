@@ -57,6 +57,7 @@ def update_contamination(cont, error, P, PG, IX, libs):
     """
     n_libs = len(libs)
     delta = 0.
+
     for i in range(n_libs):
         lib = libs[i]
         f_ = IX.RG2OBS[lib]
