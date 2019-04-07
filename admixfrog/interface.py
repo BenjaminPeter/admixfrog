@@ -433,6 +433,11 @@ def run():
         help="""greedily prune sites to be at least POS positions apart"""
     )
     parser.add_argument(
+        "--filter-map",
+        type=float,
+        help="""greedily prune sites to be at least MAP recombination distance apart"""
+    )
+    parser.add_argument(
         "--init-guess",
         nargs="*",
         help="""init transition so that one state is favored. should be a 

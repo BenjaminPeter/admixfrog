@@ -227,6 +227,7 @@ def run_admixfrog(
     est_contamination=True,
     filter_delta=None,
     filter_pos=None,
+    filter_map=None,
     init_guess=None,
     gt_mode=False,
     **kwargs
@@ -251,7 +252,7 @@ def run_admixfrog(
         cont_id = None
 
     ref = load_ref(ref_file, state_ids, cont_id, prior, ancestral, autosomes_only)
-    ref = filter_ref(ref, state_ids, filter_delta, filter_pos)
+    ref = filter_ref(ref, state_ids, filter_delta, filter_pos, filter_map)
     ref = ref.drop_duplicates(COORDS)
     if pos_mode:
         ref.map = ref.pos

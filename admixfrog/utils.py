@@ -275,7 +275,10 @@ def init_pars(
     return Pars(alpha0, trans_mat, cont, e0, F, tau, gamma_names, sex=sex)
 
 
-def filter_ref(ref, states, filter_delta = None, filter_pos = None):
+def filter_ref(ref, states, 
+               filter_delta = None, 
+               filter_pos = None,
+               filter_map=None):
     n_states = len(states)
 
 
@@ -299,6 +302,13 @@ def filter_ref(ref, states, filter_delta = None, filter_pos = None):
         log_.info("filtering %s SNP due to pos filter", np.sum(1-kp))
         ref = ref[kp]
 
+    if filter_map is not None:
+        chrom = pd.factorize(ref.chrom)[0]
+        pos = np.array(ref.map)
+        kp = nfp(chrom ,pos, ref.shape[0], filter_map)
+        log_.info("filtering %s SNP due to map filter", np.sum(1-kp))
+        ref = ref[kp]
+
     return ref
 
 @njit
@@ -309,7 +319,7 @@ def nfp(chrom, pos, n_snps, filter_pos):
         if prev_chrom != chrom[i]:
             prev_chrom, prev_pos = chrom[i], pos[i]
             continue
-        if pos[i] - prev_pos < filter_pos:
+        if pos[i] - prev_pos <= filter_pos:
             kp[i] = False
         else:
             prev_pos = pos[i]
