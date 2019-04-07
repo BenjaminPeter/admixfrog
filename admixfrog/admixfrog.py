@@ -227,6 +227,7 @@ def run_admixfrog(
     est_contamination=True,
     filter_delta=None,
     filter_pos=None,
+    init_guess=None,
     gt_mode=False,
     **kwargs
 ):
@@ -293,7 +294,7 @@ def run_admixfrog(
     assert ref.shape[0] == P.alpha.shape[0]
     del ref, snp
 
-    pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding)
+    pars = init_pars(state_ids, sex, F0, tau0, e0, c0, est_inbreeding, init_guess=init_guess)
     log_.info("done loading data")
 
     Z, G, pars, ll, emissions, (alpha, beta, n) = baum_welch(

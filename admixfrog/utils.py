@@ -223,7 +223,10 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
 
 
 def init_pars(
-    state_ids, sex=None, F0=0.001, tau0=1, e0=1e-2, c0=1e-2, est_inbreeding=False
+    state_ids, sex=None, F0=0.001, tau0=1, e0=1e-2, c0=1e-2,
+    est_inbreeding=False,
+    init_guess = None
+
 ):
     homo = [s for s in state_ids]
     het = []
@@ -234,6 +237,9 @@ def init_pars(
     if est_inbreeding:
         gamma_names.extend(["h%s" % s for s in homo])
 
+    #
+
+
     n_states = len(gamma_names)
     n_homo = len(state_ids)
 
@@ -241,6 +247,13 @@ def init_pars(
     trans_mat = np.zeros((n_states, n_states)) + 2e-2
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
+
+    if init_guess is not None:
+        #guess = [i for i, n in enumerate(gamma_names) if init_guess in n]
+        guess = [i for i, n in enumerate(gamma_names) if init_guess == n]
+        trans_mat[:, guess] = trans_mat[:, guess] + 1
+        trans_mat /= np.sum(trans_mat,1)[:, np.newaxis] 
+
     try:
         if len(F0) == n_homo:
             F = F0

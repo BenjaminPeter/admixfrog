@@ -432,6 +432,12 @@ def run():
         type=int,
         help="""greedily prune sites to be at least POS positions apart"""
     )
+    parser.add_argument(
+        "--init-guess",
+        nargs="*",
+        help="""init transition so that one state is favored. should be a 
+        state in --state-ids """
+    )
 
     add_bam_parse_group(parser)
     add_ref_parse_group(parser)
