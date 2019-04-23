@@ -33,6 +33,12 @@ def add_bam_parse_group(parser):
                    considered separately""",
     )
     g.add_argument(
+        "--minmapq",
+        type=int,
+        default=25,
+        help="""reads with mapq < MINMAPQ are removed""",
+    )
+    g.add_argument(
         "--length-bin-size",
         type=int,
         default=None,
@@ -511,6 +517,7 @@ def run():
         del V["bamfile"]
         del V["deam_cutoff"]
         del V["length_bin_size"]
+        del V["minmapq"]
 
     out = V.pop("out")
 

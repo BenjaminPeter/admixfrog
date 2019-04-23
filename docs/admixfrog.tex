@@ -293,7 +293,50 @@ $$
 \log P(O, Z, G | \theta)
 $$
 \section{Post-processing}
+We assume that an introgressed fragment $f \in F$ (or parts thereof) are observed in multiple individuals $s \in S$, and we know it's distribution from a number of samples. We assume that each fragment entered the population at a time $T_f$, and approximate the likelihood as independent between samples:
 
+$$P(L_f | A, T_f, k) = \prod_s P(L_{sf} | A_s, T_f, k) \approx \prod_s \sum_i P(L_{sfi} | A_s, T_f, k)$$
+
+The likelihood $P(L_{sfi} | A_s, T_f, k)$ is written as
+\begin{equation}
+P(L_{sfi} | A_s, T_f, k) = 
+	\begin{cases}
+		    \frac{T_f - A_s}{k} \exp\left(- \frac{T_f - A_s}{k} L_{sfi}\right)  ,& \text{if } T_f \geq A_s \\
+				0,              & \text{otherwise}
+	\end{cases}
+\end{equation}
+
+To estimate all $T$, we assume that all fragments are independent
+
+$P(T | A, k, L) = \prod_f P(T_f | A, k, L_f)$
+
+\begin{equation}
+P(T_f | L_{f}, A, k) = \prod_s
+\frac{P(L_{sf} | A_s, T_f, k)P(T_f | A, k)}{P(L_{sf} | A_s, k)}
+\end{equation}
+which yields
+
+\begin{equation}
+P(T | L, A, k) = \prod_f\prod_s
+\frac{P(L_{sf} | A_s, T_f, k)P(T_f | A, k)}{P(L_{sf} | A_s, k)}
+\end{equation}
+
+
+
+Let us denote $l_{fsi}$, the $i$-th estimate of the length of a
+
+
+Given a set of samples $S$ with ages $A_s$, and a draw of introgressed fragments for each sample $f_i$. We assume the following mixture model:
+
+$$P(f_{is}|A_s) = \sum_k \pi_{k} P(f_is | A_s, T_k) P(T_k, a_k, b_k)$$
+
+
+
+\begin{align}
+f_{is} | Z_i=i, A_s &\sim Exp[T_i - A_s]\\
+T_i | Z_i= i &\sim \Gamma[a_i, b_i]\\
+Z_i  &\sim Multinomial(\pi)
+\end{align}
 
 
 \section{additional notes to be removed}
@@ -423,7 +466,7 @@ $$P(T_i | L_i) \propto P(L_i | T_i) P(T_i) $$
 
 $P(L_i)$ is estimated from the genome-wide distribution of tract lengths, and we assume it is gamma distributed. Therefore,
 \begin{equation}
-$P(T_i | L) \sim \Gamma(a+1, b+L_i)
+P(T_i | L) \sim \Gamma(a+1, b+L_i)
 \end{equation}
 
 We estimate the time of the most recent gene flow from the length of the longest fragment:

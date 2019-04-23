@@ -344,6 +344,7 @@ class BamFile(ComplexFile):
         if "S" in A.cigarstring:
             return None
 
+        mapq = A.mapping_quality
         ref_seq = A.get_reference_sequence()
         pos_in_read = pileup_read.query_position
         read_len = A.query_length
@@ -375,6 +376,7 @@ class BamFile(ComplexFile):
                 read_base,
                 read_len,
                 baseq,
+                mapq,
                 A.is_reverse,
                 pos_in_read,
                 deam_full

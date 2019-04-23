@@ -154,11 +154,14 @@ class ReadGT(GT):
         pos_in_read_cutoff=3,
         min_length=30,
         max_length=1000,
-        minq=25
+        minq=25,
+        minmapq=25
            ):
         if read.len < min_length or read.len > max_length:
             return False
         if read.bq < minq:
+            return False
+        if read.mq < minmapq:
             return False
         if read.pos_in_read < pos_in_read_cutoff:
             return False

@@ -250,7 +250,8 @@ def init_pars(
 
     if init_guess is not None:
         #guess = [i for i, n in enumerate(gamma_names) if init_guess in n]
-        guess = [i for i, n in enumerate(gamma_names) if init_guess == n]
+        guess = [i for i, n in enumerate(gamma_names) if n in init_guess]
+        log_.info("starting with guess %s " %  guess)
         trans_mat[:, guess] = trans_mat[:, guess] + 1
         trans_mat /= np.sum(trans_mat,1)[:, np.newaxis] 
 
