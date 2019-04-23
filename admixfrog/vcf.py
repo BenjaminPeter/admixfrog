@@ -1,4 +1,5 @@
 import pdb
+from collections import Counter
 import lzma
 from pysam import VariantFile
 from collections import defaultdict
@@ -9,6 +10,7 @@ from .log import log_
 
 EXT = "ref", "alt"
 
+""" some debug stuff, to be removed"""
 x = defaultdict(lambda s: s)
 x['AFR'] = 'S_Mbuti-1', 'S_Mbuti-2', 'S_Mbuti-3'
 x['PAN'] = 'panTro4',
@@ -38,15 +40,6 @@ def load_pop_file(pop_file=None, pops=None):
             else:
                 P2[p] = [p]
         return P2
-
-def load_random_read_samples(pop_file=None):
-    if pop_file is None:
-        return []
-    with open(pop_file) as f:
-        y = yaml.load(f, Loader=yaml.FullLoader)
-        y = y['random_read_samples'] if 'random_read_samples' in y else y
-        return y
-
 
 def vcf_to_ref(outfile, vcf_file, rec_file, 
                pop2sample, random_read_samples=[],
@@ -135,3 +128,58 @@ def vcf_to_ref(outfile, vcf_file, rec_file,
         
                     ref.write(",".join((str(D[c]) for c in data_cols)))
                     ref.write("\n")
+
+
+def vcf_to_sample(outfile, vcf_file, ref_file, 
+               sample_id, random_read=False,
+               chrom0='1'
+               ):
+    with  VariantFile(vcf_file.format(CHROM=chrom0)) as vcf:
+        chroms = [i for i in vcf.header.contigs]
+        log_.debug("chroms found: %s", chroms)
+
+    ref = pd.read_csv(ref_file)
+    ref.chrom = ref.chrom.astype(str)
+
+    with lzma.open(outfile, 'wt') as infile:
+        infile.write(f"chrom,pos,tref,talt\n")
+
+        for chrom in chroms:
+
+            ref_local = ref[ref.chrom == chrom]
+            with  VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
+                vcf.subset_samples([sample_id])
+                for row in vcf.fetch(chrom):
+                    if len(row.alleles) != 2: 
+                        continue
+
+                    if row.pos in ref_local.pos.values:
+                        pass
+                        # log_.debug(f"{row.chrom}:{row.pos} in ref")
+                    else:
+                        log_.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
+                        continue
+
+                    infile.write(f'{row.chrom},{row.pos},')
+
+                    sample_data = row.samples
+                    for s in sample_data:
+                        if random_read:
+                            allele = sample_data[s]['GT'][0]
+                            if allele == 0:
+                                infile.write("1,0\n")
+                            elif allele == 1:
+                                infile.write("0,1\n")
+                            else:
+                                infile.write("0,0\n")
+                        else:
+                            alleles = Counter(sample_data[s]['GT'])
+                            infile.write(f"{alleles[0]},{alleles[1]}\n")
+
+def load_random_read_samples(pop_file=None):
+    if pop_file is None:
+        return []
+    with open(pop_file) as f:
+        y = yaml.load(f, Loader=yaml.FullLoader)
+        y = y['random_read_samples'] if 'random_read_samples' in y else y
+        return y

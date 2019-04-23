@@ -3,7 +3,7 @@ from .admixfrog import run_admixfrog
 from pprint import pprint, pformat
 from .bam import process_bam
 from .rle import get_rle
-from .vcf import load_pop_file, vcf_to_ref,load_random_read_samples
+from .vcf import load_pop_file, vcf_to_ref,load_random_read_samples, vcf_to_sample
 from os.path import isfile
 import admixfrog
 from .log import log_, setup_log
@@ -119,7 +119,7 @@ def bam():
     parser.add_argument(
         "--ref",
         "--ref-file",
-        help="""refernce input file (csv). 
+        help="""reference input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
                         - pos : physical position (int)
@@ -130,6 +130,18 @@ def bam():
                         these are used later in --cont-id and --state-id flags
                         """,
     )
+    parser.add_argument(
+        "--vcfgt",
+        "--vcf-gt",
+        "--vcf-infile",
+        help="""VCF input file. To generate input format for admixfrog in genotype mode, use this.
+        """
+    )
+    parser.add_argument(
+        "--sample-id",
+        help="""sample id for vcf mode.
+        """
+    )
     add_bam_parse_group(parser)
     args = vars(parser.parse_args())
     logger.info(pformat(args))
@@ -137,7 +149,16 @@ def bam():
     if isfile(args["outfile"]) and not force_bam:
         raise ValueError("""infile exists. set --force-bam to regenerate""")
 
-    process_bam(**args)
+    if 'vcfgt' in args and args['vcfgt'] is not None:
+        vcf_to_sample(outfile=args['outfile'],
+                      vcf_file=args['vcfgt'],
+                      ref_file=args['ref'],
+                      random_read=False,
+                      sample_id=args['sample_id'])
+    else:
+        del args['vcfgt']
+        del args['sample_id']
+        process_bam(**args)
 
 
 def do_rle():
@@ -297,7 +318,7 @@ def run():
         ref and alt allele count for each reference, to reflect the uncertainty in allele
         frequencies from a sample. If references are stationary with size 2N, this is
         approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
-          """,
+          """
     )
     parser.add_argument(
         "--dont-est-contamination",

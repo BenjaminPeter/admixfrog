@@ -3,9 +3,9 @@ import pickle
 import pandas as pd
 from collections import Counter
 import pdb
+from .io import load_read_data, load_gt_data, load_ref, filter_ref
 from .utils import bins_from_bed, data2probs, init_pars, Pars
-from .utils import posterior_table, load_read_data, load_gt_data, load_ref, guess_sex
-from .utils import filter_ref
+from .utils import posterior_table,  guess_sex
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_F, update_snp_prob
 from .genotype_emissions import update_emissions, update_Ftau, update_tau
@@ -39,7 +39,7 @@ def baum_welch(
     gll_mode = not gt_mode
     ll = -np.inf
     n_states = len(alpha0)
-    n_gt = 1 if gt_mode else 3
+    n_gt = 3 if gt_mode else 3
 
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
@@ -152,6 +152,7 @@ def update_emission_stuff(it,
                           freq_contamination, freq_F,
                           gt_mode):
     cond_cont = est_contamination and (it % freq_contamination == 0 or it < 3)
+
     cond_F = est_F and (it % freq_F == 0 or it < 3)
     cond_tau = est_tau and (it % freq_F == 0 or it < 3)
     cond_Ftau = cond_F and cond_tau

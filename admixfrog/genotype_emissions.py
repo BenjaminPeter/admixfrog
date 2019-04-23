@@ -43,7 +43,8 @@ def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-250)
         snp_emissions = SNP 
 
     E[:] = 1  # reset
-    snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
+    snp2bin(E, snp_emissions, IX.SNP2BIN)
+    #snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
     log_.debug("mean emission %s" % np.mean(E))
     if not est_inbreeding:
         E[IX.HAPBIN, n_homo_states:] = 0
@@ -72,8 +73,6 @@ def update_post_geno(PG, SNP, Z, IX):
     SNP[n_snp x n_states x n_geno]: P(O, G | Z) 
     Z[n_bin x n_states]: P(Z | O')
 
-
-    update Mar27: now returns 1/S P(G, Z |O), to scale for LD
     """
     PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z) 
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
@@ -88,7 +87,7 @@ def update_post_geno(PG, SNP, Z, IX):
     except AssertionError:
         pdb.set_trace()
 
-    PG *= IX.snp_weight[:, np.newaxis, np.newaxis]
+    #PG *= IX.snp_weight[:, np.newaxis, np.newaxis]
 
     return PG
 
