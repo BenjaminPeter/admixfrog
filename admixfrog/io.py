@@ -14,7 +14,7 @@ except (ImportError, ModuleNotFoundError):
 
 
 def load_ref(
-    ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
+    ref_files, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
 ):
     states = list(set(list(state_ids)))
     if ancestral is not None:
@@ -22,9 +22,38 @@ def load_ref(
     if cont_id is not None:
         states = list(set(list(states) + [cont_id]))
 
+
+    basic_cols = ['chrom', 'pos', 'ref', 'alt'] # required in every ref
+    map_col =['map']
+    ref_cols = [f'{s}_ref' for s in states]
+    alt_cols = [f'{s}_alt' for s in states]
+    cols = map_col + ref_cols + alt_cols
+    file_ix = [None for i in cols]
+
+    # read headers of each ref
+    headers = list(list(pd.read_csv(r, nrows=0).columns) for r in ref_files)
+    for i, col in enumerate(cols):
+        for j, h in enumerate(headers):
+            if col in h and file_ix[i] is None:
+                file_ix[i] = j
+                log_.debug(f"found col {col} in header {j}")
+                break
+
+    if None in file_ix:
+        s = [c for i, c in zip(file_ix, cols) if i is None]
+        raise ValueError("columns not found in reference: " + ", ".join(s))
+
     dtype_ = dict(chrom="category")
-    ref = pd.read_csv(ref_file, dtype=dtype_)
-    ref.chrom.cat.reorder_categories(pd.unique(ref.chrom), inplace=True)
+    for i, ref_file in enumerate(ref_files):
+        cols0 = basic_cols + [col for ix, col in zip(file_ix, cols) if ix == i]
+        ref0 = pd.read_csv(ref_file, dtype=dtype_, usecols=cols0)
+        ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
+        ref0.drop_duplicates(inplace=True, subset=basic_cols)
+        if i == 0:
+            ref = ref0
+        else:
+            ref = ref.merge(ref0, on = basic_cols, how='outer')
+
 
     if "UNIF" in states:
         ref["UNIF_ref"] = 1 - prior
@@ -42,16 +71,12 @@ def load_ref(
         ref["SFS_ref"] = prior
         ref["SFS_alt"] = prior
     if "HALF" in states:
-        ref["SFS_ref"] = 0.5 - prior
-        ref["SFS_alt"] = 0.5 - prior
-    if "PAN" in states:
-        ref["PAN_ref"] /= 2
-        ref["PAN_alt"] /= 2
+        ref["HALF_ref"] = 0.5 - prior
+        ref["HALF_alt"] = 0.5 - prior
 
-    ix = list(ref.columns[:5])
-    suffixes = ["_alt", "_ref"]
-    cols = ix + [s + x for s in states for x in suffixes]
-    ref = ref[cols].dropna()
+    ref.dropna(inplace=True, subset=basic_cols + map_col)
+    ref.iloc[:, 5:].fillna(value=0, inplace=True)
+
     if autosomes_only:
         ref = ref[ref.chrom != "X"]
         ref = ref[ref.chrom != "Y"]

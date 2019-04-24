@@ -268,7 +268,7 @@ est_default = dict(
 
 def run_admixfrog(
     infile,
-    ref_file,
+    ref_files,
     states=("AFR", "VIN", "DEN"),
     cont_id="AFR",
     split_lib=True,
@@ -309,7 +309,7 @@ def run_admixfrog(
     if not est["est_contamination"] or c0 == 0:
         cont_id = None
 
-    ref = load_ref(ref_file, states, cont_id, prior, ancestral, autosomes_only)
+    ref = load_ref(ref_files, states, cont_id, prior, ancestral, autosomes_only)
     ref = filter_ref(ref, states, **filter)
     ref = ref.drop_duplicates(COORDS)
     if pos_mode:
@@ -352,11 +352,9 @@ def run_admixfrog(
     pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], **init)
     log_.info("done loading data")
 
-    Z, G, pars, ll, emissions, hap_emissions, (alpha, beta, n), (
-        ahap,
-        bhap,
-        nhap,
-    ) = baum_welch(P, IX, pars, gt_mode=gt_mode, **est, **kwargs)
+    Z, G, pars, ll, emissions, hemissions, (_, beta, n), (_, bhap, nhap) = baum_welch(
+        P, IX, pars, gt_mode=gt_mode, **est, **kwargs
+    )
     # pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
 
     # output formating from here
@@ -377,7 +375,7 @@ def run_admixfrog(
         )
         df_pred_hap = pred_sims(
             trans=pars.trans_hap,
-            emissions=hap_emissions,
+            emissions=hemissions,
             beta=bhap,
             alpha0=pars.alpha0_hap,
             n=nhap,
@@ -397,7 +395,7 @@ def run_admixfrog(
 
     if output["output_bin"] or output["output_rle"]:
         viterbi_path = viterbi(pars.alpha0, pars.trans, emissions)
-        viterbi_path_hap = viterbi(pars.alpha0_hap, pars.trans_hap, hap_emissions)
+        viterbi_path_hap = viterbi(pars.alpha0_hap, pars.trans_hap, hemissions)
         V = np.array(pars.gamma_names)[np.hstack(viterbi_path)]
         viterbi_df = pd.Series(V, name="viterbi")
 

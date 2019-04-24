@@ -313,9 +313,11 @@ def run():
         default=False,
     )
     parser.add_argument(
-        "--ref-file",
         "--ref",
+        "--ref-file",
         default=None,
+        action="append",
+        dest='ref_files',
         help="""refernce input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome

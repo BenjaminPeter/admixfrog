@@ -86,8 +86,8 @@ def data2probs(
                 beta[:, i] = ref[b] + pb
         else:
             anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
-            ref_is_anc = (ref[anc_ref] == 1) & (ref[anc_alt] == 0)
-            alt_is_anc = (ref[anc_alt] == 1) & (ref[anc_ref] == 0)
+            ref_is_anc = (ref[anc_ref] > 0) & (ref[anc_alt] == 0)
+            alt_is_anc = (ref[anc_alt] > 0) & (ref[anc_ref] == 0)
             ref_is_der, alt_is_der = alt_is_anc, ref_is_anc
             anc_is_unknown = (1 - alt_is_anc) * (1 - ref_is_anc) == 1
             for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
@@ -377,6 +377,7 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
 def empirical_bayes_prior(der, anc, known_anc=False):
     """using beta-binomial plug-in estimator
     """
+    breakpoint()
     n = anc + der
     f = np.nanmean(der / n) if known_anc else 0.5
     # H = ref * alt / n / n
@@ -397,7 +398,7 @@ def guess_sex(data, sex_ratio_threshold=0.8):
         By convention, all chromosomes are assumed to be diploid unless they start
         with an `X` or `W`
     """
-    data["heterogametic"] = [v[0] in "XWxw" for v in data.chrom.values]
+    data["heterogametic"] = [v[0] in "XZxz" for v in data.chrom.values]
     cov = data.groupby(data.heterogametic).apply(lambda df: np.sum(df.tref + df.talt))
     cov = cov.astype(float)
     cov[True] /= np.sum(data.heterogametic)
