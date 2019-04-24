@@ -6,7 +6,8 @@ def setup_log():
     #logger = logging.getLogger('admixfrog')
     log_.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter('[%(asctime)s]: %(message)s')
+    formatter = logging.Formatter('[%(asctime)s]:  %(message)s',
+                                  '%H:%M:%S')
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)

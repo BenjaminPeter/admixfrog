@@ -33,7 +33,6 @@ def baum_welch(
     est_inbreeding=False,
     gt_mode=False
 ):
-    breakpoint()
     alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, gamma_names, sex = pars
     gll_mode = not gt_mode
     ll = -np.inf
@@ -63,7 +62,6 @@ def baum_welch(
             emissions.append(E[row0 : (row0 + r)])
         row0 += r
 
-    breakpoint()
     #if gll_mode:
     s_scaling = update_snp_prob(
         SNP, P, IX, cont, error, F, tau, est_inbreeding, gt_mode
@@ -231,6 +229,7 @@ def run_admixfrog(
     filter_map=None,
     init_guess=None,
     gt_mode=False,
+    keep_loc = True,
     **kwargs
 ):
 
@@ -325,7 +324,21 @@ def run_admixfrog(
         n_homo=len(state_ids),
         n_sims=n_post_replicates,
         est_inbreeding=est_inbreeding,
+        keep_loc=keep_loc
     )
+    df_pred_hap = pred_sims(
+        trans=pars.trans_hap,
+        emissions=hap_emissions,
+        beta=bhap,
+        alpha0=pars.alpha0_hap,
+        n=nhap,
+        n_homo=len(state_ids),
+        n_sims=n_post_replicates,
+        est_inbreeding=est_inbreeding,
+        keep_loc=keep_loc,
+        decode=False
+    )
+    breakpoint()
 
     # output formating from here
     V = np.array(pars.gamma_names)[np.hstack(viterbi_path)]

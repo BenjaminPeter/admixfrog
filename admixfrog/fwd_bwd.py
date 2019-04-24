@@ -142,7 +142,6 @@ def update_transitions(
     old_trans_mat, alpha, beta, gamma, emissions, n, est_inbreeding=False
 ):
     # if no diploid / haploid data, do not update
-    breakpoint()
     if len(alpha) == 0:
         return old_trans_mat
 
