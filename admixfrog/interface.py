@@ -9,6 +9,14 @@ import admixfrog
 from .log import log_, setup_log
 import pdb
 
+BASE_OPTIONS = ['bin_size', 'autosomes_only', 'downsample', 'gt_mode', 
+                'll_tol', 'max_iter', 'n_post_replicates', 'pos_mode',
+                'prior', 'split_lib']
+POP_OPTIONS = ['cont_id', 'infile', 'ref_files', 'sex', 'states', 'ancestral']
+
+
+
+
 
 def add_output_parse_group(parser):
     g = parser.add_argument_group(
@@ -67,7 +75,10 @@ def add_output_parse_group(parser):
     )
 
 
-def add_bam_parse_group(parser):
+INFILE_PARS =['bamfile', 'deam_cutoff', 'minmapq', 'force_infile',
+              'length_bin_size', 'tstv', 'alleles', 'vcfgt', 
+              'sample_id']
+def add_infile_parse_group(parser):
     g = parser.add_argument_group("bam parsing")
     g.add_argument(
         "--bamfile",
@@ -76,10 +87,10 @@ def add_bam_parse_group(parser):
                    The resulting input file will be writen in {out}.in.xz,
                    so it doesn't need to be regenerated.
                    If the input file exists, an error is generated unless
-                   --force-bam is set
+                   --force-infile is set
                    """,
     )
-    g.add_argument("--force-bam", default=False, action="store_true")
+    g.add_argument("--force-infile", '--force-bam',  default=False, action="store_true")
     # g.add_argument("--bedfile", "--bed",
     #               help="Bed file with anc/der allele to restrict to")
     g.add_argument(
@@ -114,6 +125,8 @@ def add_rle_parse_group(parser):
     )
 
 
+REFFILE_PARS = ['vcf_file', 'pop_file', 'rec_file', 'rec_rate',
+                'pos_id', 'map_id', 'chrom0', 'force_ref']
 def add_ref_parse_group(parser):
     g = parser.add_argument_group("creating reference file")
     g.add_argument(
@@ -123,7 +136,7 @@ def add_ref_parse_group(parser):
                    The resulting ref file will be writen as {out}.ref.xz,
                    so it doesn't need to be regenerated.
                    If the input file exists, an error is generated unless
-                   --force-vcf is set
+                   --force-ref is set
                    """,
     )
     g.add_argument(
@@ -163,7 +176,7 @@ def add_ref_parse_group(parser):
         All chromosomes should be present in the header of this vcf file.
         """,
     )
-    g.add_argument("--force-vcf", default=False, action="store_true")
+    g.add_argument("--force-ref", '--force-vcf', default=False, action="store_true")
 
 
 def bam():
@@ -198,12 +211,12 @@ def bam():
         help="""sample id for vcf mode.
         """,
     )
-    add_bam_parse_group(parser)
+    add_infile_parse_group(parser)
     args = vars(parser.parse_args())
     logger.info(pformat(args))
-    force_bam = args.pop("force_bam")
-    if isfile(args["outfile"]) and not force_bam:
-        raise ValueError("""infile exists. set --force-bam to regenerate""")
+    force_infile = args.pop("force_infile")
+    if isfile(args["outfile"]) and not force_infile:
+        raise ValueError("""infile exists. set --force-infile to regenerate""")
 
     if "vcfgt" in args and args["vcfgt"] is not None:
         vcf_to_sample(
@@ -305,14 +318,6 @@ def run():
                         - talt: number of alt reads observed""",
     )
     parser.add_argument(
-        "--gt-mode",
-        "--gt",
-        help="""Assume genotypes are known.
-        """,
-        action="store_true",
-        default=False,
-    )
-    parser.add_argument(
         "--ref",
         "--ref-file",
         default=None,
@@ -328,6 +333,14 @@ def run():
                         - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
                         these are used later in --cont-id and --state-id flags
                         """,
+    )
+    parser.add_argument(
+        "--gt-mode",
+        "--gt",
+        help="""Assume genotypes are known.
+        """,
+        action="store_true",
+        default=False,
     )
     parser.add_argument(
         "--states",
@@ -392,11 +405,17 @@ def run():
         help="""Don't estimate contamination (default do)""",
     )
     parser.add_argument(
+        "--est-error",
+        action="store_true",
+        default=False,
+        help="""estimate sequencing error per rg""",
+    )
+    parser.add_argument(
         "--freq-contamination",
         "--fc",
         type=int,
         default=1,
-        help="""update frequency for contamination (default 1)""",
+        help="""update frequency for contamination/error (default 1)""",
     )
     parser.add_argument(
         "--est-F",
@@ -529,7 +548,7 @@ def run():
         state in --state-ids """,
     )
 
-    add_bam_parse_group(parser)
+    add_infile_parse_group(parser)
     add_ref_parse_group(parser)
     add_rle_parse_group(parser)
     add_output_parse_group(parser)
@@ -539,13 +558,13 @@ def run():
     log_.info("running admixfrog version %s", __version__)
     args = parser.parse_args()
     V = vars(args)
-    force_bam = V.pop("force_bam")
-    force_vcf = V.pop("force_vcf")
 
     output_options = dict()
     filter_options = dict()
     init_pars = dict()
     est_options = dict()
+    infile_pars = dict()
+    reffile_pars = dict()
 
     for k in list(V.keys()):
         if k.startswith("output_"):
@@ -556,69 +575,61 @@ def run():
             est_options[k] = V.pop(k)
         elif k in ["init_guess", "F0", "e0", "c0", "tau0", "run_penalty"]:
             init_pars[k] = V.pop(k)
+        elif k in INFILE_PARS:
+            infile_pars[k] = V.pop(k)
+        elif k in REFFILE_PARS:
+            reffile_pars[k] = V.pop(k)
     V["output"] = output_options
     V["filter"] = filter_options
     V["est"] = est_options
     V["init"] = init_pars
+
     log_.info(pformat(V))
 
-    if V["vcf_file"] is not None:
-        if V["ref_file"] is not None:
+    if reffile_pars["vcf_file"] is not None:
+        if V["ref_files"] is not None:
             raise ValueError("cant specify ref and vcf input")
-        V["ref_file"] = V["out"] + ".ref.xz"
-        if isfile(V["ref_file"]) and not force_vcf:
+        V["ref_files"] = [V["out"] + ".ref.xz"]
+        if isfile(V["ref_files"][0]) and not reffile_pars['force_ref']:
             raise ValueError(
-                """ref-file exists. Use this or set --force-vcf to 
+                """ref-file exists. Use this or set --force-ref to 
                 regenerate the file"""
             )
         log_.info("creating ref from vcf file")
 
-        pop2sample = load_pop_file(V["pop_file"], V["states"])
-        random_read_samples = load_random_read_samples(V.pop("pop_file"))
+        pop2sample = load_pop_file(reffile_pars["pop_file"], V["states"])
+        random_read_samples = load_random_read_samples(reffile_pars["pop_file"])
         logger.debug(pformat(random_read_samples))
         vcf_to_ref(
-            V.pop("ref_file"),
-            V.pop("vcf_file"),
-            V.pop("rec_file"),
+            V['ref_files'][0],
+            reffile_pars["vcf_file"],
+            reffile_pars["rec_file"],
             pop2sample,
             random_read_samples,
-            V.pop("pos_id"),
-            V.pop("map_id"),
-            rec_rate=V.pop("rec_rate"),
-            chrom0=V.pop("chrom0"),
+            reffile_pars["pos_id"],
+            reffile_pars["map_id"],
+            reffile_pars["rec_rate"],
+            reffile_pars["chrom0"],
         )
-    else:
-        del V["pos_id"]
-        del V["map_id"]
-        del V["vcf_file"]
-        del V["rec_file"]
-        del V["rec_rate"]
-        del V["pop_file"]
-        del V["chrom0"]
 
-    if V["bamfile"] is not None:
+    if infile_pars["bamfile"] is not None:
         if V["infile"] is not None:
             raise ValueError("cant specify csv and bam input")
         V["infile"] = V["out"] + ".in.xz"
-        if isfile(V["infile"]) and not force_bam:
+        if isfile(V["infile"]) and not infile_pars['force_infile']:
             raise ValueError(
-                """infile exists. Use this or set --force-bam to 
+                """infile exists. Use this or set --force-infile to 
                              regenerate"""
             )
         log_.info("creating input from bam file")
         process_bam(
-            outfile=V["infile"],
-            bamfile=V.pop("bamfile"),
+            outfile=infile_pars["infile"],
+            bamfile=infile_pars["bamfile"],
             ref=V["ref_file"],
             # bedfile=V.pop('bedfile'),
-            deam_cutoff=V.pop("deam_cutoff"),
-            length_bin_size=V.pop("length_bin_size"),
+            deam_cutoff=infile_pars["deam_cutoff"],
+            length_bin_size=infile_pars["length_bin_size"],
         )
-    else:
-        del V["bamfile"]
-        del V["deam_cutoff"]
-        del V["length_bin_size"]
-        del V["minmapq"]
 
     out = V.pop("out")
 

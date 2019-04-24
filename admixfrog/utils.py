@@ -13,7 +13,7 @@ Probs2 = namedtuple(
     "Probs", ("O", "N", "P_cont", "alpha", "beta", "lib", "alpha_hap", "beta_hap")
 )
 Pars = namedtuple(
-    "Pars", ("alpha0", "trans_mat", "cont", "e0", "F", "tau", "gamma_names", "sex")
+    "Pars", ("alpha0", "trans_mat", "cont", "error", "F", "tau", "gamma_names", "sex")
 )  # for returning from varios functions
 ParsHD = namedtuple(
     "ParsHD",
@@ -23,7 +23,7 @@ ParsHD = namedtuple(
         "trans",
         "trans_hap",
         "cont",
-        "e0",
+        "error",
         "F",
         "tau",
         "gamma_names",
@@ -322,6 +322,7 @@ def init_pars(
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
+    error = defaultdict(lambda : e0)
 
     if init_guess is not None:
         # guess = [i for i, n in enumerate(gamma_names) if init_guess in n]
@@ -355,14 +356,14 @@ def init_pars(
             trans_mat,
             trans_mat_hap,
             cont,
-            e0,
+            error,
             F,
             tau,
             gamma_names,
             sex=sex,
         )
     else:
-        return Pars(alpha0, trans_mat, cont, e0, F, tau, gamma_names, sex=sex)
+        return Pars(alpha0, trans_mat, cont, error, F, tau, gamma_names, sex=sex)
 
 
 def posterior_table(pg, Z, IX, est_inbreeding=False):
@@ -377,7 +378,6 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
 def empirical_bayes_prior(der, anc, known_anc=False):
     """using beta-binomial plug-in estimator
     """
-    breakpoint()
     n = anc + der
     f = np.nanmean(der / n) if known_anc else 0.5
     # H = ref * alt / n / n

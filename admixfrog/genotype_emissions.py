@@ -6,7 +6,6 @@ from numba import njit
 from math import exp, log
 from .log import log_
 from .utils import scale_mat, scale_mat3d
-from .gtmode_emissions import update_Ftau_gtmode
 from .gllmode_emissions import update_Ftau_gllmode, _p_gt_homo, update_geno_emissions
 
 
@@ -76,9 +75,7 @@ def update_post_geno(PG, SNP, Z, IX):
         assert np.all(PG <= 1)
         assert np.allclose(np.sum(PG, (1, 2)), 1)
     except AssertionError:
-        pdb.set_trace()
-
-    # PG *= IX.snp_weight[:, np.newaxis, np.newaxis]
+        breakpoint()
 
     return PG
 
@@ -91,6 +88,7 @@ def update_snp_prob(
 
     """
     cflat = np.array([cont[lib] for lib in P.lib])
+    eflat = np.array([error[lib] for lib in P.lib])
 
     # get P(G | Z)
     # save in the same array as SNP - size is the same, and
@@ -100,7 +98,7 @@ def update_snp_prob(
     )
 
     # get P(O | G)
-    ll_snp = p_snps_given_gt(P, cflat, error, IX, gt_mode)
+    ll_snp = p_snps_given_gt(P, cflat, eflat, IX, gt_mode)
 
     SNP *= ll_snp[:, np.newaxis, :]
     log_scaling = scale_mat3d(SNP)
@@ -108,62 +106,6 @@ def update_snp_prob(
     return log_scaling
 
 
-def update_F(F, tau, PG, P, IX):
-    n_states = len(F)
-    delta = 0.0
-    for s in range(n_states):
+def update_Ftau(F, tau, PG, P, IX, est_options, gt_mode=False):
+    return update_Ftau_gllmode(F, tau, PG, P, IX, est_options=est_options)
 
-        def f(t):
-            x = np.log(_p_gt_homo(s, P, t[0], tau=exp(tau[s])) + 1e-10) * PG[:, s, :]
-            if np.isnan(np.sum(x)):
-                pdb.set_trace()
-            return -np.sum(x)
-
-        prev = f([F[s]])
-        OO = minimize(
-            f,
-            [F[s]],
-            bounds=[(0, 1)],
-            method="L-BFGS-B",
-            options=dict([("gtol", 1e-2)]),
-        )
-        log_.info("[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun))
-        delta += abs(F[s] - OO.x[0])
-        F[s] = OO.x[0]
-
-    return delta
-
-
-def update_Ftau(F, tau, PG, P, IX, gt_mode=False):
-    if gt_mode:
-        return update_Ftau_gtmode(F, tau, Z=PG, P=P, IX=IX)
-    else:
-        return update_Ftau_gllmode(F, tau, PG, P, IX)
-
-
-def update_tau(F, tau, PG, P, IX):
-    n_states = len(F)
-    delta = 0.0
-    for s in range(n_states):
-
-        def f(t):
-            x = np.log(_p_gt_homo(s, P, F=F[s], tau=exp(t[0])) + 1e-10) * PG[:, s, :]
-            if np.isnan(np.sum(x)):
-                pdb.set_trace()
-            return -np.sum(x)
-
-        prev = f([tau[s]])
-        OO = minimize(
-            f,
-            [tau[s]],
-            bounds=[(0, 10)],
-            method="L-BFGS-B",
-            options=dict([("gtol", 1e-2)]),
-        )
-        log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], F[s])
-        log__ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[0], prev - OO.fun)
-        log_.info(log__)
-        delta += abs(tau[s] - OO.x[0])
-        tau[s] = OO.x[0]
-
-    return delta

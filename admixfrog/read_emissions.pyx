@@ -45,7 +45,8 @@ cdef double get_po_given_c(
                 ll += PG[snp, s, g] * p
     return ll
 
-def update_contamination(cont, error, P, PG, IX, libs):
+def update_contamination(cont, error, P, PG, IX,
+                         est_options):
     """
     update emissions by maximizing contamination parameter
 
@@ -55,17 +56,20 @@ def update_contamination(cont, error, P, PG, IX, libs):
 
 
     """
-    n_libs = len(libs)
     delta = 0.
 
-    for i in range(n_libs):
-        lib = libs[i]
+    for i in range(len(IX.libs)):
+        lib = IX.libs[i]
         f_ = IX.RG2OBS[lib]
         assert all(lib == P.lib[f_])
 
-        def get_po_given_c_all(cc):
-            prob = get_po_given_c(c=cc,
-                                 e=error,
+        def get_po_given_c_all(args):
+            args = list(args)
+            C = args.pop(0) if est_options['est_contamination'] else cont[lib]
+            E = args.pop(0) if est_options['est_error'] else error[lib]
+
+            prob = get_po_given_c(c=C,
+                                 e=E,
                                  O=P.O,
                                  N=P.N,
                                  P_cont=P.P_cont,
@@ -74,17 +78,29 @@ def update_contamination(cont, error, P, PG, IX, libs):
                                  obs2snp = IX.OBS2SNP)
             return -prob
 
+        init, bounds = [], []
+        if est_options['est_contamination']:
+            init.append(cont[lib])
+            bounds.append((0, 1-1e-10))
+        if est_options['est_error']:
+            init.append(error[lib])
+            bounds.append((0.0001, .1))
 
-        p0 = get_po_given_c_all(cont[lib])
 
-        #OO =  minimize_scalar(get_po_given_c_all, bounds=(0., 1), method="Bounded")
-        #print("[%s/%s]minimizing \tc: [%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-        #                                                           cont[lib], OO.x, p0-OO.fun))
-        #cont[lib] = OO.x
-        OO =  minimize(get_po_given_c_all, [cont[lib]], bounds=[(0., 1-1e-10)])
-        log_.info("[%s]\t%s\tc:[%.4f->%.4f]:\t%.4f" % (lib, len(f_),
-                                                                   cont[lib], OO.x[0], p0-OO.fun))
-        delta += abs(cont[lib] - OO.x[0])
-        cont[lib] = OO.x[0]
+        prev = get_po_given_c_all(init)
+        OO =  minimize(get_po_given_c_all, init, bounds=bounds, method="L-BFGS-B")
+        opt = OO.x.tolist()
+
+        old_c, old_e = cont[lib], error[lib]
+        if est_options['est_contamination']:
+            cont[lib] = opt.pop(0)
+
+        if est_options['est_error']:
+            error[lib] = opt.pop(0)
+
+        log__ = "[%s|%s] \tc: [%.4f->%.4f]\t:" % (lib, len(f_), old_c, cont[lib])
+        log__ += "e: [%.4f->%.4f]:\t%.4f" % (old_e, error[lib], prev - OO.fun)
+        log_.info(log__)
+        delta += abs(cont[lib] - old_c) + abs(error[lib] - old_e)
 
     return delta

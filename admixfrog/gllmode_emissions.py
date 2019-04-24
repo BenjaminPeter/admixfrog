@@ -16,10 +16,8 @@ def _p_gt_homo(s, P, F=0, tau=1.0, res=None):
     n_snps = P.alpha.shape[0]
     gt = np.ones((n_snps, 3)) if res is None else res
     gt_homo_dist(a=P.alpha[:, s], b=P.beta[:, s], F=F, tau=tau, n_snps=n_snps, res=gt)
-    try:
-        assert np.allclose(np.sum(gt, 1), 1)
-    except AssertionError:
-        pdb.set_trace()
+
+    assert np.allclose(np.sum(gt, 1), 1)
     return np.minimum(np.maximum(gt, 0), 1)  # rounding error
 
 
@@ -56,33 +54,44 @@ def _p_gt_hap(a1, b1, res=None):
     return gt
 
 
-def update_Ftau_gllmode(F, tau, PG, P, IX):
+def update_Ftau_gllmode(F, tau, PG, P, IX, est_options):
     n_states = len(F)
     delta = 0.0
     for s in range(n_states):
 
-        def f(t):
-            F, tau = t
-            x = np.log(_p_gt_homo(s, P, F, exp(tau)) + 1e-10) * PG[:, s, :]
+        def f(args):
+            args = list(args)
+            F = args.pop(0) if est_options['est_F'] else F[s]
+            tau = exp(args.pop(0)) if est_options['est_tau'] else exp(tau[s])
+            x = np.log(_p_gt_homo(s, P, F, tau) + 1e-10) * PG[IX.diploid_snps, s, :]
             if np.isnan(np.sum(x)):
-                pdb.set_trace()
-            x[IX.HAPSNP] = 0.0
+                raise ValueError("nan in likelihood")
             return -np.sum(x)
 
-        prev = f([F[s], tau[s]])
-        OO = minimize(
-            f,
-            [F[s], tau[s]],
-            bounds=[(0, 1), (-10, 10)],
-            method="L-BFGS-B",
-            options=dict([("gtol", 1e-2)]),
-        )
-        log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, F[s], OO.x[0])
-        log__ += "T: [%.4f->%.4f]:\t%.4f" % (tau[s], OO.x[1], prev - OO.fun)
-        log_.info(log__)
-        delta += abs(F[s] - OO.x[0]) + abs(tau[s] - OO.x[1])
-        F[s], tau[s] = OO.x
+        init, bounds = [], []
+        if est_options['est_F']:
+            init.append(F[s])
+            bounds.append((0, 1))
+        if est_options['est_tau']:
+            init.append(tau[s])
+            bounds.append((-10, 20))
+        
 
+        prev = f(init)
+        OO = minimize(f, init, bounds=bounds, method="L-BFGS-B")
+        opt = OO.x.tolist()
+
+        old_F, old_tau = F[s], tau[s]
+        if est_options['est_F']:
+            F[s] = opt.pop(0)
+
+        if est_options['est_tau']:
+            tau[s] = opt.pop(0)
+
+        log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, old_F, F[s])
+        log__ += "T: [%.4f->%.4f]:\t%.4f" % (old_tau, tau[s], prev - OO.fun)
+        log_.info(log__)
+        delta += abs(F[s] - old_F) + abs(tau[s] - old_tau)
     return delta
 
 

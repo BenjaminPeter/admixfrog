@@ -4,6 +4,7 @@ from collections import Counter
 from scipy.stats import binom
 import pandas as pd
 import numpy as np
+from .utils import posterior_table
 
 try:
     from .log import log_
@@ -186,7 +187,6 @@ def write_pars_table(pars, outname=None):
 
     s = yaml.dump(P, Dumper=IndentDumper, default_flow_style=False, indent=4)
 
-    breakpoint()
     if outname is not None:
         with open(outname, "wt") as f:
             f.write(s)
@@ -194,8 +194,12 @@ def write_pars_table(pars, outname=None):
     return s
 
 
-def write_cont_table(data, cont, outname=None):
+def write_cont_table(data, cont, error, outname=None):
+
     df_libs = pd.DataFrame(cont.items(), columns=["lib", "cont"])
+    df_error = pd.DataFrame(error.items(), columns=["lib", "error"])
+    df_libs = df_libs.merge(df_error)
+
     rgs, deams, len_bins = [], [], []
     for l in df_libs.lib:
         try:
@@ -251,6 +255,21 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
 
     return snp_df
 
+def write_out_ref(data, G, Z, IX, gt_mode=False, outname=None):
+    D = (
+        data.groupby(["chrom", "pos", "map"])
+        .agg({"tref": sum, "talt": sum})
+        .reset_index()
+    )
+    if gt_mode:
+        snp_df = pd.concat((D, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    else:
+        T = posterior_table(G, Z, IX)
+        snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    if outname is not None:
+        snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+    return snp_df
 
 def write_est_runs(df, outname=None):
     if outname is not None:
