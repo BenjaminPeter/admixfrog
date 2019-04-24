@@ -6,6 +6,7 @@ from numba import njit
 from .distributions import gt_homo_gtmode
 from .utils import scale_mat
 
+
 def _p_gt_homo_gtmode(s, P, F=0, tau=1.0, res=None):
     """Pr(G | Z) for homozygous hidden states
 
@@ -15,9 +16,18 @@ def _p_gt_homo_gtmode(s, P, F=0, tau=1.0, res=None):
     n_snps = P.alpha.shape[0]
     gt = np.ones(n_snps) if res is None else res
 
-    gt_homo_gtmode(o=P.O, n = P.N, 
-                   a=P.alpha[:, s], b=P.beta[:, s], F=F, tau=tau, n_snps=n_snps, res=gt)
+    gt_homo_gtmode(
+        o=P.O,
+        n=P.N,
+        a=P.alpha[:, s],
+        b=P.beta[:, s],
+        F=F,
+        tau=tau,
+        n_snps=n_snps,
+        res=gt,
+    )
     return np.minimum(np.maximum(gt, 0), 1)  # rounding error
+
 
 @njit
 def _p_gt_het_gtmode(o, n, a1, b1, a2, b2, res=None):
@@ -37,7 +47,9 @@ def _p_gt_het_gtmode(o, n, a1, b1, a2, b2, res=None):
             elif o[i] == 2:
                 gt[i] = a1[i] * a2[i] / (a1[i] + b1[i]) * (a2[i] + b2[i])
             elif o[i] == 1:
-                gt[i] = (a1[i] * b2[i] + a2[i] * b1[i]) / (a1[i] + b1[i]) * (a2[i] + b2[i])
+                gt[i] = (
+                    (a1[i] * b2[i] + a2[i] * b1[i]) / (a1[i] + b1[i]) * (a2[i] + b2[i])
+                )
             else:
                 raise ValueError("bad gt")
                 gt[i] = -1
@@ -46,6 +58,7 @@ def _p_gt_het_gtmode(o, n, a1, b1, a2, b2, res=None):
             gt[i] = -1
 
     return gt
+
 
 def update_Ftau_gtmode(F, tau, Z, P, IX):
     n_states = len(F)
@@ -57,7 +70,7 @@ def update_Ftau_gtmode(F, tau, Z, P, IX):
             x = np.log(_p_gt_homo_gtmode(s, P, F, exp(tau)) + 1e-10) * Z[IX.SNP2BIN, s]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
-            #x[IX.HAPSNP] = 0.0
+            # x[IX.HAPSNP] = 0.0
             return -np.sum(x)
 
         prev = f([F[s], tau[s]])

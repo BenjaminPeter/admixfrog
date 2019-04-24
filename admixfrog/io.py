@@ -1,13 +1,17 @@
+import yaml
 from numba import njit
+from collections import Counter
 from scipy.stats import binom
 import pandas as pd
 import numpy as np
+
 try:
     from .log import log_
 except (ImportError, ModuleNotFoundError):
     from log import log_
 
 """reading and writing files"""
+
 
 def load_ref(
     ref_file, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
@@ -53,38 +57,39 @@ def load_ref(
         ref = ref[ref.chrom != "Y"]
     return ref
 
-def filter_ref(ref, states, 
-               filter_delta = None, 
-               filter_pos = None,
-               filter_map=None):
-    n_states = len(states)
 
+def filter_ref(ref, states, filter_delta=None, filter_pos=None, filter_map=None):
+    n_states = len(states)
 
     if filter_delta is not None:
         kp = np.zeros(ref.shape[0], np.bool)
         for i, s1 in enumerate(states):
-            for j in range(i+1, n_states):
+            for j in range(i + 1, n_states):
                 s2 = states[j]
-                f1 = np.nan_to_num(ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"]))
-                f2 = np.nan_to_num(ref[s2 + "_alt"] / (ref[s2 + "_alt"] + ref[s2 + "_ref"]))
-                delta = np.abs(f1 -f2)
+                f1 = np.nan_to_num(
+                    ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"])
+                )
+                f2 = np.nan_to_num(
+                    ref[s2 + "_alt"] / (ref[s2 + "_alt"] + ref[s2 + "_ref"])
+                )
+                delta = np.abs(f1 - f2)
                 kp = np.logical_or(kp, delta >= filter_delta)
 
-        log_.info("filtering %s SNP due to delta", np.sum(1-kp))
+        log_.info("filtering %s SNP due to delta", np.sum(1 - kp))
         ref = ref[kp]
 
     if filter_pos is not None:
         chrom = pd.factorize(ref.chrom)[0]
         pos = np.array(ref.pos)
-        kp = nfp(chrom ,pos, ref.shape[0], filter_pos)
-        log_.info("filtering %s SNP due to pos filter", np.sum(1-kp))
+        kp = nfp(chrom, pos, ref.shape[0], filter_pos)
+        log_.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
         ref = ref[kp]
 
     if filter_map is not None:
         chrom = pd.factorize(ref.chrom)[0]
         pos = np.array(ref.map)
-        kp = nfp(chrom ,pos, ref.shape[0], filter_map)
-        log_.info("filtering %s SNP due to map filter", np.sum(1-kp))
+        kp = nfp(chrom, pos, ref.shape[0], filter_map)
+        log_.info("filtering %s SNP due to map filter", np.sum(1 - kp))
         ref = ref[kp]
 
     return ref
@@ -139,3 +144,94 @@ def nfp(chrom, pos, n_snps, filter_pos):
             prev_pos = pos[i]
 
     return kp
+
+
+class IndentDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(IndentDumper, self).increase_indent(flow, False)
+
+
+def write_pars_table(pars, outname=None):
+    P = dict(pars._asdict())
+    for k, v in P.items():
+        try:
+            P[k] = v.tolist()
+        except:
+            pass
+
+    s = yaml.dump(P, Dumper=IndentDumper, default_flow_style=False, indent=4)
+
+    breakpoint()
+    if outname is not None:
+        with open(outname, "wt") as f:
+            f.write(s)
+
+    return s
+
+
+def write_cont_table(data, cont, outname=None):
+    df_libs = pd.DataFrame(cont.items(), columns=["lib", "cont"])
+    rgs, deams, len_bins = [], [], []
+    for l in df_libs.lib:
+        try:
+            rg, len_bin, deam = l.split("_")
+        except ValueError:
+            rg, len_bin, deam = l, 0, "NA"
+        rgs.append(rg)
+        deams.append(deam)
+        len_bins.append(len_bin)
+    df_libs["rg"] = rgs
+    df_libs["len_bin"] = len_bins
+    df_libs["deam"] = deams
+
+    CC = data.groupby(["lib"]).agg(({"tref": sum, "talt": sum})).reset_index()
+    CC["n_snps"] = CC.tref + CC.talt
+    del CC["tref"]
+    del CC["talt"]
+
+    df_libs = df_libs.merge(CC)
+    df_libs.sort_values("n_snps", ascending=False)
+
+    if outname is not None:
+        df_libs.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+    return df_libs
+
+
+def write_bin_table(Z, bins, viterbi_df, gamma_names, IX, outname=None):
+    df_bin = pd.DataFrame(Z, columns=gamma_names)
+    CC = Counter(IX.SNP2BIN)
+    snp = pd.DataFrame([CC[i] for i in range(len(df_bin))], columns=["n_snps"])
+    df_bin = pd.concat((pd.DataFrame(bins), viterbi_df, snp, df_bin), axis=1)
+
+    if outname is not None:
+        df_bin.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+    return df_bin
+
+
+def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
+    D = (
+        data.groupby(["chrom", "pos", "map"])
+        .agg({"tref": sum, "talt": sum})
+        .reset_index()
+    )
+    if gt_mode:
+        snp_df = pd.concat((D, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    else:
+        T = posterior_table(G, Z, IX)
+        snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+    if outname is not None:
+        snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+    return snp_df
+
+
+def write_est_runs(df, outname=None):
+    if outname is not None:
+        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+
+def write_sim_runs(df, outname=None):
+    if outname is not None:
+        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")

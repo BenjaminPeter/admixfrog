@@ -6,6 +6,7 @@ from .distributions import gt_homo_dist
 from numba import njit
 from math import exp, log
 
+
 def _p_gt_homo(s, P, F=0, tau=1.0, res=None):
     """Pr(G | Z) for homozygous hidden states
 
@@ -54,6 +55,7 @@ def _p_gt_hap(a1, b1, res=None):
     gt[:, 2] = a1 / (a1 + b1)
     return gt
 
+
 def update_Ftau_gllmode(F, tau, PG, P, IX):
     n_states = len(F)
     delta = 0.0
@@ -61,7 +63,7 @@ def update_Ftau_gllmode(F, tau, PG, P, IX):
 
         def f(t):
             F, tau = t
-            x = np.log(_p_gt_homo(s, P, F, exp(tau)) + 1e-10) * PG[:, s, :] 
+            x = np.log(_p_gt_homo(s, P, F, exp(tau)) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
             x[IX.HAPSNP] = 0.0
@@ -82,6 +84,7 @@ def update_Ftau_gllmode(F, tau, PG, P, IX):
         F[s], tau[s] = OO.x
 
     return delta
+
 
 def update_geno_emissions_diploid(GT, P, IX, F, tau, n_states, est_inbreeding):
     """P(G | Z) for diploid SNP. 
@@ -116,6 +119,7 @@ def update_geno_emissions_diploid(GT, P, IX, F, tau, n_states, est_inbreeding):
 
     return GT
 
+
 def update_geno_emissions_haploid(GT, P):
     """P(G | Z) for each SNP for haploid SNP (e.g. X-chromosome) only
     """
@@ -134,10 +138,10 @@ def update_geno_emissions(GT, P, IX, *args, **kwargs):
     update_geno_emissions_diploid(GT[IX.diploid_snps], P, IX, *args, **kwargs)
     update_geno_emissions_haploid(GT[IX.haploid_snps], P)
 
-    
-
 
 """unused stuff"""
+
+
 def e_tbeta(N, alpha, beta, M=1, tau=1.0):
     """calculate how much the beta distribution needs to be truncated to
     take the finite reference population size into account

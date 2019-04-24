@@ -19,13 +19,12 @@ def snp2bin(e_out, e_in, ix):
 @njit
 def snp2bin2(e_out, e_in, ix, weight):
     """version with ld weight"""
-    if np.all(weight==1.):
+    if np.all(weight == 1.0):
         for i, row in enumerate(ix):
             e_out[row] *= e_in[i]
     else:
         for i, row in enumerate(ix):
             e_out[row] += e_in[i] * weight[i] - weight[i]
-
 
 
 def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
@@ -39,7 +38,7 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
 
     E[:] = 1  # reset
     snp2bin(E, snp_emissions, IX.SNP2BIN)
-    #snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
+    # snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
     log_.debug("mean emission %s" % np.mean(E))
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
@@ -67,11 +66,10 @@ def update_post_geno(PG, SNP, Z, IX):
     Z[n_bin x n_states]: P(Z | O')
 
     """
-    PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z) 
+    PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z)
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
-    PG[np.isnan(PG)] = 0.0 
+    PG[np.isnan(PG)] = 0.0
     PG = np.minimum(np.maximum(PG, 0), 1)  # rounding error
-
 
     try:
         assert np.all(PG >= 0)
@@ -80,13 +78,14 @@ def update_post_geno(PG, SNP, Z, IX):
     except AssertionError:
         pdb.set_trace()
 
-    #PG *= IX.snp_weight[:, np.newaxis, np.newaxis]
+    # PG *= IX.snp_weight[:, np.newaxis, np.newaxis]
 
     return PG
 
 
-def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False,
-                    gt_mode=False):
+def update_snp_prob(
+    SNP, P, IX, cont, error, F, tau, est_inbreeding=False, gt_mode=False
+):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
@@ -97,8 +96,7 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False,
     # save in the same array as SNP - size is the same, and
     # we do not need to allocate more memory
     update_geno_emissions(
-        SNP, P, IX, F, tau, n_states=SNP.shape[1],
-        est_inbreeding=est_inbreeding
+        SNP, P, IX, F, tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding
     )
 
     # get P(O | G)
@@ -129,9 +127,7 @@ def update_F(F, tau, PG, P, IX):
             method="L-BFGS-B",
             options=dict([("gtol", 1e-2)]),
         )
-        log_.info(
-            "[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun)
-        )
+        log_.info("[%s] \tF: [%.4f->%.4f]:\t%.4f" % (s, F[s], OO.x[0], prev - OO.fun))
         delta += abs(F[s] - OO.x[0])
         F[s] = OO.x[0]
 
