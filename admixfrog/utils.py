@@ -1,5 +1,4 @@
 from collections import namedtuple, defaultdict, Counter
-import pdb
 import numpy as np
 import pandas as pd
 try:
@@ -10,10 +9,16 @@ except (ImportError, ModuleNotFoundError):
 
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
+Probs2 = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib",
+                              "alpha_hap", "beta_hap"))
 Pars = namedtuple(
     "Pars", ("alpha0", "trans_mat", "cont", "e0", "F", "tau", "gamma_names", "sex")
 )  # for returning from varios functions
-HAPX = (2699520, 155260560)  # start, end of haploid region on X
+ParsHD = namedtuple(
+    "ParsHD", ("alpha0", "alpha0_hap", 
+             "trans", "trans_hap", 
+             "cont", "e0", "F", "tau", "gamma_names", "sex")
+)  # for returning from varios functions
 
 
 class _IX:
@@ -24,12 +29,23 @@ class _IX:
 def data2probs(
     data,
     ref,
+    IX,
     state_ids,
     cont_id,
     prior=None,
     cont_prior=(1e-8, 1e-8),
     ancestral=None,
 ):
+    """create data structure that holds the genetic data
+
+    creates an object of type `Probs` with the following entries:
+    O : array[n_obs]: the number of alternative reads
+    N : array[n_obs]: the total number of reads
+    P_cont : array[n_obs]: the contaminant allele frequency
+    lib[n_obs] : the library /read group of the observation
+    alpha[n_snps, n_states] : the reference allele beta-prior
+    beta[n_snps, n_states] : the alt allele beta-prior
+    """
     n_states = len(state_ids)
     n_snps = ref.shape[0]
     alpha_ix = ["%s_alt" % s for s in state_ids]
@@ -78,14 +94,16 @@ def data2probs(
                 beta[ref_is_anc, i] += panc
                 beta[ref_is_der, i] += pder
 
-        P = Probs(
+        P = Probs2(
             O=np.array(data.talt, np.int8),
             N=np.array(data.tref + data.talt, np.int8),
             P_cont=np.array(
                 (data[cont[0]] + ca) / (data[cont[0]] + data[cont[1]] + ca + cb)
             ),
-            alpha=alpha,
-            beta=beta,
+            alpha=alpha[IX.diploid_snps],
+            beta=beta[IX.diploid_snps],
+            alpha_hap=alpha[IX.haploid_snps],
+            beta_hap=beta[IX.haploid_snps],
             lib=np.array(data.lib),
         )
         return P
@@ -116,25 +134,41 @@ def data2probs(
         return P
 
 
-def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
-                  ld_weighting=False):
-    """create a bunch of auxillary data frames for binning
+def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False):
+    """create a bu:ch of auxillary data frames for binning
 
     - bins: columns are chrom_id, chrom, bin_pos, bin_id, map
     - IX: container storing all indices, will need to be cleaned later on
+        currently contains:
+        - IX.SNP2BIN [n_snps]: array giving bin for each snp
+        - IX.OBS2SNP [n_obs]: array giving snp for each obs
+        - IX.OBS2BIN [n_obs]: array giving bin for each obs
+        - IX.bin_sizes [n_chroms]: number of bins per chromosome
+        - IX.RG2OBS [n_libs] : [list] dict giving obs for each readgroup
+        - IX.libs : names of all libraries
     """
     IX = _IX()
-    libs = np.unique(data.lib)
+    IX.libs = np.unique(data.lib)
     if pos_mode:
         bed.map = bed.pos
     chroms = pd.unique(bed.chrom)
-
-    if sex == "m":
-        snp.loc[
-            (data.chrom == "X") & (HAPX[0] < data.pos) & (data.pos < HAPX[1]), "hap"
-        ] = True
     n_snps = snp.shape[0]
 
+    haplo_chroms, diplo_chroms = [], []
+    if sex is None:
+        diplo_chroms = chroms
+    else:
+        for c in chroms:
+            if c[0] in "YyWw":
+                haplo_chroms.append(c)
+            elif c[0] in "Xx" and sex == 'm':
+                haplo_chroms.append(c)
+            elif c[0] in "Zz" and sex == 'f':
+                haplo_chroms.append(c)
+            elif c.startswith("hap"):
+                haplo_chroms.append(c)
+            else:
+                diplo_chroms.append(c)
 
     IX.SNP2BIN = np.empty((n_snps), int)
     IX.OBS2SNP = np.array(data["snp_id"])
@@ -148,20 +182,25 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
             ("map", float),
             ("pos", int),
             ("id", int),
+            ("haploid", bool),
         ]
     )
 
     IX.bin_sizes = []
+    IX.diploid_snps, IX.haploid_snps = [], []
 
     for i, chrom in enumerate(chroms):
         log_.debug("binning chrom %s", chrom)
+
         map_ = bed.map[bed.chrom == chrom]
         pos = bed.pos[bed.chrom == chrom]
         map_data = data.map[data.chrom == chrom]
 
         chrom_start = float(np.floor(map_.head(1) / bin_size) * bin_size)
         chrom_end = float(np.ceil(map_.tail(1) / bin_size) * bin_size)
+        chrom_is_hap = chrom in haplo_chroms
 
+        #create bins
         bins = np.arange(chrom_start, chrom_end, bin_size)
         IX.bin_sizes.append(len(bins))
         bin_ids = range(bin0, bin0 + len(bins))
@@ -170,25 +209,41 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
         _bin["pos"] = np.interp(bins, map_, pos)
         _bin["id"] = bin_ids
         _bin["map"] = bins
-
-        #if chrom == "X" and sex == "m":
-        #    _bin["hap"] = True
-        #else:
-        #    _bin["hap"] = False
+        _bin["haploid"] = chrom_is_hap
         bin_loc.append(_bin)
 
+        #put SNPs in bins
         snp_ids = snp.snp_id[snp.chrom == chrom]
         dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
         IX.SNP2BIN[snp_ids] = dig_snp + bin0
+
+        if chrom_is_hap:
+            IX.haploid_snps.extend(snp_ids)
+        else:
+            IX.diploid_snps.extend(snp_ids)
 
         bin0 += len(bins)
 
     bins = np.hstack(bin_loc)
 
-    IX.RG2OBS = dict((l, np.where(data.lib == l)[0]) for l in libs)
+
+    #for now, assume data is ordered such that diploid chroms come before haploid ones
+    assert len(IX.haploid_snps) == 0 or len(IX.diploid_snps) == 0 or min(IX.haploid_snps) > max(IX.diploid_snps)
+
+    if len(IX.haploid_snps) > 0:
+        IX.haploid_snps = slice(min(IX.haploid_snps), max(IX.haploid_snps)+1)
+    else:
+        IX.haploid_snps = slice(0,0)
+    if len(IX.diploid_snps) > 0:
+        IX.diploid_snps = slice(min(IX.diploid_snps), max(IX.diploid_snps)+1)
+    else:
+        IX.diploid_snps = slice(0,0)
+
+    
+    IX.RG2OBS = dict((l, np.where(data.lib == l)[0]) for l in IX.libs)
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
-    IX.HAPSNP = []
-    IX.HAPBIN = []
+    #IX.HAPSNP = []
+    #IX.HAPBIN = []
 
     #IX.HAPOBS = np.where(data.hap)[0]
     #IX.HAPSNP = np.unique(IX.OBS2SNP[IX.HAPOBS])
@@ -204,46 +259,50 @@ def bins_from_bed(bed, snp, data, bin_size, sex=None, pos_mode=False,
     IX.n_obs = len(IX.OBS2SNP)
     IX.n_reads = np.sum(data.tref + data.talt)
 
-    # ld weighting:
-    # IX.snp_weight give for each SNP how it is supposed to be downweighted
-    IX.snp_weight = np.ones(IX.n_snps)
-    if ld_weighting:
-        ctr = Counter(IX.SNP2BIN)  # counter[bin] : n_snp
-        c = 0
-        for i in range(IX.n_bins):
-            for j in range(ctr[i]):
-                IX.snp_weight[c] = 1. / ctr[i]
-                c += 1
-        log_.debug("mean ld-weight %s" % np.mean(IX.snp_weight))
+    IX.chroms = chroms
+    IX.haplo_chroms = haplo_chroms
+    IX.diplo_chroms = diplo_chroms
+
 
     log_.debug("done creating bins")
-    return bins, IX  # , data_bin
+    return bins, IX 
 
 
 def init_pars(
     state_ids, sex=None, F0=0.001, tau0=1, e0=1e-2, c0=1e-2,
     est_inbreeding=False,
-    init_guess = None
-
+    init_guess = None,
+    do_hap = True
 ):
+    """initialize parameters
+
+    returns a pars object
+    """
     homo = [s for s in state_ids]
     het = []
+    hap = ["h%s" % s for s in homo]
+
     for i, s in enumerate(state_ids):
         for s2 in state_ids[i + 1 :]:
             het.append(s + s2)
     gamma_names = homo + het
     if est_inbreeding:
-        gamma_names.extend(["h%s" % s for s in homo])
-
-    #
+        gamma_names.extend(hap)
 
 
     n_states = len(gamma_names)
-    n_homo = len(state_ids)
+    n_homo = len(homo)
+    n_het = len(het)
+    n_hap = len(hap)
 
     alpha0 = np.array([1 / n_states] * n_states)
+    alpha0_hap = np.array([1 / n_hap] * n_hap)
+
     trans_mat = np.zeros((n_states, n_states)) + 2e-2
+    trans_mat_hap = np.zeros((n_hap, n_hap)) + 2e-2
+
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
+    np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
 
     if init_guess is not None:
@@ -271,9 +330,12 @@ def init_pars(
             tau = [tau0]
     except TypeError:
         tau = [tau0] * n_homo
-    return Pars(alpha0, trans_mat, cont, e0, F, tau, gamma_names, sex=sex)
-
-
+    if do_hap:
+        return ParsHD(alpha0, alpha0_hap, 
+                      trans_mat, trans_mat_hap,
+                      cont, e0, F, tau, gamma_names, sex=sex)
+    else:
+        return Pars(alpha0, trans_mat, cont, e0, F, tau, gamma_names, sex=sex)
 
 
 def posterior_table(pg, Z, IX, est_inbreeding=False):
@@ -302,15 +364,23 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     return pa, pb
 
 
-def guess_sex(data):
-    cov = data.groupby(data.chrom == "X").apply(
+def guess_sex(data, sex_ratio_threshold = 0.8):
+    """
+        guessing the sex of individuals by comparing heterogametic chromosomes.
+        By convention, all chromosomes are assumed to be diploid unless they start
+        with an `X` or `W`
+    """
+    data['heterogametic'] = ([v[0] in "XWxw" for v in data.chrom.values])
+    cov = data.groupby(data.heterogametic).apply(
         lambda df: np.sum(df.tref + df.talt)
     )
     cov = cov.astype(float)
-    cov[True] /= np.sum(data.chrom == "X")
-    cov[False] /= np.sum(data.chrom != "X")
+    cov[True] /= np.sum(data.heterogametic)
+    cov[False] /= np.sum(data.heterogametic == False)
 
-    if cov[True] / cov[False] < 0.8:
+    del ref['heterogametic']
+
+    if cov[True] / cov[False] < sex_ratio_threshold:
         sex = "m"
         log_.info("guessing sex is male, X/A = %.4f/%.4f" % (cov[True], cov[False]))
     else:

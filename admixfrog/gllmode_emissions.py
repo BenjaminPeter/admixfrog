@@ -83,8 +83,8 @@ def update_Ftau_gllmode(F, tau, PG, P, IX):
 
     return delta
 
-def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
-    """P(G | Z) for each SNP
+def update_geno_emissions_diploid(GT, P, IX, F, tau, n_states, est_inbreeding):
+    """P(G | Z) for diploid SNP. 
     build table giving the probabilities of P(G | Z)
     """
     n_snps, n_homo_states = P.alpha.shape
@@ -114,15 +114,27 @@ def update_geno_emissions(GT, P, IX, F, tau, n_states, est_inbreeding):
     except AssertionError:
         pdb.set_trace()
 
-    if not est_inbreeding:
-        GT[IX.HAPSNP, :, 1] = 0.0  # no het emissions
-        GT[IX.HAPSNP, n_homo_states:] = 0.0  # no het hidden state
-        for s in range(n_homo_states):
-            a, b = P.alpha[IX.HAPSNP, s], P.beta[IX.HAPSNP, s] 
-            GT[IX.HAPSNP, s, 0] = b / (a + b)  #if a +b > 0 else 0 
-            GT[IX.HAPSNP, s, 2] = a / (a + b)  # if a +b > 0 else 0 
     return GT
 
+def update_geno_emissions_haploid(GT, P):
+    """P(G | Z) for each SNP for haploid SNP (e.g. X-chromosome) only
+    """
+    n_snps, n_homo = P.alpha.shape
+
+    GT[:] = 0.0
+    # P(G | Z)
+    for i in range(n_homo):
+        _p_gt_hap(P.alpha_hap[:, i], P.beta_hap[:, i], res=GT[:, i, :])
+
+    assert np.allclose(np.sum(GT[:, :n_homo], 2), 1)
+    return GT
+
+
+def update_geno_emissions(GT, P, IX, *args, **kwargs):
+    update_geno_emissions_diploid(GT[IX.diploid_snps], P, IX, *args, **kwargs)
+    update_geno_emissions_haploid(GT[IX.haploid_snps], P)
+
+    
 
 
 """unused stuff"""

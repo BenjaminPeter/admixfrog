@@ -28,26 +28,19 @@ def snp2bin2(e_out, e_in, ix, weight):
 
 
 
-def update_emissions(E, SNP, P, IX, est_inbreeding=False, bad_bin_cutoff=1e-250):
+def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
     """main function to calculate emission probabilities for each bin
     P(O | Z) = 1/S  \sum_G P(O, G | Z)  
 
     """
     n_homo_states = P.alpha.shape[1]
 
-    if len(SNP.shape) == 3:
-        # P(O|Z) = 1/n sum_G P(O, G | Z)
-        snp_emissions = np.sum(SNP, 2)
-    else:
-        # if we get genotyp emissions directly
-        snp_emissions = SNP 
+    snp_emissions = np.sum(SNP, 2)
 
     E[:] = 1  # reset
     snp2bin(E, snp_emissions, IX.SNP2BIN)
     #snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
     log_.debug("mean emission %s" % np.mean(E))
-    if not est_inbreeding:
-        E[IX.HAPBIN, n_homo_states:] = 0
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     if sum(bad_bins) > 0:
@@ -98,7 +91,6 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False,
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
     """
-    n_snps = P.alpha.shape[0]
     cflat = np.array([cont[lib] for lib in P.lib])
 
     # get P(G | Z)
@@ -110,10 +102,10 @@ def update_snp_prob(SNP, P, IX, cont, error, F, tau, est_inbreeding=False,
     )
 
     # get P(O | G)
-    ll_snp = p_snps_given_gt(P, cflat, error, n_snps, IX, gt_mode)
+    ll_snp = p_snps_given_gt(P, cflat, error, IX, gt_mode)
 
     SNP *= ll_snp[:, np.newaxis, :]
-    log_scaling = 0. #scale_mat3d(SNP)
+    log_scaling = scale_mat3d(SNP)
 
     return log_scaling
 
@@ -127,7 +119,6 @@ def update_F(F, tau, PG, P, IX):
             x = np.log(_p_gt_homo(s, P, t[0], tau=exp(tau[s])) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
-            x[IX.HAPSNP] = 0.0
             return -np.sum(x)
 
         prev = f([F[s]])
@@ -163,7 +154,6 @@ def update_tau(F, tau, PG, P, IX):
             x = np.log(_p_gt_homo(s, P, F=F[s], tau=exp(t[0])) + 1e-10) * PG[:, s, :]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
-            x[IX.HAPSNP] = 0.0
             return -np.sum(x)
 
         prev = f([tau[s]])

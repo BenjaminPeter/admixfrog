@@ -57,7 +57,7 @@ def update_Ftau_gtmode(F, tau, Z, P, IX):
             x = np.log(_p_gt_homo_gtmode(s, P, F, exp(tau)) + 1e-10) * Z[IX.SNP2BIN, s]
             if np.isnan(np.sum(x)):
                 pdb.set_trace()
-            x[IX.HAPSNP] = 0.0
+            #x[IX.HAPSNP] = 0.0
             return -np.sum(x)
 
         prev = f([F[s], tau[s]])

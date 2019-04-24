@@ -108,8 +108,8 @@ def fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma=None):
     return alpha, beta, n
 
 
-def viterbi(pars, emissions):
-    return [viterbi_single_obs(pars.alpha0, pars.trans_mat, e) for e in emissions]
+def viterbi(alpha0, trans_mat, emissions):
+    return [viterbi_single_obs(alpha0, trans_mat, e) for e in emissions]
 
 
 def viterbi_single_obs(alpha0, trans_mat, emissions):
@@ -139,36 +139,26 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
 
 
 def update_transitions(
-    old_trans_mat, alpha, beta, gamma, emissions, n, sex="f", est_inbreeding=False
+    old_trans_mat, alpha, beta, gamma, emissions, n, est_inbreeding=False
 ):
+    # if no diploid / haploid data, do not update
+    breakpoint()
+    if len(alpha) == 0:
+        return old_trans_mat
+
     new_trans_mat = np.zeros_like(old_trans_mat)
     n_states = old_trans_mat.shape[0]
-    if sex == "m" and len(alpha) > 22 and not est_inbreeding:
-        """ this is a hack, I just remove last chromosome and no checks are done"""
-        log_.warning("update hack")
-        # update transition
-        for i in range(n_states):
-            for j in range(n_states):
-                for a, b, e, n_ in zip(alpha[:-1], beta[:-1], emissions[:-1], n[:-1]):
-                    new_trans_mat[i, j] += np.sum(
-                        a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
-                    )
 
-        gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma[:-1]], 0)
-        new_trans_mat /= gamma_sum[:, np.newaxis]
-        assert np.allclose(np.sum(new_trans_mat, 1), 1)
-    else:
-        # update transition
-        for i in range(n_states):
-            for j in range(n_states):
-                for a, b, e, n_ in zip(alpha, beta, emissions, n):
-                    new_trans_mat[i, j] += np.sum(
-                        a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
-                    )
+    for i in range(n_states):
+        for j in range(n_states):
+            for a, b, e, n_ in zip(alpha, beta, emissions, n):
+                new_trans_mat[i, j] += np.sum(
+                    a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
+                )
 
-        gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma], 0)
-        new_trans_mat /= gamma_sum[:, np.newaxis]
-        assert np.allclose(np.sum(new_trans_mat, 1), 1)
+    gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma], 0)
+    new_trans_mat /= gamma_sum[:, np.newaxis]
+    assert np.allclose(np.sum(new_trans_mat, 1), 1)
 
     # deal with underflow due to absence of state
     if not np.allclose(np.sum(new_trans_mat, 1), 1):
