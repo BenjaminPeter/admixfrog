@@ -108,4 +108,3 @@ def update_snp_prob(
 
 def update_Ftau(F, tau, PG, P, IX, est_options, gt_mode=False):
     return update_Ftau_gllmode(F, tau, PG, P, IX, est_options=est_options)
-

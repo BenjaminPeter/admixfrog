@@ -23,11 +23,10 @@ def load_ref(
     if cont_id is not None:
         states = list(set(list(states) + [cont_id]))
 
-
-    basic_cols = ['chrom', 'pos', 'ref', 'alt'] # required in every ref
-    map_col =['map']
-    ref_cols = [f'{s}_ref' for s in states]
-    alt_cols = [f'{s}_alt' for s in states]
+    basic_cols = ["chrom", "pos", "ref", "alt"]  # required in every ref
+    map_col = ["map"]
+    ref_cols = [f"{s}_ref" for s in states]
+    alt_cols = [f"{s}_alt" for s in states]
     cols = map_col + ref_cols + alt_cols
     file_ix = [None for i in cols]
 
@@ -53,8 +52,7 @@ def load_ref(
         if i == 0:
             ref = ref0
         else:
-            ref = ref.merge(ref0, on = basic_cols, how='outer')
-
+            ref = ref.merge(ref0, on=basic_cols, how="outer")
 
     if "UNIF" in states:
         ref["UNIF_ref"] = 1 - prior
@@ -159,7 +157,7 @@ def load_gt_data(infile):
 @njit
 def nfp(chrom, pos, n_snps, filter_pos):
     kp = np.ones(n_snps, np.bool_)
-    prev_chrom, prev_pos = -1, -10000000
+    prev_chrom, prev_pos = -1, -10_000_000
     for i in range(n_snps):
         if prev_chrom != chrom[i]:
             prev_chrom, prev_pos = chrom[i], pos[i]
@@ -255,6 +253,7 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
 
     return snp_df
 
+
 def write_out_ref(data, G, Z, IX, gt_mode=False, outname=None):
     D = (
         data.groupby(["chrom", "pos", "map"])
@@ -270,6 +269,7 @@ def write_out_ref(data, G, Z, IX, gt_mode=False, outname=None):
         snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
     return snp_df
+
 
 def write_est_runs(df, outname=None):
     if outname is not None:

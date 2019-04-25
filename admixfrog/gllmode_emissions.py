@@ -61,31 +61,30 @@ def update_Ftau_gllmode(F, tau, PG, P, IX, est_options):
 
         def f(args):
             args = list(args)
-            F = args.pop(0) if est_options['est_F'] else F[s]
-            tau = exp(args.pop(0)) if est_options['est_tau'] else exp(tau[s])
+            F = args.pop(0) if est_options["est_F"] else F[s]
+            tau = exp(args.pop(0)) if est_options["est_tau"] else exp(tau[s])
             x = np.log(_p_gt_homo(s, P, F, tau) + 1e-10) * PG[IX.diploid_snps, s, :]
             if np.isnan(np.sum(x)):
                 raise ValueError("nan in likelihood")
             return -np.sum(x)
 
         init, bounds = [], []
-        if est_options['est_F']:
+        if est_options["est_F"]:
             init.append(F[s])
             bounds.append((0, 1))
-        if est_options['est_tau']:
+        if est_options["est_tau"]:
             init.append(tau[s])
             bounds.append((-10, 20))
-        
 
         prev = f(init)
         OO = minimize(f, init, bounds=bounds, method="L-BFGS-B")
         opt = OO.x.tolist()
 
         old_F, old_tau = F[s], tau[s]
-        if est_options['est_F']:
+        if est_options["est_F"]:
             F[s] = opt.pop(0)
 
-        if est_options['est_tau']:
+        if est_options["est_tau"]:
             tau[s] = opt.pop(0)
 
         log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, old_F, F[s])

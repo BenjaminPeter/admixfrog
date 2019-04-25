@@ -9,13 +9,7 @@ import admixfrog
 from .log import log_, setup_log
 import pdb
 
-BASE_OPTIONS = ['bin_size', 'autosomes_only', 'downsample', 'gt_mode', 
-                'll_tol', 'max_iter', 'n_post_replicates', 'pos_mode',
-                'prior', 'split_lib']
-POP_OPTIONS = ['cont_id', 'infile', 'ref_files', 'sex', 'states', 'ancestral']
-
-
-
+POP_OPTIONS = ["cont_id", "infile", "ref_files", "sex", "states", "ancestral"]
 
 
 def add_output_parse_group(parser):
@@ -75,9 +69,19 @@ def add_output_parse_group(parser):
     )
 
 
-INFILE_PARS =['bamfile', 'deam_cutoff', 'minmapq', 'force_infile',
-              'length_bin_size', 'tstv', 'alleles', 'vcfgt', 
-              'sample_id']
+INFILE_PARS = [
+    "bamfile",
+    "deam_cutoff",
+    "minmapq",
+    "force_infile",
+    "length_bin_size",
+    "tstv",
+    "alleles",
+    "vcfgt",
+    "sample_id",
+]
+
+
 def add_infile_parse_group(parser):
     g = parser.add_argument_group("bam parsing")
     g.add_argument(
@@ -90,7 +94,7 @@ def add_infile_parse_group(parser):
                    --force-infile is set
                    """,
     )
-    g.add_argument("--force-infile", '--force-bam',  default=False, action="store_true")
+    g.add_argument("--force-infile", "--force-bam", default=False, action="store_true")
     # g.add_argument("--bedfile", "--bed",
     #               help="Bed file with anc/der allele to restrict to")
     g.add_argument(
@@ -125,8 +129,18 @@ def add_rle_parse_group(parser):
     )
 
 
-REFFILE_PARS = ['vcf_file', 'pop_file', 'rec_file', 'rec_rate',
-                'pos_id', 'map_id', 'chrom0', 'force_ref']
+REFFILE_PARS = [
+    "vcf_file",
+    "pop_file",
+    "rec_file",
+    "rec_rate",
+    "pos_id",
+    "map_id",
+    "chrom0",
+    "force_ref",
+]
+
+
 def add_ref_parse_group(parser):
     g = parser.add_argument_group("creating reference file")
     g.add_argument(
@@ -176,7 +190,92 @@ def add_ref_parse_group(parser):
         All chromosomes should be present in the header of this vcf file.
         """,
     )
-    g.add_argument("--force-ref", '--force-vcf', default=False, action="store_true")
+    g.add_argument("--force-ref", "--force-vcf", default=False, action="store_true")
+
+
+BASE_OPTIONS = [
+    "bin_size",
+    "autosomes_only",
+    "downsample",
+    "gt_mode",
+    "ll_tol",
+    "max_iter",
+    "n_post_replicates",
+    "pos_mode",
+    "prior",
+    "split_lib",
+]
+
+
+def add_base_parse_group(P):
+    parser = P.add_argument_group("options that control the algorithm behavior")
+    parser.add_argument(
+        "--gt-mode",
+        "--gt",
+        help="""Assume genotypes are known.
+        """,
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-b",
+        "--bin-size",
+        type=float,
+        default=10000,
+        help="""Size of bins. By default, this is given in 1e-8 cM, so that the unit is
+        approximately the same for runs on physical / map positions""",
+    )
+    parser.add_argument(
+        "--prior",
+        "-p",
+        type=float,
+        default=None,
+        help="""Prior of reference allele frequencies. If None (default, recommended), this is 
+        estimated from the data
+        
+        This number is added to both the
+        ref and alt allele count for each reference, to reflect the uncertainty in allele
+        frequencies from a sample. If references are stationary with size 2N, this is
+        approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
+          """,
+    )
+    parser.add_argument(
+        "-P",
+        "--pos-mode",
+        default=False,
+        action="store_true",
+        help="""Instad of recombination distances, use physical distances for binning""",
+    )
+    parser.add_argument(
+        "--max-iter",
+        "-m",
+        type=int,
+        default=1000,
+        help="""maximum number of iterations""",
+    )
+    parser.add_argument(
+        "--ll-tol", type=float, default=1e-2, help="""stop EM when DeltaLL < ll-tol"""
+    )
+    parser.add_argument(
+        "--dont-split-lib",
+        action="store_false",
+        dest="split_lib",
+        default=True,
+        help="""estimate one global contamination parameter (default: one per read
+        group)""",
+    )
+    parser.add_argument(
+        "--autosomes-only",
+        action="store_true",
+        default=False,
+        help="Only run autosomes",
+    )
+    parser.add_argument(
+        "--downsample",
+        type=float,
+        default=1.0,
+        help="downsample coverage to a proportion of reads",
+    )
 
 
 def bam():
@@ -322,7 +421,7 @@ def run():
         "--ref-file",
         default=None,
         action="append",
-        dest='ref_files',
+        dest="ref_files",
         help="""refernce input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
@@ -333,14 +432,6 @@ def run():
                         - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
                         these are used later in --cont-id and --state-id flags
                         """,
-    )
-    parser.add_argument(
-        "--gt-mode",
-        "--gt",
-        help="""Assume genotypes are known.
-        """,
-        action="store_true",
-        default=False,
     )
     parser.add_argument(
         "--states",
@@ -357,45 +448,6 @@ def run():
         - HALF : allele frequencies are drawn from a  Beta(0.5, 0.5) distribution
         - ZERO : allele frequencies are drawn from a  Beta(0, 0) distribution
         """,
-    )
-    parser.add_argument(
-        "-b",
-        "--bin-size",
-        type=float,
-        default=10000,
-        help="""Size of bins. By default, this is given in 1e-8 cM, so that the unit is
-        approximately the same for runs on physical / map positions""",
-    )
-    parser.add_argument(
-        "-P",
-        "--pos-mode",
-        default=False,
-        action="store_true",
-        help="""Instad of recombination distances, use physical distances for binning""",
-    )
-    parser.add_argument(
-        "--max-iter",
-        "-m",
-        type=int,
-        default=1000,
-        help="""maximum number of iterations""",
-    )
-    parser.add_argument(
-        "--ll-tol", type=float, default=1e-2, help="""stop EM when DeltaLL < ll-tol"""
-    )
-    parser.add_argument(
-        "--prior",
-        "-p",
-        type=float,
-        default=None,
-        help="""Prior of reference allele frequencies. If None (default, recommended), this is 
-        estimated from the data
-        
-        This number is added to both the
-        ref and alt allele count for each reference, to reflect the uncertainty in allele
-        frequencies from a sample. If references are stationary with size 2N, this is
-        approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
-          """,
     )
     parser.add_argument(
         "--dont-est-contamination",
@@ -444,14 +496,6 @@ def run():
         default="AFR",
         help="""the source of contamination. Must be specified in ref file""",
     )
-    parser.add_argument(
-        "--dont-split-lib",
-        action="store_false",
-        dest="split_lib",
-        default=True,
-        help="""estimate one global contamination parameter (default: one per read
-        group)""",
-    )
 
     parser.add_argument(
         "--male",
@@ -468,18 +512,6 @@ def run():
         const="f",
         default=None,
         help="Assumes diploid X chromosome. Default is guess from coverage",
-    )
-    parser.add_argument(
-        "--autosomes-only",
-        action="store_true",
-        default=False,
-        help="Only run autosomes",
-    )
-    parser.add_argument(
-        "--downsample",
-        type=float,
-        default=1.0,
-        help="downsample coverage to a proportion of reads",
     )
     parser.add_argument(
         "--F0",
@@ -549,13 +581,13 @@ def run():
     )
 
     add_infile_parse_group(parser)
+    add_base_parse_group(parser)
     add_ref_parse_group(parser)
     add_rle_parse_group(parser)
     add_output_parse_group(parser)
 
     from . import __version__
 
-    log_.info("running admixfrog version %s", __version__)
     args = parser.parse_args()
     V = vars(args)
 
@@ -565,6 +597,7 @@ def run():
     est_options = dict()
     infile_pars = dict()
     reffile_pars = dict()
+    algo_pars = dict()
 
     for k in list(V.keys()):
         if k.startswith("output_"):
@@ -579,18 +612,25 @@ def run():
             infile_pars[k] = V.pop(k)
         elif k in REFFILE_PARS:
             reffile_pars[k] = V.pop(k)
+        elif k in BASE_OPTIONS:
+            algo_pars[k] = V.pop(k)
     V["output"] = output_options
     V["filter"] = filter_options
     V["est"] = est_options
     V["init"] = init_pars
+    V["algorithm"] = algo_pars
 
-    log_.info(pformat(V))
+    log_.info(
+        "running admixfrog %s with the following arguments:\n%s ",
+        __version__,
+        pformat(V),
+    )
 
     if reffile_pars["vcf_file"] is not None:
         if V["ref_files"] is not None:
             raise ValueError("cant specify ref and vcf input")
         V["ref_files"] = [V["out"] + ".ref.xz"]
-        if isfile(V["ref_files"][0]) and not reffile_pars['force_ref']:
+        if isfile(V["ref_files"][0]) and not reffile_pars["force_ref"]:
             raise ValueError(
                 """ref-file exists. Use this or set --force-ref to 
                 regenerate the file"""
@@ -601,7 +641,7 @@ def run():
         random_read_samples = load_random_read_samples(reffile_pars["pop_file"])
         logger.debug(pformat(random_read_samples))
         vcf_to_ref(
-            V['ref_files'][0],
+            V["ref_files"][0],
             reffile_pars["vcf_file"],
             reffile_pars["rec_file"],
             pop2sample,
@@ -616,7 +656,7 @@ def run():
         if V["infile"] is not None:
             raise ValueError("cant specify csv and bam input")
         V["infile"] = V["out"] + ".in.xz"
-        if isfile(V["infile"]) and not infile_pars['force_infile']:
+        if isfile(V["infile"]) and not infile_pars["force_infile"]:
             raise ValueError(
                 """infile exists. Use this or set --force-infile to 
                              regenerate"""
@@ -631,12 +671,18 @@ def run():
             length_bin_size=infile_pars["length_bin_size"],
         )
 
+    if "infile" not in V or V["infile"] is None:
+        raise ValueError("require infile, specify --infile or --bam or --vcfgt")
+    if "ref_files" not in V or V["ref_files"] is None:
+        raise ValueError("require ref, specify with --ref or create using --vcf")
+
     out = V.pop("out")
 
     from . import __version__
 
     log_.info("admixfrog %s", __version__)
-    bins, snps, cont, pars, rle, res = run_admixfrog(**V)
+    del V["algorithm"]
+    bins, snps, cont, pars, rle, res = run_admixfrog(**V, **algo_pars)
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
     # pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")

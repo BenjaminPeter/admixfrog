@@ -322,7 +322,7 @@ def init_pars(
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
     cont = defaultdict(lambda: c0)
-    error = defaultdict(lambda : e0)
+    error = defaultdict(lambda: e0)
 
     if init_guess is not None:
         # guess = [i for i, n in enumerate(gamma_names) if init_guess in n]

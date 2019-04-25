@@ -19,15 +19,7 @@ import itertools
 COORDS = ["chrom", "map", "pos"]
 
 
-def baum_welch(
-    P,
-    IX,
-    pars,
-    est_options,
-    max_iter=1000,
-    ll_tol=1e-1,
-    gt_mode=False,
-):
+def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=False):
     O = est_options
     alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, gamma_names, sex = pars
     gll_mode = not gt_mode
@@ -59,7 +51,7 @@ def baum_welch(
         row0 += r
 
     s_scaling = update_snp_prob(
-        SNP, P, IX, cont, error, F, tau, O['est_inbreeding'], gt_mode
+        SNP, P, IX, cont, error, F, tau, O["est_inbreeding"], gt_mode
     )
 
     e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
@@ -101,7 +93,7 @@ def baum_welch(
 
         # update stuff
         trans = update_transitions(
-            trans, alpha, beta, gamma, emissions, n, est_inbreeding=O['est_inbreeding']
+            trans, alpha, beta, gamma, emissions, n, est_inbreeding=O["est_inbreeding"]
         )
         trans_hap = update_transitions(
             trans_hap,
@@ -110,7 +102,7 @@ def baum_welch(
             hap_gamma,
             hap_emissions,
             n_hap,
-            est_inbreeding=False
+            est_inbreeding=False,
         )
         alpha0 = np.linalg.matrix_power(trans, 10000)[0]
         alpha0_hap = np.linalg.matrix_power(trans_hap, 10000)[0]
@@ -120,34 +112,12 @@ def baum_welch(
         log_.info("\t".join(["%.3f" % a for a in alpha0]))
 
         scaling = update_emission_stuff(
-            it,
-            E,
-            P,
-            PG,
-            SNP,
-            Z,
-            IX,
-            cont,
-            error,
-            F,
-            tau,
-            scaling,
-            est_options,
-            gt_mode,
+            it, E, P, PG, SNP, Z, IX, cont, error, F, tau, scaling, est_options, gt_mode
         )
 
     update_post_geno(PG, SNP, Z, IX)
     pars = ParsHD(
-        alpha0,
-        alpha0_hap,
-        trans,
-        trans_hap,
-        cont,
-        error,
-        F,
-        tau,
-        gamma_names,
-        sex,
+        alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, gamma_names, sex
     )
     return (
         Z,
@@ -162,25 +132,12 @@ def baum_welch(
 
 
 def update_emission_stuff(
-    it,
-    E,
-    P,
-    PG,
-    SNP,
-    Z,
-    IX,
-    cont,
-    error,
-    F,
-    tau,
-    scaling,
-    est_options,
-    gt_mode,
+    it, E, P, PG, SNP, Z, IX, cont, error, F, tau, scaling, est_options, gt_mode
 ):
     O = est_options
-    cond_cont = O['est_contamination'] and (it % O['freq_contamination'] == 0 or it < 3)
+    cond_cont = O["est_contamination"] and (it % O["freq_contamination"] == 0 or it < 3)
 
-    cond_Ftau = O['est_F'] or O['est_tau'] and (it % O['freq_F'] == 0 or it < 3)
+    cond_Ftau = O["est_F"] or O["est_tau"] and (it % O["freq_F"] == 0 or it < 3)
 
     if cond_Ftau or cond_cont:  # and gll_mode:
         update_post_geno(PG, SNP, Z, IX)
@@ -188,13 +145,13 @@ def update_emission_stuff(
     if cond_cont and not gt_mode:
         delta = update_contamination(cont, error, P, PG, IX, est_options)
         if delta < 1e-5:  # when we converged, do not update contamination
-            O['est_contamination'], cond_cont = False, False
+            O["est_contamination"], cond_cont = False, False
             log_.info("stopping contamination updates")
 
     if cond_Ftau:
         delta = update_Ftau(F, tau, PG, P, IX, est_options)
         if delta < 1e-5:  # when we converged, do not update F
-            O['est_F'], O['est_tau'] = False, False
+            O["est_F"], O["est_tau"] = False, False
             cond_Ftau, cond_F, cond_tau = False, False, False
             log_.info("stopping Ftau updates")
     if cond_Ftau or cond_cont or cond_tau:
@@ -206,9 +163,9 @@ def update_emission_stuff(
             error,
             F,
             tau,
-            est_inbreeding=O['est_inbreeding'],
+            est_inbreeding=O["est_inbreeding"],
             gt_mode=gt_mode,
-        )  
+        )
 
         e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
         log_.info("e-scaling: %s", e_scaling)
@@ -271,7 +228,7 @@ def run_admixfrog(
     else:
         data = load_read_data(infile, split_lib, downsample)
 
-    if (not est["est_contamination"] and init['c0'] == 0) or gt_mode:
+    if (not est["est_contamination"] and init["c0"] == 0) or gt_mode:
         cont_id = None
 
     ref = load_ref(ref_files, states, cont_id, prior, ancestral, autosomes_only)
@@ -340,8 +297,8 @@ def run_admixfrog(
         )
         df_pred["chrom"] = [IX.diplo_chroms[i] for i in df_pred.chrom.values]
         df_pred["state"] = [states[i] for i in df_pred.state.values]
-        
-        if len(bhap) > 0 :
+
+        if len(bhap) > 0:
             df_pred_hap = pred_sims(
                 trans=pars.trans_hap,
                 emissions=hemissions,
@@ -352,9 +309,11 @@ def run_admixfrog(
                 n_sims=n_post_replicates,
                 est_inbreeding=est["est_inbreeding"],
                 keep_loc=keep_loc,
-                decode=False
+                decode=False,
             )
-            df_pred_hap["chrom"] = [IX.haplo_chroms[i] for i in df_pred_hap.chrom.values]
+            df_pred_hap["chrom"] = [
+                IX.haplo_chroms[i] for i in df_pred_hap.chrom.values
+            ]
             df_pred_hap["state"] = [states[i] for i in df_pred_hap.state.values]
             df_pred = pd.concat((df_pred, df_pred_hap))
 
