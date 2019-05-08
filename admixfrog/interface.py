@@ -20,7 +20,7 @@ def add_output_parse_group(parser):
                                   """,
     )
     g.add_argument(
-        "--out", default="admixfrog", help="""Output file path (without extensions)"""
+        "--out", "-o", default="admixfrog", help="""Output file path (without extensions)"""
     )
     g.add_argument(
         "--no-rle",

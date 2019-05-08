@@ -4,11 +4,12 @@ from collections import Counter
 from scipy.stats import binom
 import pandas as pd
 import numpy as np
-from .utils import posterior_table
 
 try:
+    from .utils import posterior_table
     from .log import log_
 except (ImportError, ModuleNotFoundError):
+    from utils import posterior_table
     from log import log_
 
 """reading and writing files"""
@@ -79,6 +80,7 @@ def load_ref(
     if autosomes_only:
         ref = ref[ref.chrom != "X"]
         ref = ref[ref.chrom != "Y"]
+        ref = ref[ref.chrom != "mt"]
     return ref
 
 

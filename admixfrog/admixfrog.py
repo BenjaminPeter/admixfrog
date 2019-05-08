@@ -1,6 +1,6 @@
 import numpy as np
-import pickle
 import pandas as pd
+import itertools
 from collections import Counter, defaultdict
 from .io import load_read_data, load_gt_data, load_ref, filter_ref
 from .io import write_bin_table, write_pars_table, write_cont_table
@@ -14,9 +14,20 @@ from .read_emissions import update_contamination
 from .rle import get_rle
 from .decode import pred_sims
 from .log import log_, setup_log
-import itertools
 
 COORDS = ["chrom", "map", "pos"]
+
+EST_DEFAULT = dict(
+    [
+        ("est_inbreeding", False),
+        ("est_contamination", True),
+        ("est_F", False),
+        ("est_tau", False),
+        ("est_error", False),
+        ("freq_contamination", 1),
+        ("freq_F", 1),
+    ]
+)
 
 
 def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=False):
@@ -114,6 +125,7 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=Fal
         scaling = update_emission_stuff(
             it, E, P, PG, SNP, Z, IX, cont, error, F, tau, scaling, est_options, gt_mode
         )
+        #breakpoint()
 
     update_post_geno(PG, SNP, Z, IX)
     pars = ParsHD(
@@ -175,17 +187,6 @@ def update_emission_stuff(
     return scaling
 
 
-est_default = dict(
-    [
-        ("est_inbreeding", False),
-        ("est_contamination", True),
-        ("est_F", False),
-        ("est_tau", False),
-        ("est_error", False),
-        ("freq_contamination", 1),
-        ("freq_F", 1),
-    ]
-)
 
 
 def run_admixfrog(
@@ -206,7 +207,7 @@ def run_admixfrog(
     keep_loc=True,
     output=defaultdict(lambda: True),
     init=defaultdict(lambda: 1e-2),
-    est=est_default,
+    est=EST_DEFAULT,
     filter=defaultdict(lambda: None),
     **kwargs
 ):
@@ -277,7 +278,6 @@ def run_admixfrog(
     Z, G, pars, ll, emissions, hemissions, (_, beta, n), (_, bhap, nhap) = baum_welch(
         P, IX, pars, gt_mode=gt_mode, est_options=est, **kwargs
     )
-    # pickle.dump((alpha, beta, n, emissions, pars), open("dump.pickle", "wb"))
 
     # output formating from here
     if output["output_pars"]:

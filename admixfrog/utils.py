@@ -404,7 +404,7 @@ def guess_sex(data, sex_ratio_threshold=0.8):
     cov[True] /= np.sum(data.heterogametic)
     cov[False] /= np.sum(data.heterogametic == False)
 
-    del ref["heterogametic"]
+    del data["heterogametic"]
 
     if cov[True] / cov[False] < sex_ratio_threshold:
         sex = "m"
@@ -437,3 +437,18 @@ def scale_mat3d(M):
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
+
+
+def parse_state_string(states):
+    """parse state string of form IX=a,b,c
+
+    return rename dict for reference
+    
+    """
+    d1 = [s.split("=") for s in states]
+    d2 = [(s if len(s)>1 else (s[0],s[0])) for s in d1] 
+    d3 = dict( (f'{k}_{ext}', f'{i}_{ext}') for i, j in d3 
+              for k in j.split(",") 
+              for ext in ['ref', 'alt'])
+
+
