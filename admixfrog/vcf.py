@@ -24,6 +24,15 @@ vcf_file = (
     "/mnt/expressions/bpeter/100a/basic_processing/vcfs/merged/tinyvcf_afr.vcf.gz"
 )
 
+def parse_chroms(arg):
+    chroms = []
+    for s in arg.split(","):
+        if "-" in s:
+            a, b = s.split("-")
+            chroms.extend([str(s) for s in range(int(a), int(b)+1)])
+        else:
+            chroms.append(s)
+    return chroms
 
 def load_pop_file(pop_file=None, pops=None):
     P = dict()
@@ -56,12 +65,15 @@ def vcf_to_ref(
     pos_id="Physical_Pos",
     map_id="AA_Map",
     rec_rate=1e-8,
-    chrom0="1",
+    chroms = None
 ):
 
     #  get chromosomes
-    with VariantFile(vcf_file.format(CHROM=chrom0)) as vcf:
-        chroms = [i for i in vcf.header.contigs]
+    with VariantFile(vcf_file.format(CHROM='1')) as vcf:
+        if chroms is None:
+            chroms = [i for i in vcf.header.contigs]
+        else:
+            chroms = parse_chroms(chroms)
         log_.info("chroms found: %s", chroms)
 
         sample2pop = defaultdict(list)
@@ -69,6 +81,7 @@ def vcf_to_ref(
             for sample in v:
                 if sample in vcf.header.samples:
                     sample2pop[sample].append(pop)
+
 
     samples = sample2pop.keys()
     pops = [pop for s, v in sample2pop.items() for pop in v]
@@ -152,11 +165,15 @@ def vcf_to_ref(
 
 
 def vcf_to_sample(
-    outfile, vcf_file, ref_file, sample_id, random_read=False, chrom0="1"
+    outfile, vcf_file, ref_file, sample_id, random_read=False, chroms=None
 ):
-    with VariantFile(vcf_file.format(CHROM=chrom0)) as vcf:
-        chroms = [i for i in vcf.header.contigs]
-        log_.debug("chroms found: %s", chroms)
+    if chroms is None:
+        with VariantFile(vcf_file.format(CHROM='1')) as vcf:
+            chroms = [i for i in vcf.header.contigs]
+    else:
+        chroms = parse_chroms(chroms)
+
+    log_.debug("chroms found: %s", chroms)
 
     ref = pd.read_csv(ref_file)
     ref.chrom = ref.chrom.astype(str)
@@ -177,7 +194,7 @@ def vcf_to_sample(
                         pass
                         # log_.debug(f"{row.chrom}:{row.pos} in ref")
                     else:
-                        log_.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
+                        #log_.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
                         continue
 
                     infile.write(f"{row.chrom},{row.pos},")
@@ -195,6 +212,7 @@ def vcf_to_sample(
                         else:
                             alleles = Counter(sample_data[s]["GT"])
                             infile.write(f"{alleles[0]},{alleles[1]}\n")
+            log_.debug(f"done processing {chrom}")
 
 
 def load_random_read_samples(pop_file=None):

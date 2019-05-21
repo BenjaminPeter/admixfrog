@@ -136,7 +136,7 @@ REFFILE_PARS = [
     "rec_rate",
     "pos_id",
     "map_id",
-    "chrom0",
+    "chroms",
     "force_ref",
 ]
 
@@ -183,13 +183,19 @@ def add_ref_parse_group(parser):
         help="""column name for genetic map (default: AA_Map)
         """,
     )
-    g.add_argument(
-        "--chrom0",
-        default="1",
-        help="""chromosome id for first chromosome/contig to be read for split-chromosome files.
-        All chromosomes should be present in the header of this vcf file.
+    parser.add_argument(
+        "--chroms", "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
         """,
     )
+    #g.add_argument(
+    #    "--chrom0",
+    #    default="1",
+    #    help="""chromosome id for first chromosome/contig to be read for split-chromosome files.
+    #    All chromosomes should be present in the header of this vcf file.
+    #    """,
+    #)
     g.add_argument("--force-ref", "--force-vcf", default=False, action="store_true")
 
 
@@ -310,8 +316,16 @@ def bam():
         help="""sample id for vcf mode.
         """,
     )
+    parser.add_argument(
+        "--chroms", "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
+        """,
+    )
     add_infile_parse_group(parser)
     args = vars(parser.parse_args())
+
+
     logger.info(pformat(args))
     force_infile = args.pop("force_infile")
     if isfile(args["outfile"]) and not force_infile:
@@ -322,12 +336,14 @@ def bam():
             outfile=args["outfile"],
             vcf_file=args["vcfgt"],
             ref_file=args["ref"],
+            chroms=args['chroms'],
             random_read=False,
             sample_id=args["sample_id"],
         )
     else:
         del args["vcfgt"]
         del args["sample_id"]
+        del args['chroms']
         process_bam(**args)
 
 
@@ -386,7 +402,7 @@ def do_ref():
         args.pos_id,
         args.map_id,
         rec_rate=args.rec_rate,
-        chrom0=args.chrom0,
+        chroms=args.chroms
     )
 
 
@@ -599,6 +615,7 @@ def run():
     reffile_pars = dict()
     algo_pars = dict()
 
+
     for k in list(V.keys()):
         if k.startswith("output_"):
             output_options[k] = V.pop(k)
@@ -649,7 +666,7 @@ def run():
             reffile_pars["pos_id"],
             reffile_pars["map_id"],
             reffile_pars["rec_rate"],
-            reffile_pars["chrom0"],
+            reffile_pars["chroms"],
         )
 
     if infile_pars["bamfile"] is not None:
