@@ -3,14 +3,86 @@ from .admixfrog import run_admixfrog
 from pprint import pprint, pformat
 from .bam import process_bam
 from .rle import get_rle
-from .vcf import load_pop_file, vcf_to_ref,load_random_read_samples
+from .vcf import load_pop_file, vcf_to_ref, load_random_read_samples, vcf_to_sample
 from os.path import isfile
 import admixfrog
 from .log import log_, setup_log
 import pdb
 
+POP_OPTIONS = ["cont_id", "infile", "ref_files", "sex", "states", "ancestral"]
 
-def add_bam_parse_group(parser):
+
+def add_output_parse_group(parser):
+    g = parser.add_argument_group(
+        "output name and files to be generated",
+        """By default, all files are generated. However, if any of 
+                                  the --no-* options are used to disable specific files
+                                  """,
+    )
+    g.add_argument(
+        "--out", "-o", default="admixfrog", help="""Output file path (without extensions)"""
+    )
+    g.add_argument(
+        "--no-rle",
+        action="store_false",
+        default=True,
+        dest="output_rle",
+        help="""Disabble Estimating  runs and writeing to file with extension .rle.xz""",
+    )
+    g.add_argument(
+        "--no-snp",
+        action="store_false",
+        default=True,
+        dest="output_snp",
+        help="""Disable writing posterior genotype likelihood to file with extension .snp.xz""",
+    )
+    g.add_argument(
+        "--no-bin",
+        action="store_false",
+        default=True,
+        dest="output_bin",
+        help="""Disable writing posterior states to file with extension .bin.xz""",
+    )
+
+    g.add_argument(
+        "--no-cont",
+        action="store_false",
+        default=True,
+        dest="output_cont",
+        help="""Disable writing contamination estimates to file with extension .bin.xz""",
+    )
+    g.add_argument(
+        "--no-rsim",
+        action="store_false",
+        default=True,
+        dest="output_rsim",
+        help="""Disable writing posterior simulations of runs 
+            to file with extension .res.xz""",
+    )
+    g.add_argument(
+        "--no-pars",
+        action="store_false",
+        default=True,
+        dest="output_pars",
+        help="""Disable writing parameters 
+            to file with extension .pars.yaml""",
+    )
+
+
+INFILE_PARS = [
+    "bamfile",
+    "deam_cutoff",
+    "minmapq",
+    "force_infile",
+    "length_bin_size",
+    "tstv",
+    "alleles",
+    "vcfgt",
+    "sample_id",
+]
+
+
+def add_infile_parse_group(parser):
     g = parser.add_argument_group("bam parsing")
     g.add_argument(
         "--bamfile",
@@ -19,10 +91,10 @@ def add_bam_parse_group(parser):
                    The resulting input file will be writen in {out}.in.xz,
                    so it doesn't need to be regenerated.
                    If the input file exists, an error is generated unless
-                   --force-bam is set
+                   --force-infile is set
                    """,
     )
-    g.add_argument("--force-bam", default=False, action="store_true")
+    g.add_argument("--force-infile", "--force-bam", default=False, action="store_true")
     # g.add_argument("--bedfile", "--bed",
     #               help="Bed file with anc/der allele to restrict to")
     g.add_argument(
@@ -31,6 +103,12 @@ def add_bam_parse_group(parser):
         default=3,
         help="""reads with deamination in positions < deam-cutoff are
                    considered separately""",
+    )
+    g.add_argument(
+        "--minmapq",
+        type=int,
+        default=25,
+        help="""reads with mapq < MINMAPQ are removed""",
     )
     g.add_argument(
         "--length-bin-size",
@@ -51,6 +129,18 @@ def add_rle_parse_group(parser):
     )
 
 
+REFFILE_PARS = [
+    "vcf_file",
+    "pop_file",
+    "rec_file",
+    "rec_rate",
+    "pos_id",
+    "map_id",
+    "chroms",
+    "force_ref",
+]
+
+
 def add_ref_parse_group(parser):
     g = parser.add_argument_group("creating reference file")
     g.add_argument(
@@ -60,48 +150,138 @@ def add_ref_parse_group(parser):
                    The resulting ref file will be writen as {out}.ref.xz,
                    so it doesn't need to be regenerated.
                    If the input file exists, an error is generated unless
-                   --force-vcf is set
+                   --force-ref is set
                    """,
     )
     g.add_argument(
-        "--pop-file",
-        default=None,
-        help="""Population assignments (yaml format)"""
+        "--pop-file", default=None, help="""Population assignments (yaml format)"""
     )
     g.add_argument(
-        "--rec-file", "--rec",
+        "--rec-file",
+        "--rec",
         help="""Recombination rate file. Modelled after 
         https://www.well.ox.ac.uk/~anjali/AAmap/
         If file is split by chromosome, use {CHROM} as 
         wildcards where the chromosome id will be included
-        """
+        """,
     )
     g.add_argument(
-        "--rec-rate", 
+        "--rec-rate",
         default=1e-8,
         type=float,
-        help="""Constant recombination rate (per generation per base-pair)"""
+        help="""Constant recombination rate (per generation per base-pair)""",
     )
     g.add_argument(
-        "--pos-id", 
+        "--pos-id",
         default="Physical_Pos",
         help="""column name for position (default: Physical_Pos)
-        """
+        """,
     )
     g.add_argument(
-        "--map-id", 
+        "--map-id",
         default="AA_Map",
         help="""column name for genetic map (default: AA_Map)
-        """
+        """,
     )
-    g.add_argument(
-        "--chrom0",
-        default='1',
-        help="""chromosome id for first chromosome/contig to be read for split-chromosome files.
-        All chromosomes should be present in the header of this vcf file.
-        """
+    parser.add_argument(
+        "--chroms", "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
+        """,
     )
-    g.add_argument("--force-vcf", default=False, action="store_true")
+    #g.add_argument(
+    #    "--chrom0",
+    #    default="1",
+    #    help="""chromosome id for first chromosome/contig to be read for split-chromosome files.
+    #    All chromosomes should be present in the header of this vcf file.
+    #    """,
+    #)
+    g.add_argument("--force-ref", "--force-vcf", default=False, action="store_true")
+
+
+BASE_OPTIONS = [
+    "bin_size",
+    "autosomes_only",
+    "downsample",
+    "gt_mode",
+    "ll_tol",
+    "max_iter",
+    "n_post_replicates",
+    "pos_mode",
+    "prior",
+    "split_lib",
+]
+
+
+def add_base_parse_group(P):
+    parser = P.add_argument_group("options that control the algorithm behavior")
+    parser.add_argument(
+        "--gt-mode",
+        "--gt",
+        help="""Assume genotypes are known.
+        """,
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-b",
+        "--bin-size",
+        type=float,
+        default=10000,
+        help="""Size of bins. By default, this is given in 1e-8 cM, so that the unit is
+        approximately the same for runs on physical / map positions""",
+    )
+    parser.add_argument(
+        "--prior",
+        "-p",
+        type=float,
+        default=None,
+        help="""Prior of reference allele frequencies. If None (default, recommended), this is 
+        estimated from the data
+        
+        This number is added to both the
+        ref and alt allele count for each reference, to reflect the uncertainty in allele
+        frequencies from a sample. If references are stationary with size 2N, this is
+        approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
+          """,
+    )
+    parser.add_argument(
+        "-P",
+        "--pos-mode",
+        default=False,
+        action="store_true",
+        help="""Instad of recombination distances, use physical distances for binning""",
+    )
+    parser.add_argument(
+        "--max-iter",
+        "-m",
+        type=int,
+        default=1000,
+        help="""maximum number of iterations""",
+    )
+    parser.add_argument(
+        "--ll-tol", type=float, default=1e-2, help="""stop EM when DeltaLL < ll-tol"""
+    )
+    parser.add_argument(
+        "--dont-split-lib",
+        action="store_false",
+        dest="split_lib",
+        default=True,
+        help="""estimate one global contamination parameter (default: one per read
+        group)""",
+    )
+    parser.add_argument(
+        "--autosomes-only",
+        action="store_true",
+        default=False,
+        help="Only run autosomes",
+    )
+    parser.add_argument(
+        "--downsample",
+        type=float,
+        default=1.0,
+        help="downsample coverage to a proportion of reads",
+    )
 
 
 def bam():
@@ -113,7 +293,7 @@ def bam():
     parser.add_argument(
         "--ref",
         "--ref-file",
-        help="""refernce input file (csv). 
+        help="""reference input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
                         - pos : physical position (int)
@@ -121,17 +301,50 @@ def bam():
                         - alt : alternative allele
                         - map : rec position (float)
                         - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
-                        these are used later in --cont-id and --state-id flags
+                        these are used later in --cont-id and --states flags
                         """,
     )
-    add_bam_parse_group(parser)
+    parser.add_argument(
+        "--vcfgt",
+        "--vcf-gt",
+        "--vcf-infile",
+        help="""VCF input file. To generate input format for admixfrog in genotype mode, use this.
+        """,
+    )
+    parser.add_argument(
+        "--sample-id",
+        help="""sample id for vcf mode.
+        """,
+    )
+    parser.add_argument(
+        "--chroms", "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
+        """,
+    )
+    add_infile_parse_group(parser)
     args = vars(parser.parse_args())
-    logger.info(pformat(args))
-    force_bam = args.pop("force_bam")
-    if isfile(args["outfile"]) and not force_bam:
-        raise ValueError("""infile exists. set --force-bam to regenerate""")
 
-    process_bam(**args)
+
+    logger.info(pformat(args))
+    force_infile = args.pop("force_infile")
+    if isfile(args["outfile"]) and not force_infile:
+        raise ValueError("""infile exists. set --force-infile to regenerate""")
+
+    if "vcfgt" in args and args["vcfgt"] is not None:
+        vcf_to_sample(
+            outfile=args["outfile"],
+            vcf_file=args["vcfgt"],
+            ref_file=args["ref"],
+            chroms=args['chroms'],
+            random_read=False,
+            sample_id=args["sample_id"],
+        )
+    else:
+        del args["vcfgt"]
+        del args["sample_id"]
+        del args['chroms']
+        process_bam(**args)
 
 
 def do_rle():
@@ -165,12 +378,12 @@ def do_ref():
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
     )
     parser.add_argument(
-        "--states", 
+        "--states",
         nargs="*",
         help="""Populations to be parsed. Need to be either present in the pop-file,
         or, as single sample, in the vcf-file. If unset, all clusters defined in the 
         pop-file will be used
-        """
+        """,
     )
 
     add_ref_parse_group(parser)
@@ -180,12 +393,17 @@ def do_ref():
     pop2sample = load_pop_file(args.pop_file, args.states)
     random_read_samples = load_random_read_samples(args.pop_file)
     logger.debug(pformat(random_read_samples))
-    vcf_to_ref(args.outfile, args.vcf_file, args.rec_file, 
-               pop2sample, 
-               random_read_samples,
-               args.pos_id, args.map_id,
-               rec_rate=args.rec_rate,
-               chrom0=args.chrom0)
+    vcf_to_ref(
+        args.outfile,
+        args.vcf_file,
+        args.rec_file,
+        pop2sample,
+        random_read_samples,
+        args.pos_id,
+        args.map_id,
+        rec_rate=args.rec_rate,
+        chroms=args.chroms
+    )
 
 
 def run():
@@ -201,7 +419,8 @@ def run():
     )
 
     parser.add_argument(
-        "--infile", "--in",
+        "--infile",
+        "--in",
         help="""Sample input file (csv). Contains individual specific data, obtained from
                         a bam file.
 
@@ -214,16 +433,11 @@ def run():
                         - talt: number of alt reads observed""",
     )
     parser.add_argument(
-        "--gt-mode", "--gt",
-        help="""Assume genotypes are known.
-        """,
-        action="store_true",
-        default=False
-    )
-    parser.add_argument(
-        "--ref-file",
         "--ref",
+        "--ref-file",
         default=None,
+        action="append",
+        dest="ref_files",
         help="""refernce input file (csv). 
                     - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
                         - chrom: chromosome
@@ -236,11 +450,8 @@ def run():
                         """,
     )
     parser.add_argument(
-        "--out", "-o", required=True, help="""Output file path (without extensions)"""
-    )
-    parser.add_argument(
-        "--state-ids",
         "--states",
+        "--state-ids",
         nargs="*",
         default=["AFR", "VIN", "DEN"],
         help="""the allowed sources. The target will be made of a mix of all homozygous
@@ -255,45 +466,6 @@ def run():
         """,
     )
     parser.add_argument(
-        "-b",
-        "--bin-size",
-        type=float,
-        default=10000,
-        help="""Size of bins. By default, this is given in 1e-8 cM, so that the unit is
-        approximately the same for runs on physical / map positions""",
-    )
-    parser.add_argument(
-        "-P",
-        "--pos-mode",
-        default=False,
-        action="store_true",
-        help="""Instad of recombination distances, use physical distances for binning""",
-    )
-    parser.add_argument(
-        "--max-iter",
-        "-m",
-        type=int,
-        default=1000,
-        help="""maximum number of iterations""",
-    )
-    parser.add_argument(
-        "--ll-tol", type=float, default=1e-2, help="""stop EM when DeltaLL < ll-tol"""
-    )
-    parser.add_argument(
-        "--prior",
-        "-p",
-        type=float,
-        default=None,
-        help="""Prior of reference allele frequencies. If None (default, recommended), this is 
-        estimated from the data
-        
-        This number is added to both the
-        ref and alt allele count for each reference, to reflect the uncertainty in allele
-        frequencies from a sample. If references are stationary with size 2N, this is
-        approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
-          """,
-    )
-    parser.add_argument(
         "--dont-est-contamination",
         action="store_false",
         dest="est_contamination",
@@ -301,11 +473,17 @@ def run():
         help="""Don't estimate contamination (default do)""",
     )
     parser.add_argument(
+        "--est-error",
+        action="store_true",
+        default=False,
+        help="""estimate sequencing error per rg""",
+    )
+    parser.add_argument(
         "--freq-contamination",
         "--fc",
         type=int,
         default=1,
-        help="""update frequency for contamination (default 1)""",
+        help="""update frequency for contamination/error (default 1)""",
     )
     parser.add_argument(
         "--est-F",
@@ -334,14 +512,6 @@ def run():
         default="AFR",
         help="""the source of contamination. Must be specified in ref file""",
     )
-    parser.add_argument(
-        "--dont-split-lib",
-        action="store_false",
-        dest="split_lib",
-        default=True,
-        help="""estimate one global contamination parameter (default: one per read
-        group)""",
-    )
 
     parser.add_argument(
         "--male",
@@ -360,18 +530,6 @@ def run():
         help="Assumes diploid X chromosome. Default is guess from coverage",
     )
     parser.add_argument(
-        "--autosomes-only",
-        action="store_true",
-        default=False,
-        help="Only run autosomes",
-    )
-    parser.add_argument(
-        "--downsample",
-        type=float,
-        default=1.0,
-        help="downsample coverage to a proportion of reads"
-    )
-    parser.add_argument(
         "--F0",
         nargs="*",
         type=float,
@@ -383,14 +541,8 @@ def run():
         nargs="*",
         type=float,
         default=0,
-        #help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+        # help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
         help="initial log-tau (default 0), at most 1 per source",
-    )
-    parser.add_argument(
-        "--ld-weighting", "--ld", 
-        default=False,
-        action="store_true",
-        help="""downweight SNP in the same bins to counter ancient LD. Very experimental, optimization appears to be broken"""
     )
     parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"
@@ -425,99 +577,129 @@ def run():
     parser.add_argument(
         "--filter-delta",
         type=float,
-        help="""only use sites with allele frequency difference bigger than DELTA (default off)"""
+        help="""only use sites with allele frequency difference bigger than DELTA (default off)""",
     )
     parser.add_argument(
         "--filter-pos",
         type=int,
-        help="""greedily prune sites to be at least POS positions apart"""
+        help="""greedily prune sites to be at least POS positions apart""",
     )
     parser.add_argument(
         "--filter-map",
         type=float,
-        help="""greedily prune sites to be at least MAP recombination distance apart"""
+        help="""greedily prune sites to be at least MAP recombination distance apart""",
     )
     parser.add_argument(
         "--init-guess",
         nargs="*",
         help="""init transition so that one state is favored. should be a 
-        state in --state-ids """
+        state in --state-ids """,
     )
 
-    add_bam_parse_group(parser)
+    add_infile_parse_group(parser)
+    add_base_parse_group(parser)
     add_ref_parse_group(parser)
     add_rle_parse_group(parser)
+    add_output_parse_group(parser)
 
     from . import __version__
-    log_.info("running admixfrog version %s", __version__)
+
     args = parser.parse_args()
     V = vars(args)
-    log_.info(pformat(V))
-    force_bam = V.pop("force_bam")
-    force_vcf = V.pop("force_vcf")
 
-    if V["vcf_file"] is not None:
-        if V["ref_file"] is not None:
+    output_options = dict()
+    filter_options = dict()
+    init_pars = dict()
+    est_options = dict()
+    infile_pars = dict()
+    reffile_pars = dict()
+    algo_pars = dict()
+
+
+    for k in list(V.keys()):
+        if k.startswith("output_"):
+            output_options[k] = V.pop(k)
+        elif k.startswith("filter_"):
+            filter_options[k] = V.pop(k)
+        elif k.startswith("est_") or k.startswith("freq_"):
+            est_options[k] = V.pop(k)
+        elif k in ["init_guess", "F0", "e0", "c0", "tau0", "run_penalty"]:
+            init_pars[k] = V.pop(k)
+        elif k in INFILE_PARS:
+            infile_pars[k] = V.pop(k)
+        elif k in REFFILE_PARS:
+            reffile_pars[k] = V.pop(k)
+        elif k in BASE_OPTIONS:
+            algo_pars[k] = V.pop(k)
+    V["output"] = output_options
+    V["filter"] = filter_options
+    V["est"] = est_options
+    V["init"] = init_pars
+    V["algorithm"] = algo_pars
+
+    log_.info(
+        "running admixfrog %s with the following arguments:\n%s ",
+        __version__,
+        pformat(V),
+    )
+
+    if reffile_pars["vcf_file"] is not None:
+        if V["ref_files"] is not None:
             raise ValueError("cant specify ref and vcf input")
-        V["ref_file"] = V["out"] + ".ref.xz"
-        if isfile(V["ref_file"]) and not force_vcf:
+        V["ref_files"] = [V["out"] + ".ref.xz"]
+        if isfile(V["ref_files"][0]) and not reffile_pars["force_ref"]:
             raise ValueError(
-                """ref-file exists. Use this or set --force-vcf to 
+                """ref-file exists. Use this or set --force-ref to 
                 regenerate the file"""
             )
         log_.info("creating ref from vcf file")
 
-        pop2sample = load_pop_file(V['pop_file'], V['states'])
-        random_read_samples = load_random_read_samples(V.pop('pop_file'))
+        pop2sample = load_pop_file(reffile_pars["pop_file"], V["states"])
+        random_read_samples = load_random_read_samples(reffile_pars["pop_file"])
         logger.debug(pformat(random_read_samples))
-        vcf_to_ref(V.pop('ref_file'), 
-                   V.pop('vcf_file'),
-                   V.pop('rec_file'),
-                   pop2sample, 
-                   random_read_samples,
-                   V.pop('pos_id'),
-                   V.pop('map_id'),
-                   rec_rate=V.pop('rec_rate'),
-                   chrom0=V.pop('chrom0'))
-    else:
-        del V['pos_id']
-        del V['map_id']
-        del V['vcf_file']
-        del V['rec_file']
-        del V['rec_rate']
-        del V['pop_file']
-        del V['chrom0']
+        vcf_to_ref(
+            V["ref_files"][0],
+            reffile_pars["vcf_file"],
+            reffile_pars["rec_file"],
+            pop2sample,
+            random_read_samples,
+            reffile_pars["pos_id"],
+            reffile_pars["map_id"],
+            reffile_pars["rec_rate"],
+            reffile_pars["chroms"],
+        )
 
-
-    if V["bamfile"] is not None:
+    if infile_pars["bamfile"] is not None:
         if V["infile"] is not None:
             raise ValueError("cant specify csv and bam input")
         V["infile"] = V["out"] + ".in.xz"
-        if isfile(V["infile"]) and not force_bam:
+        if isfile(V["infile"]) and not infile_pars["force_infile"]:
             raise ValueError(
-                """infile exists. Use this or set --force-bam to 
+                """infile exists. Use this or set --force-infile to 
                              regenerate"""
             )
         log_.info("creating input from bam file")
         process_bam(
-            outfile=V["infile"],
-            bamfile=V.pop("bamfile"),
+            outfile=infile_pars["infile"],
+            bamfile=infile_pars["bamfile"],
             ref=V["ref_file"],
             # bedfile=V.pop('bedfile'),
-            deam_cutoff=V.pop("deam_cutoff"),
-            length_bin_size=V.pop("length_bin_size"),
+            deam_cutoff=infile_pars["deam_cutoff"],
+            length_bin_size=infile_pars["length_bin_size"],
         )
-    else:
-        del V["bamfile"]
-        del V["deam_cutoff"]
-        del V["length_bin_size"]
+
+    if "infile" not in V or V["infile"] is None:
+        raise ValueError("require infile, specify --infile or --bam or --vcfgt")
+    if "ref_files" not in V or V["ref_files"] is None:
+        raise ValueError("require ref, specify with --ref or create using --vcf")
 
     out = V.pop("out")
 
     from . import __version__
 
     log_.info("admixfrog %s", __version__)
-    bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
+    del V["algorithm"]
+    bins, snps, cont, pars, rle, res = run_admixfrog(**V, **algo_pars)
     # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
     # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
     # pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
@@ -526,7 +708,8 @@ def run():
     rle.to_csv("%s.rle.xz" % out, float_format="%.6f", index=False, compression="xz")
     bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
     cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
-    pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")
+    with open("%s.pars.yaml" % out, "wt") as f:
+        f.write(pars)
     snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
 
 
