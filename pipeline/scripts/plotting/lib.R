@@ -34,6 +34,22 @@ read_binout <- function(fname){
     a <- read_csv(fname, col_types=COL) %>%
         mutate(chrom = sort_chroms(chrom))
 }
+read_snpout <- function(fname){
+    COL = cols(
+               chrom=col_factor(),
+               pos=col_integer(),
+               map=col_double(),
+               bin=col_integer(),
+               tref=col_integer(),
+               talt=col_integer(),
+               G0=col_double(),
+               G0=col_double(),
+               G1=col_double()
+               )
+    #COL$cols = strsplit("cdiiilci","")[[1]]
+    a <- read_csv(fname, col_types=COL) %>%
+        mutate(chrom = sort_chroms(chrom))
+}
 
 read_rle <- function(fname){
     read_csv(fname, col_types=cols(chrom=readr::col_factor())) %>%
@@ -71,9 +87,14 @@ read_run <- function(rfile){
 	    group_by(state, len) %>%
 	    summarize(n=sum(n))
 }
+read_run2 <- function(rfile){ #new format
+    read_csv(rfile, col_types='iiifii') %>%
+	    group_by(state, len) %>%
+        tally
+}
 
 load_runs_data <- function(files, name){
-    a <- lapply(files, read_run)
+    a <- lapply(files, read_run2)
     names(a) <- name
     a <- bind_rows(a, .id="sample")
 }
@@ -102,6 +123,16 @@ load_bin_data <- function(infiles, name, widths=TRUE){
 	arrange(sample, chrom, pos, map)  %>%
 	mutate( pwidth = diff(c(pos, max(pos)))) %>%
 	mutate( bwidth = diff(c(map, max(map)))) %>%
+	ungroup 
+}
+
+load_snp_data <- function(infiles, name, widths=TRUE){
+    a <- lapply(infiles, read_snpout)
+    names(a) <- name
+    a <- bind_rows(a, .id="sample")
+    if(!widths) return(a)
+	a %>% group_by(sample, chrom) %>%
+	arrange(sample, chrom, pos, map)  %>%
 	ungroup 
 }
 
@@ -168,8 +199,10 @@ plot_m_gamma <- function(R, generation_time){
         filter(!is.na(lmean + emean), slmean < tmax * 1.1) %>%
         unnest(l) 
 
+    is_signif = R$sample[R$delta_ll  > qchisq(.95, 1)]
+
     M = gpred %>%
-        ggplot( aes(x=time*SCALING, y=mig)) + 
+        ggplot( aes(x=time*SCALING, y=mig, color=sample %in% is_signif)) + 
         geom_line(lty=2) + 
         scale_x_continuous(name="time (y)", expand=expand_scale(0,0)) + 
         coord_cartesian(xlim=c(0, tmax * SCALING)) + 

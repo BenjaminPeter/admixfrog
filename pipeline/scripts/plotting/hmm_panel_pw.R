@@ -11,7 +11,7 @@ binfiles = snakemake@input$bins
 names = snakemake@config$panels[[panel]]
 penalty = as.numeric(snakemake@wildcards$penalty)
 state = snakemake@wildcards$target
-type_ = snakemake@wildcards$type
+type_ = snakemake@wildcards$tt
 
 l_cutoffs = snakemake@params$lengths
 
