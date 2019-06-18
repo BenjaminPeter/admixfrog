@@ -99,11 +99,13 @@ class ComplexFile(File, ABC):
 
     def gt(self, target_positions):
         cur_chrom = None
+        site = None
 
         for i, (target_chrom, target_pos) in enumerate(target_positions):
 
             # we found last target position
             if target_chrom != cur_chrom:
+                print(target_chrom)
                 if cur_chrom is not None:
                     print("closing", target_chrom)
                     self._close_file()
@@ -114,7 +116,13 @@ class ComplexFile(File, ABC):
                 try:
                     site = next(sites)
                 except StopIteration:  # no sites in bam
-                    break
+                    site = None
+
+            # case 0: no data for chromosome
+            if site is None:
+                yield self.no_data_default(target_chrom, target_pos)
+                #print("no chrom data", target_chrom, target_pos)
+                continue
 
             # case 1: pos in bam not in target, advance bam
             while (
@@ -276,6 +284,7 @@ class BamFile(ComplexFile):
     def _open_file(self, chrom):
         self._handle = pysam.AlignmentFile(self.fname.format(CHROM=chrom))
         pileup = self._handle.pileup(reference=chrom, multiple_iterators=False)
+        print(f"opening {chrom}")
         return pileup
 
     def process_snp(self, col):
