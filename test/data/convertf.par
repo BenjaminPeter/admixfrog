@@ -1,0 +1,11 @@
+genotypename:    /mnt/sequencedb/gendivdata/2_genotypes/reich_combined/v37.2.1240K.geno
+snpname:         /mnt/sequencedb/gendivdata/2_genotypes/reich_combined/v37.2.1240K.snp
+indivname:       /mnt/sequencedb/gendivdata/2_genotypes/reich_combined/v37.2.1240K.ind
+outputformat:    PACKEDANCESTRYMAP
+genotypeoutname: oase.geno
+snpoutname:      oase.snp
+indivoutname:    oase.ind
+poplistname:     oase.pops
+minchrom:		 9
+maxchrom:		 9
+

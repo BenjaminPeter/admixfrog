@@ -1,0 +1,10 @@
+genotypename:    oase.geno
+snpname:         oase.snp
+indivname:       oase.ind
+outputformat:    PACKEDPED
+genotypeoutname: oase.bed
+snpoutname:      oase.bim
+indivoutname:    oase.fam
+poplistname:     oase.pops
+minchrom:		 9
+maxchrom:		 9
