@@ -5,11 +5,42 @@ import numpy as np
 from math import ceil
 import itertools
 import pandas as pd
+from collections.abc import Mapping
+from pprint import pprint
+from utils import parse_state_string
 
 def row_length(n_ind):
     return max(ceil(n_ind / 4 ), 48)
 
 def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
+    """read binary Reich-lab format data into a pandas data frame
+    See https://github.com/DReichLab/AdmixTools/ for specification
+
+    in general, because pandas is limited with recognized data types,
+    this might be somewhat memory inefficient.
+
+    MISSING DATA WARNING:
+        - the used data type does not allow for missing data.
+        - missing data is thus stored as '3', and will need to
+            be handled
+
+    fname: reich-lab format without extensions: requires 
+            {fname}.ind/.geno/.snp to be present
+    pops: filter for populations to be used
+        supported are:
+            - str  :  single pop / state string
+            - list(str) : subset of state strings
+            - dict[str1] : [str2, str3,...]  : decoded state string
+
+        populations requested but not present will raise error
+    target_ind : for admixfrog stuff, single out an individual as a target
+    guess_ploidy: if set to true, tries to estimate ploidy of sample from data
+        i.e. if there is a value equal to 2, assume diploid
+        if false, set ploidy to diploid always
+    """
+
+
+
     with open(f'{fname}.geno', "rb") as f:
         head = f.read(48).strip(b"\x00").split()
         print(head)
@@ -45,15 +76,30 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     Y.index = pd.MultiIndex.from_frame(snp[['chrom', 'pos', 'map', 'ref', 'alt']])
     del X
 
+    # set filtering for populations
+    if pops is None:
+        pops = {d:d for d in Y.columns.unique(level='pop')}
+    elif isinstance(pops, str):
+        pops = parse_state_string([pops])
+    elif isinstance(pops, Mapping):
+        pass
+    else:
+        pops = parse_state_string(pops)
+    pprint(pops)
+    assert isinstance(pops, Mapping)
+
 
     if target_ind is not None:
         sex = Y.xs(target_ind, level='id', axis=1).columns.get_level_values('sex')[0]
         Y['TARGET', sex, target_ind] = Y.xs(target_ind, level='id', axis=1)
-        if pops is not None:
-            pops.append("TARGET")
+        target_has_data = ((Y['TARGET']<=2) & (Y['TARGET'] >=0)).values
+        Y = Y[target_has_data]
+        pops['TARGET'] = "TARGET"
+
+    Y.rename(pops, axis=1, inplace=True)
 
     if pops is not None:
-        Y = Y[pops]
+        Y = Y[set(pops.values())]
 
     if guess_ploidy:
         ploidy = Y.agg(lambda x: np.max(x * (x<3)))
@@ -63,7 +109,20 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
 
     return Y
 
-def ref_alt(Y):
+def ref_alt(Y, copy=False):
+    """create a ref/alt table from a geno data-file Y
+
+    Notes:
+        - still a bit experimental
+        - will flip alleles inplace (i.e. input array Y WILL BE CHANGED 
+            unless copy=True is set)
+        - recognizes `Y` and `mt` as haploid
+        - recognizes `X` as haploid if sex is male
+        - the population named TARGET is protected
+    """
+    if copy:
+        Y = Y.copy()
+
     if 'Y' in Y.index:
         Y.loc['Y'] = Y.loc['Y'].transform(lambda x: np.where(x>1, 3, x)).values
     if 'mt' in Y.index:
@@ -71,7 +130,12 @@ def ref_alt(Y):
 
     ref = Y.groupby(lambda x:x, level=0, axis=1).agg(ref_count)
     ref.rename(columns = lambda x: f'{x}_ref', inplace=True)
-    Y.loc['1':'22'] = Y.loc['1':'22'].transform(lambda x: x.name[3] - x).values
+
+    CHROMS = Y.index.get_level_values('chrom').categories
+    AUTOSOMES = [c for c in CHROMS if c not in ['mt', 'Y', 'X']]
+
+    #no transform Y s.t. we get non-ref counts
+    Y.loc[AUTOSOMES] = Y.loc[AUTOSOMES].transform(lambda x: x.name[3] - x).values
 
     if 'X' in Y.index:
         Y.loc['X'] = Y.loc['X'].transform(lambda x: (x.name[3] if x.name[1] != 'M' else 1) - x).values
@@ -91,41 +155,9 @@ def ref_alt(Y):
 
     return df
     
-def ref_alt2(Y):
-
-    # for haploid chroms set all '2' counts to missing
-    if 'Y' in Y.index:
-        Y.loc['Y'] = Y.loc['Y'].transform(lambda x: np.where(x>1, 3, x)).values
-    if 'mt' in Y.index:
-        Y.loc['mt'] = Y.loc['mt'].transform(lambda x: np.where(x>1, 3, x)).values
-
-    # get ref allele
-    ref = Y.groupby(lambda x:x, level=0, axis=1).agg(ref_count)
-    ref.rename(columns = lambda x: f'{x}_ref', inplace=True)
-
-    
-    Y.loc['1':'22'] = Y.loc['1':'22'].transform(lambda x: 2 - x).values
-
-    if 'X' in Y.index:
-        Y.loc['X'] = Y.loc['X'].transform(lambda x: - x + (x.name[1]!='M') +1).values
-
-    if 'Y' in Y.index:
-        Y.loc['Y'] = Y.loc['Y'].transform(lambda x: 1 - x).values
-
-    if 'mt' in Y.index:
-        Y.loc['mt'] = Y.loc['mt'].transform(lambda x: 1 - x).values
-
-    alt = Y.groupby(lambda x:x, level=0, axis=1).agg(ref_count)
-    alt.rename(columns = lambda x: f'{x}_alt', inplace=True)
-
-    df = ref.merge(alt, on=['chrom', 'pos', 'map', 'ref', 'alt'])
-    df.rename(columns = {'TARGET_ref' : 'tref', 'TARGET_alt' : 'talt'}, 
-              inplace=True)
-
-    return df
-
 
 def ref_count(x): 
+    """count number of reference alleles """
     v = np.sum(x * (x<3) , axis=1) 
     return v 
 

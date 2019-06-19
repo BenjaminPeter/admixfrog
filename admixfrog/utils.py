@@ -444,16 +444,26 @@ def scale_mat3d(M):
     return log_scaling
 
 
-def parse_state_string(states):
-    """parse state string of form IX=a,b,c
+def parse_state_string(states, ext=[''], operator='+'):
+    """parse shortcut parse strings
+
+    the basic way states are defined is as 
+        --states AFR NEA DEN
+
+    this assmues the columns AFR, NEA and DEN are known and present in the reference
+    We can rename and merge stuff here using the following syntax
+
+    -- states AFR=YRI+SAN NEA=VIN DEN=Denisova2
 
     return rename dict for reference
     
     """
+    ext2 = ['_ref', '_alt']
     d1 = [s.split("=") for s in states]
     d2 = [(s if len(s)>1 else (s[0],s[0])) for s in d1] 
-    d3 = dict( (f'{k}_{ext}', f'{i}_{ext}') for i, j in d3 
-              for k in j.split(",") 
-              for ext in ['ref', 'alt'])
+    d3 = dict( (f'{k}{ext_}', f'{i}{ext_}') for i, j in d2
+              for k in j.split(operator) 
+              for ext_ in ext)
+    return d3
 
 
