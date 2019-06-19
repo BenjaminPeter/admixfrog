@@ -14,10 +14,14 @@ default_filter = {
 
 
 class AdmixfrogInput(pg.ExtCoverage):
-    def __init__(self, outfile, deam_cutoff, length_bin_size=None, **kwargs):
+    def __init__(self, outfile, deam_cutoff, length_bin_size=None, 
+                 random_read_sample=False, **kwargs):
         self.outfile = outfile
         self.deam_cutoff = deam_cutoff
         self.length_bin_size = length_bin_size
+        self.random_read_sample = random_read_sample
+        if random_read_sample:
+            raise NotImplementedError
         try:
             self.min_length = kwargs["min_length"]
         except KeyError:
@@ -93,7 +97,11 @@ class RefIter:
             yield 0, (row.chrom, row.pos - 1, row.ref, row.alt)
 
 
-def process_bam(outfile, bamfile, ref, deam_cutoff, length_bin_size, **kwargs):
+def process_bam(outfile, bamfile, ref, deam_cutoff, length_bin_size, 
+                random_read_sample=False,
+                **kwargs):
+    """generate input file from bam-file
+    """
     blocks = RefIter(ref)
     sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks)
 
@@ -101,6 +109,7 @@ def process_bam(outfile, bamfile, ref, deam_cutoff, length_bin_size, **kwargs):
     log_.info("Filter is %s", default_filter)
     cov = AdmixfrogInput(
         **default_filter,
+        random_read_sample=random_read_sample,
         length_bin_size=length_bin_size,
         deam_cutoff=deam_cutoff,
         outfile=outfile

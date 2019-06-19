@@ -5,4 +5,7 @@
 build/
 admixfrog.egg-info/
 __pycache__/
+*aux
+*log
+*synctex.gz
 

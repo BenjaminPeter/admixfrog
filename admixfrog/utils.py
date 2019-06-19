@@ -401,6 +401,11 @@ def guess_sex(data, sex_ratio_threshold=0.8):
     data["heterogametic"] = [v[0] in "XZxz" for v in data.chrom.values]
     cov = data.groupby(data.heterogametic).apply(lambda df: np.sum(df.tref + df.talt))
     cov = cov.astype(float)
+
+    #no heteogametic data
+    if True not in cov:
+        return 'f'
+
     cov[True] /= np.sum(data.heterogametic)
     cov[False] /= np.sum(data.heterogametic == False)
 

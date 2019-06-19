@@ -42,6 +42,8 @@ def load_pop_file(pop_file=None, pops=None):
             y = yaml.load(f, Loader=yaml.FullLoader)
             y = y["sampleset"] if "sampleset" in y else y
             P.update(y)
+    print(pops)
+    #breakpoint()
     if pops is None:
         return P
     else:
@@ -68,6 +70,8 @@ def vcf_to_ref(
     chroms = None
 ):
 
+    pprint(pop2sample)
+
     #  get chromosomes
     with VariantFile(vcf_file.format(CHROM='1')) as vcf:
         if chroms is None:
@@ -84,7 +88,7 @@ def vcf_to_ref(
 
 
     samples = sample2pop.keys()
-    pops = [pop for s, v in sample2pop.items() for pop in v]
+    pops = set(pop for s, v in sample2pop.items() for pop in v)
     pprint(sample2pop)
     pprint(pops)
 
@@ -144,7 +148,7 @@ def vcf_to_ref(
                                 )
 
                     ref.write(
-                        f"{row.chrom},{row.pos-1},{row.ref},{row.alts[0]},{map_},"
+                        f"{row.chrom},{row.pos},{row.ref},{row.alts[0]},{map_},"
                     )
 
                     sample_data = row.samples

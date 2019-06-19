@@ -285,6 +285,7 @@ def add_base_parse_group(P):
 
 
 def bam():
+    """create input file from bam/vcf"""
     logger = setup_log()
     parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
     parser.add_argument(
@@ -303,6 +304,7 @@ def bam():
                         - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
                         these are used later in --cont-id and --states flags
                         """,
+        required=True
     )
     parser.add_argument(
         "--vcfgt",
@@ -314,6 +316,14 @@ def bam():
     parser.add_argument(
         "--sample-id",
         help="""sample id for vcf mode.
+        """,
+    )
+    parser.add_argument(
+        "--random-read-sample",
+        default=False,
+        action='store_true',
+        help="""At each position, just use a single read (bam-mode), or assume
+        that the genotype reflects a single randomly sampled read
         """,
     )
     parser.add_argument(
@@ -337,7 +347,7 @@ def bam():
             vcf_file=args["vcfgt"],
             ref_file=args["ref"],
             chroms=args['chroms'],
-            random_read=False,
+            random_read=args['random_read_sample'],
             sample_id=args["sample_id"],
         )
     else:
@@ -680,9 +690,9 @@ def run():
             )
         log_.info("creating input from bam file")
         process_bam(
-            outfile=infile_pars["infile"],
+            outfile=V["infile"],
             bamfile=infile_pars["bamfile"],
-            ref=V["ref_file"],
+            ref=V["ref_files"][0],
             # bedfile=V.pop('bedfile'),
             deam_cutoff=infile_pars["deam_cutoff"],
             length_bin_size=infile_pars["length_bin_size"],
