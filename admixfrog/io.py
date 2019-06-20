@@ -18,22 +18,34 @@ except (ImportError, ModuleNotFoundError):
 def load_ref(
     ref_files, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
 ):
+
+    #1. get list of states we care about
     states = list(set(list(state_ids)))
     if ancestral is not None:
         states = list(set(list(states) + [ancestral]))
     if cont_id is not None:
         states = list(set(list(states) + [cont_id]))
 
+    #2. required in every ref
     basic_cols = ["chrom", "pos", "ref", "alt"]  # required in every ref
-    map_col = ["map"]
+
+    #target states
     ref_cols = [f"{s}_ref" for s in states]
     alt_cols = [f"{s}_alt" for s in states]
-    cols = map_col + ref_cols + alt_cols
-    file_ix = [None for i in cols]
+    data_cols = ref_cols + alt_cols
+    map_col = 'map'
+    
+    #which file a column is in
+    file_ix = [None for i in data_cols]
+    map_ix = None
 
     # read headers of each ref
     headers = list(list(pd.read_csv(r, nrows=0).columns) for r in ref_files)
-    for i, col in enumerate(cols):
+    map_file = [i for i, h in enumerate(headers) if map_col in h]
+    map_file = map_file[0] if len(map_file) > 0 else None
+
+
+    for i, col in enumerate(data_cols):
         for j, h in enumerate(headers):
             if col in h and file_ix[i] is None:
                 file_ix[i] = j
@@ -44,16 +56,25 @@ def load_ref(
         s = [c for i, c in zip(file_ix, cols) if i is None]
         raise ValueError("columns not found in reference: " + ", ".join(s))
 
+    #read correct cols from each file
     dtype_ = dict(chrom="category")
     for i, ref_file in enumerate(ref_files):
-        cols0 = basic_cols + [col for ix, col in zip(file_ix, cols) if ix == i]
-        ref0 = pd.read_csv(ref_file, dtype=dtype_, usecols=cols0)
-        ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
-        ref0.drop_duplicates(inplace=True, subset=basic_cols)
+        cols0 = basic_cols + [col for ix, col in zip(file_ix, data_cols) if ix == i]
+        if map_file == i:
+            cols0 = cols0 + [map_col] 
+            ix_cols = basic_cols  + [map_col]
+        else:
+            ix_cols = basic_cols
+
+        ref0 = pd.read_csv(ref_file, dtype=dtype_, 
+                           usecols=cols0,
+                           index_col=ix_cols)
+        #ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
+        ref0.loc[~ref0.index.duplicated()]
         if i == 0:
             ref = ref0
         else:
-            ref = ref.merge(ref0, on=basic_cols, how="outer")
+            ref = ref.join(ref0)
 
     if "UNIF" in states:
         ref["UNIF_ref"] = 1 - prior
@@ -74,8 +95,7 @@ def load_ref(
         ref["HALF_ref"] = 0.5 - prior
         ref["HALF_alt"] = 0.5 - prior
 
-    ref.dropna(inplace=True, subset=basic_cols + map_col)
-    ref.iloc[:, 5:].fillna(value=0, inplace=True)
+    ref.fillna(value=0, inplace=True)
 
     if autosomes_only:
         ref = ref[ref.chrom != "X"]
@@ -123,13 +143,11 @@ def filter_ref(ref, states, filter_delta=None, filter_pos=None, filter_map=None)
 
 def load_read_data(infile, split_lib=True, downsample=1):
     dtype_ = dict(chrom="category")
-    data = pd.read_csv(infile, dtype=dtype_).dropna()
-    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
+    data = pd.read_csv(infile, dtype=dtype_, index_col=['chrom', 'pos']).dropna()
+    #data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
 
     if "lib" not in data or (not split_lib):
-        data = data.groupby(["chrom", "pos"], as_index=False).agg(
-            {"tref": sum, "talt": sum}
-        )
+        data = data.groupby(data.index.names).agg(sum)
         data["lib"] = "lib0"
 
     if downsample < 1:
@@ -140,19 +158,6 @@ def load_read_data(infile, split_lib=True, downsample=1):
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 0.999)
     data = data[data.tref + data.talt <= q]
-    return data
-
-
-def load_gt_data(infile):
-    """
-    load genotype data. Currently program just uses load_read_data
-    """
-    dtype_ = dict(chrom="category")
-    data = pd.read_csv(infile, dtype=dtype_).dropna()
-    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
-
-    # rm sites with no coverage
-    data = data[data.tref + data.talt > 0]
     return data
 
 

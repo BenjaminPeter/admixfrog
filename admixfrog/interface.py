@@ -1,3 +1,5 @@
+"""basic command line interfaces
+"""
 import argparse
 from .admixfrog import run_admixfrog
 from pprint import pprint, pformat
@@ -9,8 +11,55 @@ import admixfrog
 from .log import log_, setup_log
 import pdb
 
-POP_OPTIONS = ["cont_id", "infile", "ref_files", "sex", "states", "ancestral"]
+# set up a list of option groups to keep things organized
 
+#population comparison options
+POP_OPTIONS = ["cont_id", 
+               "infile", 
+               "ref_files", 
+               "sex", 
+               "states", 
+               "ancestral"]
+
+
+#generate infile from vcf, bam or geno
+INFILE_OPTIONS = [
+    "bamfile",
+    "deam_cutoff",
+    "minmapq",
+    "force_infile",
+    "length_bin_size",
+    "tstv",
+    "alleles",
+    "vcfgt",
+    "sample_id",
+]
+
+#generate reference from vcf or geno
+REFFILE_OPTIONS = [
+    "vcf_file",
+    "pop_file",
+    "rec_file",
+    "rec_rate",
+    "pos_id",
+    "map_id",
+    "chroms",
+    "force_ref",
+]
+
+#algorithm control options
+ALGORITHM_OPTIONS = [
+    "bin_size",
+    "autosomes_only",
+    "downsample",
+    "gt_mode",
+    "ll_tol",
+    "max_iter",
+    "n_post_replicates",
+    "pos_mode",
+    "prior",
+    "split_lib",
+]
 
 def add_output_parse_group(parser):
     g = parser.add_argument_group(
@@ -20,7 +69,10 @@ def add_output_parse_group(parser):
                                   """,
     )
     g.add_argument(
-        "--out", "-o", default="admixfrog", help="""Output file path (without extensions)"""
+        "--out",
+        "-o",
+        default="admixfrog",
+        help="""Output file path (without extensions)""",
     )
     g.add_argument(
         "--no-rle",
@@ -67,19 +119,6 @@ def add_output_parse_group(parser):
         help="""Disable writing parameters 
             to file with extension .pars.yaml""",
     )
-
-
-INFILE_PARS = [
-    "bamfile",
-    "deam_cutoff",
-    "minmapq",
-    "force_infile",
-    "length_bin_size",
-    "tstv",
-    "alleles",
-    "vcfgt",
-    "sample_id",
-]
 
 
 def add_infile_parse_group(parser):
@@ -129,16 +168,39 @@ def add_rle_parse_group(parser):
     )
 
 
-REFFILE_PARS = [
-    "vcf_file",
-    "pop_file",
-    "rec_file",
-    "rec_rate",
-    "pos_id",
-    "map_id",
-    "chroms",
-    "force_ref",
-]
+def add_geno_parse_group(parser):
+    g = parser.add_argument_group("""geno (Eigenstrat/Admixtools/Reich) format
+                                  parser options""")
+    g.add_argument(
+        "--gfile",
+        help="""geno file name (without extension, expects .snp/.ind/.geno
+        files). Only reads binary format for now""",
+    )
+    g.add_argument(
+        "--gtarget",
+        help="""
+        id of target individual from geno file
+        """
+    )
+    g.add_argument(
+        "--gpops",
+        help="""
+        target populations. These should be either entries in the third column
+        of the .ind file, or a combination thereof. If two populations YRI and
+        SAN are defined, a syntax of the form 
+        AFR=YRI+SAN can be used to define a reference `AFR` that is a
+        combination of the wo.
+        """,
+        nargs="*"
+    )
+    g.add_argument(
+        "--guess-ploidy",
+        action='store_true',
+        default=False,
+        help="""guess ploidy of individuals (use if e.g. random read sample
+        inds are present)
+        """
+    )
 
 
 def add_ref_parse_group(parser):
@@ -184,33 +246,87 @@ def add_ref_parse_group(parser):
         """,
     )
     parser.add_argument(
-        "--chroms", "--chromosome-files",
+        "--chroms",
+        "--chromosome-files",
         default="1-22,X",
         help="""The chromosomes to be used in vcf-mode.
         """,
     )
-    #g.add_argument(
-    #    "--chrom0",
-    #    default="1",
-    #    help="""chromosome id for first chromosome/contig to be read for split-chromosome files.
-    #    All chromosomes should be present in the header of this vcf file.
-    #    """,
-    #)
     g.add_argument("--force-ref", "--force-vcf", default=False, action="store_true")
 
 
-BASE_OPTIONS = [
-    "bin_size",
-    "autosomes_only",
-    "downsample",
-    "gt_mode",
-    "ll_tol",
-    "max_iter",
-    "n_post_replicates",
-    "pos_mode",
-    "prior",
-    "split_lib",
-]
+def add_estimation_parse_group(P):
+    parser = P.add_argument_group("""options that control estimation of model
+                                  parameters""")
+    parser.add_argument(
+        "--dont-est-contamination",
+        action="store_false",
+        dest="est_contamination",
+        default=True,
+        help="""Don't estimate contamination (default do)""",
+    )
+    parser.add_argument(
+        "--est-error",
+        action="store_true",
+        default=False,
+        help="""estimate sequencing error per rg""",
+    )
+    parser.add_argument(
+        "--freq-contamination",
+        "--fc",
+        type=int,
+        default=1,
+        help="""update frequency for contamination/error (default 1)""",
+    )
+    parser.add_argument(
+        "--est-F",
+        "-f",
+        action="store_true",
+        default=False,
+        help="""Estimate F (distance from ref, default False)""",
+    )
+    parser.add_argument(
+        "--est-tau",
+        "-tau",
+        action="store_true",
+        default=False,
+        help="""Estimate tau (population structure in references)""",
+    )
+    parser.add_argument(
+        "--freq-F",
+        "--f",
+        type=int,
+        default=1,
+        help="""update frequency for F (default 1)""",
+    )
+    parser.add_argument(
+        "--est-inbreeding",
+        "-I",
+        default=False,
+        action="store_true",
+        help="""allow  haploid (i.e. inbreed) stretches. Experimental""",
+    )
+    parser.add_argument(
+        "--F0",
+        nargs="*",
+        type=float,
+        default=0.5,
+        help="initial F (should be in [0;1]) (default 0)",
+    )
+    parser.add_argument(
+        "--tau0",
+        nargs="*",
+        type=float,
+        default=0,
+        # help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+        help="initial log-tau (default 0), at most 1 per source",
+    )
+    parser.add_argument(
+        "--e0", "-e", type=float, default=1e-2, help="initial error rate"
+    )
+    parser.add_argument(
+        "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
+    )
 
 
 def add_base_parse_group(P):
@@ -282,6 +398,12 @@ def add_base_parse_group(P):
         default=1.0,
         help="downsample coverage to a proportion of reads",
     )
+    parser.add_argument(
+        "--init-guess",
+        nargs="*",
+        help="""init transition so that one state is favored. should be a 
+        state in --state-ids """,
+    )
 
 
 def bam():
@@ -304,7 +426,7 @@ def bam():
                         - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
                         these are used later in --cont-id and --states flags
                         """,
-        required=True
+        required=True,
     )
     parser.add_argument(
         "--vcfgt",
@@ -321,20 +443,20 @@ def bam():
     parser.add_argument(
         "--random-read-sample",
         default=False,
-        action='store_true',
+        action="store_true",
         help="""At each position, just use a single read (bam-mode), or assume
         that the genotype reflects a single randomly sampled read
         """,
     )
     parser.add_argument(
-        "--chroms", "--chromosome-files",
+        "--chroms",
+        "--chromosome-files",
         default="1-22,X",
         help="""The chromosomes to be used in vcf-mode.
         """,
     )
     add_infile_parse_group(parser)
     args = vars(parser.parse_args())
-
 
     logger.info(pformat(args))
     force_infile = args.pop("force_infile")
@@ -346,14 +468,14 @@ def bam():
             outfile=args["outfile"],
             vcf_file=args["vcfgt"],
             ref_file=args["ref"],
-            chroms=args['chroms'],
-            random_read=args['random_read_sample'],
+            chroms=args["chroms"],
+            random_read=args["random_read_sample"],
             sample_id=args["sample_id"],
         )
     else:
         del args["vcfgt"]
         del args["sample_id"]
-        del args['chroms']
+        del args["chroms"]
         process_bam(**args)
 
 
@@ -412,7 +534,7 @@ def do_ref():
         args.pos_id,
         args.map_id,
         rec_rate=args.rec_rate,
-        chroms=args.chroms
+        chroms=args.chroms,
     )
 
 
@@ -466,56 +588,11 @@ def run():
         default=["AFR", "VIN", "DEN"],
         help="""the allowed sources. The target will be made of a mix of all homozygous
         and heterozygous combinations of states. More than 4 or 5 sources have not been
-        tested and are not recommended. Must be present in the ref file, with a few
-        additional ones:
-        - REF : always reference allele
-        - NRE : always non-ref allele
-        - UNIF : allele frequencies are drawn from a uniform / Beta(1, 1) distribution
-        - HALF : allele frequencies are drawn from a  Beta(0.5, 0.5) distribution
-        - ZERO : allele frequencies are drawn from a  Beta(0, 0) distribution
+        tested and are not recommended. Must be present in the ref file
         """,
     )
-    parser.add_argument(
-        "--dont-est-contamination",
-        action="store_false",
-        dest="est_contamination",
-        default=True,
-        help="""Don't estimate contamination (default do)""",
-    )
-    parser.add_argument(
-        "--est-error",
-        action="store_true",
-        default=False,
-        help="""estimate sequencing error per rg""",
-    )
-    parser.add_argument(
-        "--freq-contamination",
-        "--fc",
-        type=int,
-        default=1,
-        help="""update frequency for contamination/error (default 1)""",
-    )
-    parser.add_argument(
-        "--est-F",
-        "-f",
-        action="store_true",
-        default=False,
-        help="""Estimate F (distance from ref, default False)""",
-    )
-    parser.add_argument(
-        "--est-tau",
-        "-tau",
-        action="store_true",
-        default=False,
-        help="""Estimate tau (population structure in references)""",
-    )
-    parser.add_argument(
-        "--freq-F",
-        "--f",
-        type=int,
-        default=1,
-        help="""update frequency for F (default 1)""",
-    )
+
+
     parser.add_argument(
         "--cont-id",
         "--cont",
@@ -523,43 +600,6 @@ def run():
         help="""the source of contamination. Must be specified in ref file""",
     )
 
-    parser.add_argument(
-        "--male",
-        dest="sex",
-        action="store_const",
-        const="m",
-        default=None,
-        help="Assumes haploid X chromosome. Default is guess from coverage. currently broken",
-    )
-    parser.add_argument(
-        "--female",
-        dest="sex",
-        action="store_const",
-        const="f",
-        default=None,
-        help="Assumes diploid X chromosome. Default is guess from coverage",
-    )
-    parser.add_argument(
-        "--F0",
-        nargs="*",
-        type=float,
-        default=0.5,
-        help="initial F (should be in [0;1]) (default 0)",
-    )
-    parser.add_argument(
-        "--tau0",
-        nargs="*",
-        type=float,
-        default=0,
-        # help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
-        help="initial log-tau (default 0), at most 1 per source",
-    )
-    parser.add_argument(
-        "--e0", "-e", type=float, default=1e-2, help="initial error rate"
-    )
-    parser.add_argument(
-        "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
-    )
     parser.add_argument(
         "--ancestral",
         "-a",
@@ -578,13 +618,6 @@ def run():
         """,
     )
     parser.add_argument(
-        "--est-inbreeding",
-        "-I",
-        default=False,
-        action="store_true",
-        help="""allow  haploid (i.e. inbreed) stretches. Experimental""",
-    )
-    parser.add_argument(
         "--filter-delta",
         type=float,
         help="""only use sites with allele frequency difference bigger than DELTA (default off)""",
@@ -600,13 +633,24 @@ def run():
         help="""greedily prune sites to be at least MAP recombination distance apart""",
     )
     parser.add_argument(
-        "--init-guess",
-        nargs="*",
-        help="""init transition so that one state is favored. should be a 
-        state in --state-ids """,
+        "--male",
+        dest="sex",
+        action="store_const",
+        const="m",
+        default=None,
+        help="Assumes haploid X chromosome. Default is guess from coverage. currently broken",
+    )
+    parser.add_argument(
+        "--female",
+        dest="sex",
+        action="store_const",
+        const="f",
+        default=None,
+        help="Assumes diploid X chromosome. Default is guess from coverage",
     )
 
     add_infile_parse_group(parser)
+    add_estimation_parse_group(parser)
     add_base_parse_group(parser)
     add_ref_parse_group(parser)
     add_rle_parse_group(parser)
@@ -625,7 +669,6 @@ def run():
     reffile_pars = dict()
     algo_pars = dict()
 
-
     for k in list(V.keys()):
         if k.startswith("output_"):
             output_options[k] = V.pop(k)
@@ -635,11 +678,11 @@ def run():
             est_options[k] = V.pop(k)
         elif k in ["init_guess", "F0", "e0", "c0", "tau0", "run_penalty"]:
             init_pars[k] = V.pop(k)
-        elif k in INFILE_PARS:
+        elif k in INFILE_OPTIONS:
             infile_pars[k] = V.pop(k)
-        elif k in REFFILE_PARS:
+        elif k in REFFILE_OPTIONS:
             reffile_pars[k] = V.pop(k)
-        elif k in BASE_OPTIONS:
+        elif k in ALGORITHM_OPTIONS:
             algo_pars[k] = V.pop(k)
     V["output"] = output_options
     V["filter"] = filter_options
@@ -710,10 +753,7 @@ def run():
     log_.info("admixfrog %s", __version__)
     del V["algorithm"]
     bins, snps, cont, pars, rle, res = run_admixfrog(**V, **algo_pars)
-    # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
-    # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
-    # pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
-    # snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
+
     res.to_csv("%s.res.xz" % out, float_format="%.6f", index=False, compression="xz")
     rle.to_csv("%s.rle.xz" % out, float_format="%.6f", index=False, compression="xz")
     bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")

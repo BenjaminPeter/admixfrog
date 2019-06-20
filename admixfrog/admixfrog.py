@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import itertools
 from collections import Counter, defaultdict
-from .io import load_read_data, load_gt_data, load_ref, filter_ref
+from .io import load_read_data, load_ref, filter_ref
 from .io import write_bin_table, write_pars_table, write_cont_table
 from .io import write_snp_table, write_est_runs, write_sim_runs
 from .utils import bins_from_bed, data2probs, init_pars, Pars, ParsHD
@@ -233,43 +233,30 @@ def run_admixfrog(
 
     ref = load_ref(ref_files, states, cont_id, prior, ancestral, autosomes_only)
     ref = filter_ref(ref, states, **filter)
-    ref = ref.drop_duplicates(COORDS)
     if pos_mode:
-        ref.map = ref.pos
+        ref.reset_index('map', inplace=True)
+        ref.map = ref.index.get_level_values('pos')
+        ref.set_index('map', append=True, inplace=True)
+    ref = ref.loc[~ref.index.duplicated()]
+
+
+    #get ids of unique snps
+    df = ref.join(data, how='inner')
+    snp_ids = df.groupby(df.index.names).ngroup()
+    snp_ids = snp_ids.rename('snp_id')
+
+    df = df.join(snp_ids).set_index('snp_id', append=True)
+
+    df.sort_index(inplace=True)
 
     # sexing stuff
     if sex is None:
-        sex = guess_sex(data)
+        sex = guess_sex(df)
 
-    log_.debug(ref.shape)
-    data = data.merge(ref[COORDS], how="inner").dropna()
-    log_.debug(data.shape)
 
-    ref = ref.sort_values(COORDS)
-    data = data.sort_values(COORDS)
+    bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex)
 
-    snp = data[COORDS].drop_duplicates()
-    log_.debug(snp.shape)
-    n_snps = snp.shape[0]
-    snp["snp_id"] = range(n_snps)
-    data = data.merge(snp)
-
-    bins, IX = bins_from_bed(
-        bed=ref.iloc[:, :5],
-        snp=snp,
-        data=data,
-        bin_size=bin_size,
-        pos_mode=pos_mode,
-        sex=sex,
-    )
-
-    ref = ref.merge(snp[COORDS], "right")
-    log_.debug(ref.shape)
-
-    P = data2probs(data, ref, IX, states, cont_id, prior=prior, ancestral=ancestral)
-
-    assert ref.shape[0] == P.alpha.shape[0] + P.alpha_hap.shape[0]
-    del ref, snp
+    P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral)
 
     pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], **init)
     log_.info("done loading data")
@@ -327,7 +314,7 @@ def run_admixfrog(
         df_bin = write_bin_table(Z, bins, viterbi_df, pars.gamma_names, IX)
 
     if output["output_snp"]:
-        df_snp = write_snp_table(data=data, G=G, Z=Z, IX=IX, gt_mode=gt_mode)
+        df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode)
 
     if output["output_cont"]:
         df_cont = write_cont_table(data, pars.cont, pars.error)
