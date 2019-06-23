@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 import itertools
+import yaml
 from collections import Counter, defaultdict
 from .io import load_read_data, load_ref, filter_ref
 from .io import write_bin_table, write_pars_table, write_cont_table
 from .io import write_snp_table, write_est_runs, write_sim_runs
 from .utils import bins_from_bed, data2probs, init_pars, Pars, ParsHD
-from .utils import guess_sex
+from .utils import guess_sex, parse_state_string
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_Ftau, update_snp_prob
 from .genotype_emissions import update_emissions
@@ -192,6 +193,7 @@ def run_admixfrog(
     infile,
     ref_files,
     states=("AFR", "VIN", "DEN"),
+    state_file = None,
     cont_id="AFR",
     split_lib=True,
     bin_size=1e4,
@@ -205,6 +207,7 @@ def run_admixfrog(
     gt_mode=False,
     keep_loc=True,
     output=defaultdict(lambda: True),
+    outname='admixfrog',
     init=defaultdict(lambda: 1e-2),
     est=EST_DEFAULT,
     filter=defaultdict(lambda: None),
@@ -231,7 +234,35 @@ def run_admixfrog(
     if (not est["est_contamination"] and init["c0"] == 0) or gt_mode:
         cont_id = None
 
-    ref = load_ref(ref_files, states, cont_id, prior, ancestral, autosomes_only)
+    state_dict = parse_state_string(states) 
+    if state_file is not None:
+        """logic here is:
+            - yaml file contains some groupings (i.e. assign all
+            Yorubans to YRI, all San to SAN
+            - state_dict contains further groupings / renaming / filtering
+                i.e. AFR=YRI+SAN
+            - stuff not in state_dict will not be required
+
+            therefore:
+            1. load yaml
+            2. get all required target pops from state_dict
+            3. add all expansions replacements
+        """
+        Y = yaml.load(open(state_file), Loader=yaml.BaseLoader)
+        #D = dict((v_, k) for (k,v) in Y.items() for v_ in v)
+        s2 = dict()
+
+        for state, label in state_dict.items():
+            if state in Y:
+                for ind in Y[state]:
+                    s2[ind] = label
+            else:
+                s2[state] = label
+        state_dict = s2
+
+    states = list(set(state_dict.values()))
+
+    ref = load_ref(ref_files, state_dict, cont_id, prior, ancestral, autosomes_only)
     ref = filter_ref(ref, states, **filter)
     if pos_mode:
         ref.reset_index('map', inplace=True)
@@ -267,7 +298,7 @@ def run_admixfrog(
 
     # output formating from here
     if output["output_pars"]:
-        df_pars = write_pars_table(pars)
+        df_pars = write_pars_table(pars, outname=f'{outname}.pars.yaml')
 
     if output["output_rsim"]:
         df_pred = pred_sims(
@@ -303,7 +334,7 @@ def run_admixfrog(
             df_pred_hap["state"] = [states[i] for i in df_pred_hap.state.values]
             df_pred = pd.concat((df_pred, df_pred_hap))
 
-        write_sim_runs(df_pred)
+        write_sim_runs(df_pred, outname=f'{outname}.res.xz')
 
     if output["output_bin"] or output["output_rle"]:
         viterbi_path = viterbi(pars.alpha0, pars.trans, emissions)
@@ -311,16 +342,16 @@ def run_admixfrog(
         V = np.array(pars.gamma_names)[np.hstack(viterbi_path)]
         viterbi_df = pd.Series(V, name="viterbi")
 
-        df_bin = write_bin_table(Z, bins, viterbi_df, pars.gamma_names, IX)
+        df_bin = write_bin_table(Z, bins, viterbi_df, pars.gamma_names, IX, outname=f'{outname}.bin.xz')
 
     if output["output_snp"]:
-        df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode)
+        df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode, outname=f'{outname}.snp.xz')
 
     if output["output_cont"]:
-        df_cont = write_cont_table(data, pars.cont, pars.error)
+        df_cont = write_cont_table(data, pars.cont, pars.error, outname=f'{outname}.cont.xz')
 
     if output["output_rle"]:
         df_rle = get_rle(df_bin, states, init["run_penalty"])
-        write_est_runs(df_rle)
+        write_est_runs(df_rle, outname=f'{outname}.rle.xz')
 
-    return df_bin, df_snp, df_cont, df_pars, df_rle, df_pred
+    return 

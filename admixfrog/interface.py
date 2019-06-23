@@ -37,7 +37,7 @@ INFILE_OPTIONS = [
 
 #generate reference from vcf or geno
 REFFILE_OPTIONS = [
-    "vcf_file",
+    "vcf_ref",
     "pop_file",
     "rec_file",
     "rec_rate",
@@ -61,6 +61,12 @@ ALGORITHM_OPTIONS = [
     "split_lib",
 ]
 
+#geno format options
+GENO_OPTIONS=[
+    'gfile',
+    'guess_ploidy'
+]
+
 def add_output_parse_group(parser):
     g = parser.add_argument_group(
         "output name and files to be generated",
@@ -69,6 +75,7 @@ def add_output_parse_group(parser):
                                   """,
     )
     g.add_argument(
+        "--outname", 
         "--out",
         "-o",
         default="admixfrog",
@@ -166,6 +173,14 @@ def add_rle_parse_group(parser):
         help="""penalty for runs. Lower value means runs are called more
         stringently (default 0.2)""",
     )
+    g.add_argument(
+        "--n-post-replicates",
+        type=int,
+        default=100,
+        help="""Number of replicates that are sampled from posterior. Useful for
+        parameter estimation and bootstrapping
+        """
+    )
 
 
 def add_geno_parse_group(parser):
@@ -175,23 +190,6 @@ def add_geno_parse_group(parser):
         "--gfile",
         help="""geno file name (without extension, expects .snp/.ind/.geno
         files). Only reads binary format for now""",
-    )
-    g.add_argument(
-        "--gtarget",
-        help="""
-        id of target individual from geno file
-        """
-    )
-    g.add_argument(
-        "--gpops",
-        help="""
-        target populations. These should be either entries in the third column
-        of the .ind file, or a combination thereof. If two populations YRI and
-        SAN are defined, a syntax of the form 
-        AFR=YRI+SAN can be used to define a reference `AFR` that is a
-        combination of the wo.
-        """,
-        nargs="*"
     )
     g.add_argument(
         "--guess-ploidy",
@@ -206,7 +204,7 @@ def add_geno_parse_group(parser):
 def add_ref_parse_group(parser):
     g = parser.add_argument_group("creating reference file")
     g.add_argument(
-        "--vcf-file",
+        "--vcf-ref",
         "--vcf",
         help="""VCF File to process. Choose this or reffile. 
                    The resulting ref file will be writen as {out}.ref.xz,
@@ -214,9 +212,6 @@ def add_ref_parse_group(parser):
                    If the input file exists, an error is generated unless
                    --force-ref is set
                    """,
-    )
-    g.add_argument(
-        "--pop-file", default=None, help="""Population assignments (yaml format)"""
     )
     g.add_argument(
         "--rec-file",
@@ -358,8 +353,8 @@ def add_base_parse_group(P):
         This number is added to both the
         ref and alt allele count for each reference, to reflect the uncertainty in allele
         frequencies from a sample. If references are stationary with size 2N, this is
-        approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
-          """,
+        approximately  [\\sum_i^{2N}(1/i) 2N]^{-1}.
+          """
     )
     parser.add_argument(
         "-P",
@@ -433,11 +428,6 @@ def bam():
         "--vcf-gt",
         "--vcf-infile",
         help="""VCF input file. To generate input format for admixfrog in genotype mode, use this.
-        """,
-    )
-    parser.add_argument(
-        "--sample-id",
-        help="""sample id for vcf mode.
         """,
     )
     parser.add_argument(
@@ -591,15 +581,17 @@ def run():
         tested and are not recommended. Must be present in the ref file
         """,
     )
-
-
+    parser.add_argument(
+        "--state-file", 
+        "--pop-file",
+        default=None, help="""Population assignments (yaml format)"""
+    )
     parser.add_argument(
         "--cont-id",
         "--cont",
         default="AFR",
         help="""the source of contamination. Must be specified in ref file""",
     )
-
     parser.add_argument(
         "--ancestral",
         "-a",
@@ -607,14 +599,6 @@ def run():
         default=None,
         help="""Outgroup population with the ancestral allele. By default, assume
         ancestral allele is unknown
-        """,
-    )
-    parser.add_argument(
-        "--n-post-replicates",
-        type=int,
-        default=100,
-        help="""Number of replicates that are sampled from posterior. Useful for
-        parameter estimation and bootstrapping
         """,
     )
     parser.add_argument(
@@ -648,8 +632,14 @@ def run():
         default=None,
         help="Assumes diploid X chromosome. Default is guess from coverage",
     )
+    parser.add_argument(
+        "--target",
+        help="""sample id if target is read from vcf or geno file. No effect for bam-file
+        """,
+    )
 
     add_infile_parse_group(parser)
+    add_geno_parse_group(parser)
     add_estimation_parse_group(parser)
     add_base_parse_group(parser)
     add_ref_parse_group(parser)
@@ -661,6 +651,8 @@ def run():
     args = parser.parse_args()
     V = vars(args)
 
+
+    #this reorganizes options into sensible groups
     output_options = dict()
     filter_options = dict()
     init_pars = dict()
@@ -668,6 +660,9 @@ def run():
     infile_pars = dict()
     reffile_pars = dict()
     algo_pars = dict()
+    geno_pars = dict()
+
+    TARGET = V.pop('target')
 
     for k in list(V.keys()):
         if k.startswith("output_"):
@@ -684,11 +679,18 @@ def run():
             reffile_pars[k] = V.pop(k)
         elif k in ALGORITHM_OPTIONS:
             algo_pars[k] = V.pop(k)
+        elif k in GENO_OPTIONS:
+            geno_pars[k] = V.pop(k)
+
+    #all the stuff that will get passed to admixfrog.run_admixfrog
     V["output"] = output_options
     V["filter"] = filter_options
     V["est"] = est_options
     V["init"] = init_pars
-    V["algorithm"] = algo_pars
+
+    #V["algorithm"] = algo_pars
+    #V["geno"] = geno_pars
+    #V['ref'] = reffile_pars
 
     log_.info(
         "running admixfrog %s with the following arguments:\n%s ",
@@ -696,71 +698,95 @@ def run():
         pformat(V),
     )
 
-    if reffile_pars["vcf_file"] is not None:
-        if V["ref_files"] is not None:
-            raise ValueError("cant specify ref and vcf input")
-        V["ref_files"] = [V["out"] + ".ref.xz"]
-        if isfile(V["ref_files"][0]) and not reffile_pars["force_ref"]:
-            raise ValueError(
-                """ref-file exists. Use this or set --force-ref to 
-                regenerate the file"""
-            )
-        log_.info("creating ref from vcf file")
+    #1. find ref-file the following precedent is set:
+    #. 1.1. directly specified with --ref-files
+    #. 1.2. create from --vcf-ref option
+    #. 1.3. in geno-format, specified as --gfile
 
-        pop2sample = load_pop_file(reffile_pars["pop_file"], V["states"])
-        random_read_samples = load_random_read_samples(reffile_pars["pop_file"])
-        logger.debug(pformat(random_read_samples))
-        vcf_to_ref(
-            V["ref_files"][0],
-            reffile_pars["vcf_file"],
-            reffile_pars["rec_file"],
-            pop2sample,
-            random_read_samples,
-            reffile_pars["pos_id"],
-            reffile_pars["map_id"],
-            reffile_pars["rec_rate"],
-            reffile_pars["chroms"],
-        )
+    if V["ref_files"] is None:
+        #create from vcf
+        if reffile_pars["vcf_ref"] is not None:
+            V["ref_files"] = [V["outname"] + ".ref.xz"]
+            if isfile(V["ref_files"][0]) and not reffile_pars["force_ref"]:
+                raise ValueError(
+                    """ref-file exists. Use this or set --force-ref to 
+                    regenerate the file"""
+                )
+            log_.info("creating ref from vcf file")
 
-    if infile_pars["bamfile"] is not None:
-        if V["infile"] is not None:
-            raise ValueError("cant specify csv and bam input")
-        V["infile"] = V["out"] + ".in.xz"
-        if isfile(V["infile"]) and not infile_pars["force_infile"]:
-            raise ValueError(
-                """infile exists. Use this or set --force-infile to 
-                             regenerate"""
+            pop2sample = load_pop_file(reffile_pars["pop_file"], V["states"])
+            random_read_samples = load_random_read_samples(reffile_pars["pop_file"])
+            logger.debug(pformat(random_read_samples))
+            vcf_to_ref(
+                V["ref_files"][0],
+                reffile_pars["vcf_file"],
+                reffile_pars["rec_file"],
+                pop2sample,
+                random_read_samples,
+                reffile_pars["pos_id"],
+                reffile_pars["map_id"],
+                reffile_pars["rec_rate"],
+                reffile_pars["chroms"],
             )
-        log_.info("creating input from bam file")
-        process_bam(
-            outfile=V["infile"],
-            bamfile=infile_pars["bamfile"],
-            ref=V["ref_files"][0],
-            # bedfile=V.pop('bedfile'),
-            deam_cutoff=infile_pars["deam_cutoff"],
-            length_bin_size=infile_pars["length_bin_size"],
-        )
+        elif geno_pars['gfile'] is not None:
+            pass
+        else:
+            raise ValueError("no ref defined (set either --ref-files, --vcf-ref or --gfile)")
+
+    #2. find genome to-be decoded
+    #  2.1  directly specified with --infile
+    #  2.2  specified with --gfile and --target
+    #  2.3  specified with --bam
+    #  2.4  specified with --vcfgt and --target
+    if V["infile"] is None:
+        V["infile"] = V["outname"] + ".in.xz"
+        if infile_pars["bamfile"] is not None:
+            if isfile(V["infile"]) and not infile_pars["force_infile"]:
+                raise ValueError(
+                    """infile exists. Use this or set --force-infile to 
+                                 regenerate"""
+            )
+            log_.info("creating input from bam file")
+            process_bam(
+                outfile=V["infile"],
+                bamfile=infile_pars["bamfile"],
+                ref=V["ref_files"][0],
+                deam_cutoff=infile_pars["deam_cutoff"],
+                length_bin_size=infile_pars["length_bin_size"],
+            )
+        elif infile_pars["vcfgt"] is not None and V['target'] is not None:
+            if isfile(V["infile"]) and not infile_pars["force_infile"]:
+                raise ValueError(
+                    """infile exists. Use this or set --force-infile to 
+                                 regenerate"""
+            )
+            log_.info("creating input from bam file")
+            process_bam(
+                outfile=V["infile"],
+                bamfile=infile_pars["bamfile"],
+                ref=V["ref_files"][0],
+                deam_cutoff=infile_pars["deam_cutoff"],
+                length_bin_size=infile_pars["length_bin_size"],
+            )
+        elif geno_pars["gfile"] is not None and V['target'] is not None:
+            pass
+        else:
+            raise ValueError("no sample defined (set either --infile --bam --vcfgt or --gfile must be set")
+
 
     if "infile" not in V or V["infile"] is None:
         raise ValueError("require infile, specify --infile or --bam or --vcfgt")
     if "ref_files" not in V or V["ref_files"] is None:
         raise ValueError("require ref, specify with --ref or create using --vcf")
 
-    out = V.pop("out")
 
     from . import __version__
 
     log_.info("admixfrog %s", __version__)
-    del V["algorithm"]
-    bins, snps, cont, pars, rle, res = run_admixfrog(**V, **algo_pars)
+    
+    #run stuff
+    run_admixfrog(**V, **algo_pars)
 
-    res.to_csv("%s.res.xz" % out, float_format="%.6f", index=False, compression="xz")
-    rle.to_csv("%s.rle.xz" % out, float_format="%.6f", index=False, compression="xz")
-    bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
-    cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
-    with open("%s.pars.yaml" % out, "wt") as f:
-        f.write(pars)
-    snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
 
 
 def profile():

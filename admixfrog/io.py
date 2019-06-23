@@ -4,34 +4,45 @@ from collections import Counter
 from scipy.stats import binom
 import pandas as pd
 import numpy as np
+import itertools
+
 
 try:
-    from .utils import posterior_table
+    from .utils import posterior_table, parse_state_string
     from .log import log_
 except (ImportError, ModuleNotFoundError):
-    from utils import posterior_table
+    from utils import posterior_table, parse_state_string
     from log import log_
 
 """reading and writing files"""
 
 
 def load_ref(
-    ref_files, state_ids, cont_id, prior=0, ancestral=None, autosomes_only=False
+    ref_files, state_dict, cont_id, prior=0, ancestral=None, autosomes_only=False
 ):
+    """loads reference in custom (csv) format
+    ref_files: paths to files
+    state_dict: a dict D[label] : pop. All populatios in sources with label are added to pop. This is 
+        expected to be generated with utils.parse_state_string
+    """
 
     #1. get list of states we care about
-    states = list(set(list(state_ids)))
+    label_states = list(state_dict.keys())
+    EXT = ['_ref', '_alt']
+    D = dict(((k+e), (v+e)) for ((k, v), e) in itertools.product(state_dict.items(), EXT))
+
+
     if ancestral is not None:
-        states = list(set(list(states) + [ancestral]))
+        label_states = list(set(list(label_states) + [ancestral]))
     if cont_id is not None:
-        states = list(set(list(states) + [cont_id]))
+        label_states = list(set(list(label_states) + [cont_id]))
 
     #2. required in every ref
     basic_cols = ["chrom", "pos", "ref", "alt"]  # required in every ref
 
     #target states
-    ref_cols = [f"{s}_ref" for s in states]
-    alt_cols = [f"{s}_alt" for s in states]
+    ref_cols = [f"{s}_ref" for s in label_states]
+    alt_cols = [f"{s}_alt" for s in label_states]
     data_cols = ref_cols + alt_cols
     map_col = 'map'
     
@@ -53,7 +64,7 @@ def load_ref(
                 break
 
     if None in file_ix:
-        s = [c for i, c in zip(file_ix, cols) if i is None]
+        s = [c for i, c in zip(file_ix, data_cols) if i is None]
         raise ValueError("columns not found in reference: " + ", ".join(s))
 
     #read correct cols from each file
@@ -76,26 +87,10 @@ def load_ref(
         else:
             ref = ref.join(ref0)
 
-    if "UNIF" in states:
-        ref["UNIF_ref"] = 1 - prior
-        ref["UNIF_alt"] = 1 - prior
-    if "REF" in states:
-        ref["REF_ref"] = 1
-        ref["REF_alt"] = 0
-    if "NRE" in states:
-        ref["NRE_ref"] = 0
-        ref["NRE_alt"] = 1
-    if "ZERO" in states:
-        ref["ZERO_ref"] = 1e-7 - prior
-        ref["ZERO_alt"] = 1e-7 - prior
-    if "SFS" in states:
-        ref["SFS_ref"] = prior
-        ref["SFS_alt"] = prior
-    if "HALF" in states:
-        ref["HALF_ref"] = 0.5 - prior
-        ref["HALF_alt"] = 0.5 - prior
-
     ref.fillna(value=0, inplace=True)
+
+    #aggregate different labels
+    ref = ref.rename(D, axis=1).groupby(level=0, axis=1).agg(sum)
 
     if autosomes_only:
         ref = ref[ref.chrom != "X"]

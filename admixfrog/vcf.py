@@ -43,7 +43,6 @@ def load_pop_file(pop_file=None, pops=None):
             y = y["sampleset"] if "sampleset" in y else y
             P.update(y)
     print(pops)
-    #breakpoint()
     if pops is None:
         return P
     else:
