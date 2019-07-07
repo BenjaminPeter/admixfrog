@@ -18,7 +18,7 @@ except (ImportError, ModuleNotFoundError):
 
 
 def load_ref(
-    ref_files, state_dict, cont_id, prior=0, ancestral=None, autosomes_only=False
+    ref_files, state_dict, cont_id, ancestral=None, autosomes_only=False
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files

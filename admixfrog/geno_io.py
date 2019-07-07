@@ -7,7 +7,10 @@ import itertools
 import pandas as pd
 from collections.abc import Mapping
 from pprint import pprint
-from utils import parse_state_string
+try:
+    from .utils import parse_state_string
+except (ImportError, ModuleNotFoundError):
+    from utils import parse_state_string
 
 def row_length(n_ind):
     return max(ceil(n_ind / 4 ), 48)
@@ -133,6 +136,7 @@ def ref_alt(Y, copy=False):
 
     CHROMS = Y.index.get_level_values('chrom').categories
     AUTOSOMES = [c for c in CHROMS if c not in ['mt', 'Y', 'X']]
+
 
     #no transform Y s.t. we get non-ref counts
     Y.loc[AUTOSOMES] = Y.loc[AUTOSOMES].transform(lambda x: x.name[3] - x).values

@@ -1,6 +1,7 @@
 from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
+import yaml
 
 try:
     from .log import log_
@@ -57,13 +58,9 @@ def data2probs(
     beta[n_snps, n_states] : the alt allele beta-prior
     """
 
-
-
     alpha_ix = ["%s_alt" % s for s in state_ids]
     beta_ix = ["%s_ref" % s for s in state_ids]
-
     snp_ix_states = set(alpha_ix + beta_ix)
-
 
     if cont_id is not None:
         cont = "%s_alt" % cont_id, "%s_ref" % cont_id
@@ -72,7 +69,9 @@ def data2probs(
         anc = "%s_alt" % ancestral, "%s_ref" % ancestral
         snp_ix_states.update(anc)
 
-    snp_df = df[list(snp_ix_states)].groupby(df.index.names).first()
+    snp_df = df[list(snp_ix_states)]
+    snp_df = snp_df[~snp_df.index.get_level_values('snp_id').duplicated()]
+    #snp_df = df[list(snp_ix_states)].groupby(df.index.names).first()
     n_snps = len(snp_df.index.get_level_values('snp_id'))
     n_states = len(state_ids)
 
@@ -117,7 +116,7 @@ def data2probs(
         P = Probs2(
             O=np.array(df.talt.values, np.int8),
             N=np.array(df.tref.values + df.talt.values, np.int8),
-            P_cont=None
+            P_cont=np.zeros_like(df.talt.values)
             if cont_id is None
             else np.array(
                 (df[cont[0]].values + ca) / (df[cont[0]].values + df[cont[1]].values + ca + cb)
@@ -142,16 +141,20 @@ def data2probs(
         ca, cb = cont_prior
 
         print(alpha_ix)
-        P = Probs(
-            O=np.array(df.talt, np.int8),
-            N=np.array(df.tref + df.talt, np.int8),
+        alpha = np.array(snp_df[alpha_ix]) + prior
+        beta = np.array(snp_df[beta_ix]) + prior
+        P = Probs2(
+            O=np.array(df.talt.values, np.int8),
+            N=np.array(df.tref.values + df.talt.values, np.int8),
             P_cont=None
             if cont_id is None
             else np.array(
                 (df[cont[0]] + ca) / (df[cont[0]] + df[cont[1]] + ca + cb)
             ),
-            alpha=np.array(snp_df[alpha_ix]) + prior,
-            beta=np.array(snp_df[beta_ix]) + prior,
+            alpha=alpha[IX.diploid_snps],
+            beta=beta[IX.diploid_snps],
+            alpha_hap=alpha[IX.haploid_snps],
+            beta_hap=beta[IX.haploid_snps],
             lib=np.array(df.lib),
         )
         return P
@@ -374,6 +377,8 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
 def empirical_bayes_prior(der, anc, known_anc=False):
     """using beta-binomial plug-in estimator
     """
+
+    #import pdb; pdb.set_trace()
     n = anc + der
     f = np.nanmean(der / n) if known_anc else 0.5
     # H = ref * alt / n / n
@@ -382,7 +387,10 @@ def empirical_bayes_prior(der, anc, known_anc=False):
         return 1e-6, 1e-6
 
     V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der / n, anc / n)))
+    
     ab = (H - V) / (V - H / np.nanmean(n))
+    if np.nanmean(n) < ab:
+        return 1e-6, 1e-6
     pa = max((f * ab, 1e-5))
     pb = max(((1 - f) * ab, 1e-5))
     return pa, pb
@@ -440,7 +448,7 @@ def scale_mat3d(M):
     return log_scaling
 
 
-def parse_state_string(states, ext=[''], operator='+'):
+def parse_state_string(states, ext=[''], operator='+', state_file=None):
     """parse shortcut parse strings
 
     the basic way states are defined is as 
@@ -455,11 +463,35 @@ def parse_state_string(states, ext=[''], operator='+'):
     
     """
     ext2 = ['_ref', '_alt']
-    d1 = [s.split("=") for s in states]
+    d1 = [s.split("=") for s in states if s is not None]
     d2 = [(s if len(s)>1 else (s[0],s[0])) for s in d1] 
-    d3 = dict( (f'{k}{ext_}', f'{i}{ext_}') for i, j in d2
+    state_dict = dict( (f'{k}{ext_}', f'{i}{ext_}') for i, j in d2
               for k in j.split(operator) 
               for ext_ in ext)
-    return d3
+    if state_file is not None:
+        """logic here is:
+            - yaml file contains some groupings (i.e. assign all
+            Yorubans to YRI, all San to SAN
+            - state_dict contains further groupings / renaming / filtering
+                i.e. AFR=YRI+SAN
+            - stuff not in state_dict will not be required
+
+            therefore:
+            1. load yaml
+            2. get all required target pops from state_dict
+            3. add all expansions replacements
+        """
+        Y = yaml.load(open(state_file), Loader=yaml.BaseLoader)
+        #D = dict((v_, k) for (k,v) in Y.items() for v_ in v)
+        s2 = dict()
+
+        for state, label in state_dict.items():
+            if state in Y:
+                for ind in Y[state]:
+                    s2[ind] = label
+            else:
+                s2[state] = label
+        state_dict = s2
+    return state_dict
 
 

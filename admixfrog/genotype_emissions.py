@@ -28,9 +28,10 @@ def snp2bin2(e_out, e_in, ix, weight):
 
 def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
     """main function to calculate emission probabilities for each bin
-    P(O | Z) = 1/S  \sum_G P(O, G | Z)  
+    P(O | Z) = 1/S  \\ sum_G P(O, G | Z)  
 
     """
+    #import pdb; pdb.set_trace()
     n_homo_states = P.alpha.shape[1]
 
     snp_emissions = np.sum(SNP, 2)
@@ -87,6 +88,7 @@ def update_snp_prob(
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
     """
+    #import pdb; pdb.set_trace()
     cflat = np.array([cont[lib] for lib in P.lib])
     eflat = np.array([error[lib] for lib in P.lib])
 
@@ -96,6 +98,8 @@ def update_snp_prob(
     update_geno_emissions(
         SNP, P, IX, F, tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding
     )
+
+    assert np.allclose(np.sum(SNP, 2), 1)
 
     # get P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, eflat, IX, gt_mode)

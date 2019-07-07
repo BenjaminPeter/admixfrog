@@ -23,7 +23,7 @@ class TestVCFGT(object):
     
     def test_created_infile(self, script_runner):
         cmd = f'admixfrog --infile {self.out} --states AFR NEA '
-        cmd += f'-P --out {self.final} -b 10000 --ref {self.ref}'
+        cmd += f'-P --out {self.final} -b 100000 --ref {self.ref}'
 
         args = cmd.split()
         ret = script_runner.run(*args, cwd='tests/')

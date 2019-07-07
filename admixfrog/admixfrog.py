@@ -15,6 +15,7 @@ from .read_emissions import update_contamination
 from .rle import get_rle
 from .decode import pred_sims
 from .log import log_, setup_log
+from .geno_io import read_geno_ref, read_geno
 
 COORDS = ["chrom", "map", "pos"]
 
@@ -61,6 +62,7 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=Fal
             gamma.append(Z[row0 : (row0 + r)])
             emissions.append(E[row0 : (row0 + r)])
         row0 += r
+    #import pdb; pdb.set_trace()
 
     s_scaling = update_snp_prob(
         SNP, P, IX, cont, error, F, tau, O["est_inbreeding"], gt_mode
@@ -188,10 +190,78 @@ def update_emission_stuff(
 
 
 
+def load_admixfrog_data(states,
+                        state_dict=None,
+                        target=None,
+                        target_file=None, 
+                        gt_mode=False,
+                        filter=defaultdict(lambda: None),
+                        ref_files=None,
+                        geno_file=None,
+                        ancestral=None,
+                        cont_id=None,
+                        split_lib=True,
+                        pos_mode=False,
+                        downsample=1,
+                        guess_ploidy=True,
+                        autosomes_only=False):
+    """
+        we have the following possible input files
+        1. target (standalone csv)
+        2. ref (standalone csv)
+        3. geno (target and/or ref)
+    """
+
+
+    "1. only geno file"
+    if ref_files is None and target_file is None and geno_file and target:
+        df = read_geno_ref(fname=geno_file, pops=state_dict, 
+                           target_ind=target, guess_ploidy=guess_ploidy)
+        df['lib'] = 'lib0'
+        "2. standard ref and target from geno"
+    elif ref_files and target_file is None and geno_file and target:
+        raise NotImplementedError("")
+        "3. standard input"
+    elif ref_files and target_file and geno_file is None and target is None:
+        if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
+            data = load_read_data(target_file)
+        else:
+            data = load_read_data(target_file, split_lib, downsample)
+
+        ref = load_ref(ref_files, state_dict, cont_id, ancestral, autosomes_only)
+        ref = filter_ref(ref, states, **filter)
+        if pos_mode:
+            ref.reset_index('map', inplace=True)
+            ref.map = ref.index.get_level_values('pos')
+            ref.set_index('map', append=True, inplace=True)
+        ref = ref.loc[~ref.index.duplicated()]
+        df = ref.join(data, how='inner')
+
+
+        "4. geno ref, standard target"
+    elif ref_files is None and geno_file is None and target_file and target is None:
+        raise NotImplementedError("")
+    else:
+        raise ValueError("ambiguous input")
+
+    #get ids of unique snps
+    snp_ids = df.groupby(df.index.names).ngroup()
+    snp_ids = snp_ids.rename('snp_id')
+
+    df = df.join(snp_ids).set_index('snp_id', append=True)
+    df.sort_index(inplace=True)
+
+    return df
+
+
+
+
 
 def run_admixfrog(
-    infile,
+    target_file,
     ref_files,
+    geno_file=None,
+    target=None,
     states=("AFR", "VIN", "DEN"),
     state_file = None,
     cont_id="AFR",
@@ -209,6 +279,7 @@ def run_admixfrog(
     output=defaultdict(lambda: True),
     outname='admixfrog',
     init=defaultdict(lambda: 1e-2),
+    guess_ploidy=False,
     est=EST_DEFAULT,
     filter=defaultdict(lambda: None),
     **kwargs
@@ -218,67 +289,37 @@ def run_admixfrog(
     on arguments
     """
 
+
+
     # numpy config
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
 
-    # by default, bin size is scaled by 10^6 - could be changed
-    bin_size = bin_size if pos_mode else bin_size * 1e-6
-
-    # loading data and reference
-    if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-        data = load_read_data(infile)
-    else:
-        data = load_read_data(infile, split_lib, downsample)
-
     if (not est["est_contamination"] and init["c0"] == 0) or gt_mode:
         cont_id = None
 
-    state_dict = parse_state_string(states) 
-    if state_file is not None:
-        """logic here is:
-            - yaml file contains some groupings (i.e. assign all
-            Yorubans to YRI, all San to SAN
-            - state_dict contains further groupings / renaming / filtering
-                i.e. AFR=YRI+SAN
-            - stuff not in state_dict will not be required
+    state_dict = parse_state_string(states + [ancestral, cont_id], state_file=state_file) 
+    state_dict2 = parse_state_string(states, state_file=state_file) 
+    states = list(set(state_dict2.values()))
 
-            therefore:
-            1. load yaml
-            2. get all required target pops from state_dict
-            3. add all expansions replacements
-        """
-        Y = yaml.load(open(state_file), Loader=yaml.BaseLoader)
-        #D = dict((v_, k) for (k,v) in Y.items() for v_ in v)
-        s2 = dict()
+    # by default, bin size is scaled by 10^6 - could be changed
+    bin_size = bin_size if pos_mode else bin_size * 1e-6
 
-        for state, label in state_dict.items():
-            if state in Y:
-                for ind in Y[state]:
-                    s2[ind] = label
-            else:
-                s2[state] = label
-        state_dict = s2
+    df = load_admixfrog_data(target_file = target_file,
+                             ref_files=ref_files,
+                             geno_file=geno_file,
+                             target=target,
+                             gt_mode = gt_mode,
+                             states=states,
+                             state_dict = state_dict,
+                             ancestral=ancestral,
+                             cont_id=cont_id,
+                             split_lib=split_lib,
+                             pos_mode=pos_mode,
+                             downsample=downsample,
+                             guess_ploidy=guess_ploidy,
+                             autosomes_only=autosomes_only)
 
-    states = list(set(state_dict.values()))
-
-    ref = load_ref(ref_files, state_dict, cont_id, prior, ancestral, autosomes_only)
-    ref = filter_ref(ref, states, **filter)
-    if pos_mode:
-        ref.reset_index('map', inplace=True)
-        ref.map = ref.index.get_level_values('pos')
-        ref.set_index('map', append=True, inplace=True)
-    ref = ref.loc[~ref.index.duplicated()]
-
-
-    #get ids of unique snps
-    df = ref.join(data, how='inner')
-    snp_ids = df.groupby(df.index.names).ngroup()
-    snp_ids = snp_ids.rename('snp_id')
-
-    df = df.join(snp_ids).set_index('snp_id', append=True)
-
-    df.sort_index(inplace=True)
 
     # sexing stuff
     if sex is None:
@@ -287,6 +328,7 @@ def run_admixfrog(
 
     bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex)
 
+    
     P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral)
 
     pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], **init)
@@ -348,7 +390,7 @@ def run_admixfrog(
         df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode, outname=f'{outname}.snp.xz')
 
     if output["output_cont"]:
-        df_cont = write_cont_table(data, pars.cont, pars.error, outname=f'{outname}.cont.xz')
+        df_cont = write_cont_table(df, pars.cont, pars.error, outname=f'{outname}.cont.xz')
 
     if output["output_rle"]:
         df_rle = get_rle(df_bin, states, init["run_penalty"])

@@ -13,10 +13,10 @@ class TestRefVCF(object):
 
     def test_reffile_from_vcf(self, script_runner):
         vcfgt='data/oase.vcf.gz'
-        sid='Oase1_d'
 
-        cmd = f'admixfrog-ref --vcf-file {self.ref_raw} --rec-rate 1e-8 '
-        cmd += f'--chroms 9 --pop-file {self.popfile} --out {self.ref} '
+        cmd = f'admixfrog-ref --vcf-ref {self.ref_raw} --rec-rate 1e-8 '
+        cmd += f'--chroms 9 --pop-file {self.popfile} --out {self.ref} --states AFR NEA DEN '
+        print(cmd)
         args = cmd.split()
         ret = script_runner.run(*args, cwd='tests/')
         print(ret.stdout)
