@@ -2,8 +2,7 @@ from numba import njit
 import pandas as pd
 from collections import Counter
 import numpy as np
-from numpy.random import choice
-from random import random
+from random import random, seed
 from .log import log_
 
 
@@ -53,7 +52,7 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                 or (c2 == r2 and c1 != r1)
             ):
                 if r1 == r2:  # homo to het
-                    if choice(2) == 0:
+                    if random() < 0.5:
                         # print(i, "match r1==r2, A")
                         runs[r1].append((l1, i - l1, i))
                         r1 = c2 if r1 == c1 else c1  # ne run with non-matching
@@ -234,3 +233,21 @@ def pred_sims(
         output.append(df)
         log_.info("Posterior Simulating chromosome %s" % i)
     return pd.concat(output)
+
+
+
+def resampling_pars(tbl):
+    in_state = tbl[['state', 'it', 'len']].groupby(['state', 'it']).sum()  
+    tot = tbl[['state', 'it', 'len']].groupby(['it']).sum()                
+    Z = in_state / tot
+    sds = Z.groupby('state').std()
+    means = Z.groupby('state').mean()
+
+    sds.columns = ['sd']      
+    means.columns = ['mean']  
+    data = means.join(sds)    
+    data['lower'] = data['mean'] - 1.96 * data['sd']
+    data['upper'] = data['mean'] + 1.96 * data['sd']
+
+    return data
+

@@ -13,7 +13,7 @@ from .genotype_emissions import update_post_geno, update_Ftau, update_snp_prob
 from .genotype_emissions import update_emissions
 from .read_emissions import update_contamination
 from .rle import get_rle
-from .decode import pred_sims
+from .decode import pred_sims, resampling_pars
 from .log import log_, setup_log
 from .geno_io import read_geno_ref, read_geno
 
@@ -204,6 +204,7 @@ def load_admixfrog_data(states,
                         pos_mode=False,
                         downsample=1,
                         guess_ploidy=True,
+                        map_col='map',
                         autosomes_only=False):
     """
         we have the following possible input files
@@ -228,7 +229,8 @@ def load_admixfrog_data(states,
         else:
             data = load_read_data(target_file, split_lib, downsample)
 
-        ref = load_ref(ref_files, state_dict, cont_id, ancestral, autosomes_only)
+        ref = load_ref(ref_files, state_dict, cont_id, ancestral,
+                       autosomes_only, map_col=map_col)
         ref = filter_ref(ref, states, **filter)
         if pos_mode:
             ref.reset_index('map', inplace=True)
@@ -272,6 +274,7 @@ def run_admixfrog(
     sex=None,
     pos_mode=False,
     autosomes_only=False,
+    map_col='map',
     downsample=1,
     n_post_replicates=100,
     gt_mode=False,
@@ -315,6 +318,7 @@ def run_admixfrog(
                              ancestral=ancestral,
                              cont_id=cont_id,
                              split_lib=split_lib,
+                             map_col=map_col,
                              pos_mode=pos_mode,
                              downsample=downsample,
                              guess_ploidy=guess_ploidy,
@@ -377,6 +381,7 @@ def run_admixfrog(
             df_pred = pd.concat((df_pred, df_pred_hap))
 
         write_sim_runs(df_pred, outname=f'{outname}.res.xz')
+        resampling_pars(df_pred).to_csv(f'{outname}.res2.xz', compression='xz', index=True, float_format="%6.f")
 
     if output["output_bin"] or output["output_rle"]:
         viterbi_path = viterbi(pars.alpha0, pars.trans, emissions)

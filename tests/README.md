@@ -1,4 +1,7 @@
-some simple tests. For now, they mostly cover correctly reading/writing files
+some simple tests. For now, they mostly cover correctly reading/writing files,
+and ensure that the program runs with most sensible parameter combinations.
+
+Some proper output checking might be desirable
 
 we have the following formats we need to consider / test
 

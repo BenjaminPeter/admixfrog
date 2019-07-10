@@ -52,6 +52,13 @@ def load_pop_file(pop_file=None, pops=None):
             elif "=" in p:
                 k, v = p.split("=")
                 P2[k] = v.split(",")
+                tmp_samples = []
+                for set_ in P2[k]:
+                    if set_ in P:
+                        tmp_samples.extend(P[set_])
+                    else:
+                        tmp_samples.append(set_)
+                P2[k] = tmp_samples
             else:
                 P2[p] = [p]
         return P2
@@ -64,9 +71,11 @@ def vcf_to_ref(
     pop2sample,
     random_read_samples=[],
     pos_id="Physical_Pos",
-    map_id="AA_Map",
+    map_ids=["AA_Map"],
+    default_map="AA_Map",
     rec_rate=1e-8,
-    chroms = None
+    chroms = None,
+    bed=None,
 ):
 
     pprint(pop2sample)
@@ -91,10 +100,17 @@ def vcf_to_ref(
     pprint(sample2pop)
     pprint(pops)
 
+    map_ids = ['map'] + map_ids
+
     data_cols = [f"{p}_{e}" for p in pops for e in EXT]
 
     with lzma.open(outfile, "wt") as ref:
-        ref.write("chrom,pos,ref,alt,map,")
+        ref.write("chrom,pos,ref,alt,")
+        if rec_file is None:
+            ref.write("map,")
+        else:
+            ref.write(",".join(map_ids))
+            ref.write(",")
         ref.write(",".join(data_cols))
         ref.write("\n")
         for chrom in chroms:
@@ -104,7 +120,12 @@ def vcf_to_ref(
                 rec = pd.read_csv(rec_file.format(CHROM=chrom), sep=" ")
                 if "chrom" in rec:
                     rec = rec[rec.chrom == chrom]
-                rec = rec[[pos_id, map_id]]
+
+
+                rec['map'] = rec[default_map]
+                rec_file_cols = list((pos_id, *map_ids))
+                rec = rec[rec_file_cols]
+
                 rec_iter = rec.iterrows()
                 R0 = next(rec_iter)[1]
                 R1 = next(rec_iter)[1]
@@ -118,16 +139,19 @@ def vcf_to_ref(
                     # rec stuff
                     if rec_file is None:
                         map_ = row.pos * rec_rate
+                        ref.write(
+                            f"{row.chrom},{row.pos},{row.ref},{row.alts[0]},{map_},"
+                        )
                     else:
-                        if R1 is None:
-                            map_ = R0[map_id]
+                        if R1 is None: 
+                            map_ = R0[map_ids]
                         elif row.pos <= R0[pos_id]:
-                            map_ = R0[map_id]
+                            map_ = R0[map_ids]
                         elif R0[pos_id] < row.pos <= R1[pos_id]:
-                            slope = (R1[map_id] - R0[map_id]) / (
+                            slope = (R1[map_ids] - R0[map_ids]) / (
                                 R1[pos_id] - R0[pos_id]
                             )
-                            map_ = R0[map_id] + slope * (row.pos - R0[pos_id]) / (
+                            map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) / (
                                 R1[pos_id] - R0[pos_id]
                             )
                         elif row.pos > R1[pos_id]:
@@ -137,22 +161,27 @@ def vcf_to_ref(
                             except StopIteration:
                                 R0, R1 = R1, None
                             if R1 is None:
-                                map_ = R0[map_id]
+                                map_ = R0[map_ids]
                             else:
-                                slope = (R1[map_id] - R0[map_id]) / (
+                                slope = (R1[map_ids] - R0[map_ids]) / (
                                     R1[pos_id] - R0[pos_id]
                                 )
-                                map_ = R0[map_id] + slope * (row.pos - R0[pos_id]) / (
+                                map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) / (
                                     R1[pos_id] - R0[pos_id]
                                 )
 
-                    ref.write(
-                        f"{row.chrom},{row.pos},{row.ref},{row.alts[0]},{map_},"
-                    )
+                        ref.write(
+                            f"{row.chrom},{row.pos},{row.ref},{row.alts[0]},"
+                        )
+                        map_str = ",".join((str(m) for m in map_))
+                        ref.write(f"{map_str},")
+
+
 
                     sample_data = row.samples
                     for s in sample_data:
                         if s in random_read_samples:
+                            #breakpoint()
                             allele = sample_data[s]["GT"][0]
                             if allele is not None:
                                 for pop in sample2pop[s]:
@@ -223,5 +252,5 @@ def load_random_read_samples(pop_file=None):
         return []
     with open(pop_file) as f:
         y = yaml.load(f, Loader=yaml.FullLoader)
-        y = y["random_read_samples"] if "random_read_samples" in y else y
+        y = y["pseudo_haploid"] if "pseudo_haploid" in y else y
         return y

@@ -8,6 +8,7 @@ class TestVCFGT(object):
     out='res/oase_from_vcf.in.xz'
     ref='data/ref_A1240k.csv.xz'
     final='res/test_vcf'
+    rle = 'res/test_vcf_rle.xz'
 
     def test_infile_from_vcfgt(self, script_runner):
         vcfgt='data/oase.vcf.gz'
@@ -31,3 +32,22 @@ class TestVCFGT(object):
         print(ret.stderr)
         assert ret.success
 
+    def test_resampling_par(self, script_runner):
+        cmd = f'admixfrog-rle --in {self.final}.bin.xz --run-penalty 0.23 '
+        cmd += f'--out {self.rle} '
+
+        args = cmd.split()
+        ret = script_runner.run(*args, cwd='tests/')
+        print(ret.stdout)
+        print(ret.stderr)
+        assert ret.success
+
+    def test_rle(self, script_runner):
+        cmd = f'admixfrog-rle --in {self.final}.bin.xz --run-penalty 0.23 '
+        cmd += f'--out {self.rle} '
+
+        args = cmd.split()
+        ret = script_runner.run(*args, cwd='tests/')
+        print(ret.stdout)
+        print(ret.stderr)
+        assert ret.success

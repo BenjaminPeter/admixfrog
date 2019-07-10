@@ -1,13 +1,15 @@
 """basic command line interfaces
 """
 import argparse
-from .admixfrog import run_admixfrog
+import random
 from pprint import pprint, pformat
+import admixfrog
+
+from .admixfrog import run_admixfrog
 from .bam import process_bam
 from .rle import get_rle
 from .vcf import load_pop_file, vcf_to_ref, load_random_read_samples, vcf_to_sample
 from os.path import isfile
-import admixfrog
 from .log import log_, setup_log
 from .options import POP_OPTIONS, INFILE_OPTIONS, REFFILE_OPTIONS, ALGORITHM_OPTIONS, GENO_OPTIONS
 from .options import add_output_options, add_target_file_options, add_rle_options
@@ -175,6 +177,13 @@ def run():
                         """,
     )
     parser.add_argument(
+        "--map-col",
+        default='map',
+        help="""Name of reference-file column that contains the 
+        recombination map. (default: 'map')
+                        """,
+    )
+    parser.add_argument(
         "--filter-delta",
         type=float,
         help="""only use sites with allele frequency difference bigger than DELTA (default off)""",
@@ -206,6 +215,9 @@ def run():
         help="Assumes diploid X chromosome. Default is guess from coverage",
     )
 
+    parser.add_argument("--seed", help="random number generator seed for resampling",
+                        default=None)
+
     add_target_file_options(parser)
     add_geno_options(parser)
     add_estimation_options(parser)
@@ -220,6 +232,7 @@ def run():
     args = parser.parse_args()
     V = vars(args)
 
+    random.seed(V.pop("seed"))
 
     #this reorganizes options into sensible groups
     output_options = dict()

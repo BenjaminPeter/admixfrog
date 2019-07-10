@@ -18,7 +18,8 @@ except (ImportError, ModuleNotFoundError):
 
 
 def load_ref(
-    ref_files, state_dict, cont_id, ancestral=None, autosomes_only=False
+    ref_files, state_dict, cont_id, ancestral=None, autosomes_only=False,
+    map_col = 'map'
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files
@@ -44,7 +45,6 @@ def load_ref(
     ref_cols = [f"{s}_ref" for s in label_states]
     alt_cols = [f"{s}_alt" for s in label_states]
     data_cols = ref_cols + alt_cols
-    map_col = 'map'
     
     #which file a column is in
     file_ix = [None for i in data_cols]

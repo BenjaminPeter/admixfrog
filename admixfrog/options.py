@@ -32,6 +32,7 @@ REFFILE_OPTIONS = [
     "rec_rate",
     "pos_id",
     "map_id",
+    'default_map',
     "chroms",
     "force_ref",
 ]
@@ -271,9 +272,15 @@ def add_ref_options(parser):
     )
     g.add_argument(
         "--map-id",
-        default="AA_Map",
+        default=["AA_Map", "deCODE", "YRI_LD", "CEU_LD"],
+        nargs="*",
         help="""column name for genetic map (default: AA_Map)
         """,
+    )
+    parser.add_argument(
+        "--default-map",
+        default="AA_Map",
+        help="""default recombination map column"""
     )
     parser.add_argument(
         "--chroms",
