@@ -247,11 +247,13 @@ def load_admixfrog_data(states,
         raise ValueError("ambiguous input")
 
     #get ids of unique snps
-    snp_ids = df.groupby(df.index.names).ngroup()
+    snp_ids = df[~df.index.duplicated()].groupby(df.index.names).ngroup()
     snp_ids = snp_ids.rename('snp_id')
+    snp_ids = pd.DataFrame(snp_ids)                              
+    snp_ids.set_index('snp_id', append=True, inplace=True)       
+    df = snp_ids.join(df)
 
-    df = df.join(snp_ids).set_index('snp_id', append=True)
-    df.sort_index(inplace=True)
+    #breakpoint()
 
     return df
 
