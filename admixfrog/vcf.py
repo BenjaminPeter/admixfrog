@@ -130,6 +130,12 @@ def vcf_to_ref(
                 R0 = next(rec_iter)[1]
                 R1 = next(rec_iter)[1]
 
+            #skip chrom if empty
+            with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
+                try:
+                    V = next(vcf)
+                except StopIteration:
+                    continue
             with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
                 vcf.subset_samples(samples)
                 for row in vcf.fetch(chrom):

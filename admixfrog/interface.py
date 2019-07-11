@@ -73,7 +73,7 @@ def bam():
         )
     else:
         del args["vcfgt"]
-        del args["sample_id"]
+        del args["target"]
         del args["chroms"]
         process_bam(**args)
 
