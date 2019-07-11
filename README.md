@@ -25,24 +25,52 @@ Install `admixfrog` (from source directory):
 pip install .
 ```
 
+## Data
+Admixfrog requires (binary-only) eigenstrat data, vcf and bam-files. Supplementary files are typically in yaml-format. The bam-file is used for the _target_, individual, if genotypes are unknown. If genotypes are known, they can be specified in either the eigenstrat or vcf format. In addition, a set of references are required. These too are specified in the reference.
+
+## Quickstart
+To get things started, consider an analysis where we would like to learn to local Human, Neandertal and Denisovan ancestry of the Oase1 specimen:
+
+```admixfrog --gfile data/oase --target Oase1_d --states NEA=Vindija.DG+Altai.DG YRI=Yoruba.DG  Denisova.DG  --cont YRI --out quickstart```
+this will do the following:
+
+1. `--gfile data/oase`: read the file data/oase.geno|snp|ind (eigenstrat-format)
+2. `--target Oase1_d`: declare that we would use the sample named `Oase1_d` as the target
+3. with `--states NEA=Vindija.DG+Altai.DG YRI=Yoruba.DG  Denisova.DG` we declare the three sources: a) combine the Vindija and Altai populations from the file (third column in the `.ind`) file into a population named NEA, b) use the population Yoruba.DG, but rename it to YRI and c) Denisova.DG is the third possible source
+4. `--cont YRI` designates YRI as a proxy for the contaminant. If there is no contamination, estimating it can be disabled using the `--c0 0 --dont-est-contamination` flags.
+5. `--out quickstart`: a prefix for all output files
+
 ## Running the program
-the program requires two input files (in csv-format). One is specific to each individual
-(infile). And one is a reference file (that contains allele frequencies for a
-set of potential source populations).
+For most analyses, it is often useful to generate the reference-file and target-file before running the main analysis. This is because parsing these files is quite time-consuming, and is not needed for replicate analyses. However, this is not required, and the program will perform all steps automatically if required
 
-A typical command is
-```
-admixfrog --infile {x}.in.xz --ref {y}.ref.xz --out {z} -b 10000 \
-    --ancestral PAN --states AFR NEA DEN --contamination AFR
-```
-there are three required parameters:
 
- - `--infile` gives the input file (see below)
- - `--ref` is the reference file (see below) 
- - `--out` is the prefix for all output files
+Thus, we might run these three commands:
+```
+mkdir res/
+admixfrog-ref --out res/ref_example.xz --vcf-ref data/oase.vcf.gz \
+    --state-file data/pops.yaml \
+    --rec-file data/maps_chr.9 \
+    --states AFR NEA=Altai_snpAD.DG \
+    --map-id AA_Map deCODE COMBINED_LD \
+    --default-map AA_Map \
+    --chroms 9                        
+```
+To create the target file, we might run
+```
+admixfrog-bam --bam data/oase_chr9.bam --ref ref_example.xz  --out oase_example.in.xz 
+```
+and finally, the analysis can be run using
+```
+admixfrog --infile oase_example.in.xz --ref ref_example.xz --out example1 -b 10000 \
+    --states AFR NEA --contamination AFR
+```
+
+Thee most useful command is `admixfrog --help` that will give an up-to-date summary of all the parameters.
+
+
 
 there are a few optional parameters, the most important are
- - `-b` the bin size (in 10^6cM), roughly bp
+ - `-b` the bin size (in 10^6cM), when using a recombination map, or in bp when running without (using `-P`)
  - `--ancestral`: a taxon in that specifies the ancestral allele (must be in the
    reference file)
  - `--states`: the potential admixture sources. (Must be in the reference)
@@ -94,7 +122,7 @@ The options are:
     - `--rec-file` A file specifying the recombination map. I use the file  from here: [https://www.well.ox.ac.uk/~anjali/AAmap/](https://www.well.ox.ac.uk/~anjali/AAmap/)
 
 #### File Format Specification
-The refernce file has the following columns:
+The reference file has the following columns:
 - `chrom` is the chromosome (or contig) id
 - `pos` is the physical position of this chromosome
 - `ref`, `alt` are the two alleles present at this locus
@@ -161,7 +189,7 @@ in bins of size 35bp for contamination estimation.
 
 
 ##### File Format
-the infile has 5 columns, called `chrom`, `pos`, `tref` and `talt`.  `lib` is optional.
+the infile has 5 mandatory columns, called `chrom`, `pos`, `tref` and `talt`.  `lib` is optional.
 
 The columns are
 
