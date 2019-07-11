@@ -325,6 +325,7 @@ def run_admixfrog(
                              downsample=downsample,
                              guess_ploidy=guess_ploidy,
                              autosomes_only=autosomes_only)
+    log_.info("done loading data")
 
 
     # sexing stuff
@@ -333,12 +334,14 @@ def run_admixfrog(
 
 
     bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex)
+    log_.info("done creating bins")
+    #breakpoint()
 
     
     P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral)
+    log_.info("done creating prior")
 
     pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], **init)
-    log_.info("done loading data")
 
     Z, G, pars, ll, emissions, hemissions, (_, beta, n), (_, bhap, nhap) = baum_welch(
         P, IX, pars, gt_mode=gt_mode, est_options=est, **kwargs

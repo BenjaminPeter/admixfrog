@@ -212,8 +212,6 @@ def bins_from_bed(df, bin_size, sex=None):
     IX.diploid_snps, IX.haploid_snps = [], []
 
     for i, chrom in enumerate(chroms):
-        log_.debug("binning chrom %s", chrom)
-
         map_ = snp.map[snp.chrom == chrom]
         pos = snp.pos[snp.chrom == chrom]
 
@@ -223,6 +221,8 @@ def bins_from_bed(df, bin_size, sex=None):
 
         # create bins
         bins = np.arange(chrom_start, chrom_end, bin_size)
+        log_.debug("binning chrom %s: %d bins", chrom, len(bins))
+
         IX.bin_sizes.append(len(bins))
         bin_ids = range(bin0, bin0 + len(bins))
         _bin = np.empty_like(bins, dtype_bin)
@@ -233,10 +233,13 @@ def bins_from_bed(df, bin_size, sex=None):
         _bin["haploid"] = chrom_is_hap
         bin_loc.append(_bin)
 
+
+
         # put SNPs in bins
         snp_ids = snp.snp_id[snp.chrom == chrom]
         dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
         IX.SNP2BIN[snp_ids] = dig_snp + bin0
+
 
         if chrom_is_hap:
             IX.haploid_snps.extend(snp_ids)
@@ -244,6 +247,8 @@ def bins_from_bed(df, bin_size, sex=None):
             IX.diploid_snps.extend(snp_ids)
 
         bin0 += len(bins)
+
+
 
     bins = np.hstack(bin_loc)
 
