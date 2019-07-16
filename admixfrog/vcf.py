@@ -1,5 +1,6 @@
 import pdb
 from collections import Counter
+import numpy as np
 import lzma
 from pysam import VariantFile
 from collections import defaultdict
@@ -225,11 +226,13 @@ def vcf_to_sample(
             with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
                 vcf.subset_samples([sample_id])
                 for row in vcf.fetch(chrom):
-                    if len(row.alleles) != 2:
-                        continue
+                    ALT_INDEX = 0
 
                     if row.pos in ref_local.pos.values:
-                        pass
+                        if len(row.alleles) != 2:
+                            ref_row = ref_local[ref_local.pos == row.pos]
+                            ref_alt = ref_row.alt.values
+                            ALT_INDEX = np.where(ref_alt == row.alleles)[0].item()
                         # log_.debug(f"{row.chrom}:{row.pos} in ref")
                     else:
                         #log_.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
@@ -243,13 +246,13 @@ def vcf_to_sample(
                             allele = sample_data[s]["GT"][0]
                             if allele == 0:
                                 infile.write("1,0\n")
-                            elif allele == 1:
+                            elif allele  == ALT_INDEX:
                                 infile.write("0,1\n")
                             else:
                                 infile.write("0,0\n")
                         else:
                             alleles = Counter(sample_data[s]["GT"])
-                            infile.write(f"{alleles[0]},{alleles[1]}\n")
+                            infile.write(f"{alleles[0]},{alleles[ALT_INDEX]}\n")
             log_.debug(f"done processing {chrom}")
 
 

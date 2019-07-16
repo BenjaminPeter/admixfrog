@@ -6,6 +6,8 @@
 
 class TestVCFGT(object):
     out='res/oase_from_vcf.in.xz'
+    out_yri='res/yri_from_vcf.in.xz'
+    out_yri2='res/yri2_from_vcf.in.xz'
     ref='data/ref_A1240k.csv.xz'
     final='res/test_vcf'
     rle = 'res/test_vcf_rle.xz'
@@ -16,6 +18,29 @@ class TestVCFGT(object):
 
         cmd = f'admixfrog-bam --vcf-gt {vcfgt} --sample-id {sid} --ref {self.ref} '
         cmd += f'--chroms 9 --random-read-sample --force-infile --out {self.out}'
+        args = cmd.split()
+        ret = script_runner.run(*args, cwd='tests/')
+        print(ret.stdout)
+        print(ret.stderr)
+        assert ret.success
+
+    def test_infile_from_vcfgt_allele2(self, script_runner):
+        vcfgt='data/oase.vcf.gz'
+        sid='B_Yoruba-3.DG'
+
+        cmd = f'admixfrog-bam --vcf-gt {vcfgt} --sample-id {sid} --ref {self.ref} '
+        cmd += f'--chroms 9 --random-read-sample --force-infile --out {self.out_yri}'
+        args = cmd.split()
+        ret = script_runner.run(*args, cwd='tests/')
+        print(ret.stdout)
+        print(ret.stderr)
+        assert ret.success
+    def test_infile_from_vcfgt_allele3(self, script_runner):
+        vcfgt='data/oase.vcf.gz'
+        sid='B_Yoruba-3.DG'
+
+        cmd = f'admixfrog-bam --vcf-gt {vcfgt} --sample-id {sid} --ref {self.ref} '
+        cmd += f'--chroms 9 --force-infile --out {self.out_yri2}'
         args = cmd.split()
         ret = script_runner.run(*args, cwd='tests/')
         print(ret.stdout)
