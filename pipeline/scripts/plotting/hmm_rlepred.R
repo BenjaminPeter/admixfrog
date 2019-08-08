@@ -5,6 +5,7 @@ library(tidyverse)
 source("scripts/plotting/lib.R")
 })
 
+save.image("rlepred.rdebug")
 
 
 
@@ -21,37 +22,36 @@ ages = read_table2(snakemake@input$ages,
 states=strsplit(snakemake@wildcards$states, "_")[[1]]
 bin_size = as.numeric(snakemake@wildcards$bin_size) * 1e-6
 
+gtime = 51.4
 SCALING = 100 * gtime
 
 
 
 runs_data = load_runs_data(rle_files, names) %>%
 	ungroup() %>%
-	mutate(state=states[state+1], 
-	       map_len=len*bin_size) %>%
+	mutate(map_len=len*bin_size) %>%
 	filter(state==target_) %>% 
 	select(sample, map_len, n)
-save.image("rdebug12")
-
-
-data = runs_data %>% 
-    group_by(sample) %>% 
-	do(map_len=rep(.$map_len, .$n)) %>% 
-	unnest
 
 
 R = runs_data %>%
 	rle_fit_pars(trunc) %>%
 	left_join(ages) %>%
 	mutate(age=replace_na(age, 0)) %>%
-	mutate(scaled_age=age / SCALING) %>%
-	mutate(semean = emean + scaled_age,
-	       slmean = lmean + scaled_age) %>%
-        arrange(semean) %>% 
-        mutate(sample=factor(sample, levels=unique(sample)))
+#	mutate(scaled_age=age / SCALING) %>%
+#	mutate(semean = emean + scaled_age,
+#	       slmean = lmean + scaled_age) %>%
+#        arrange(semean) %>% 
+        mutate(sample=factor(sample, levels=unique(sample)),
+               delta_ll = delta_ll /200)
 
 write_csv(R, snakemake@output$fit)
-save.image("rdebug7")
+
+data = runs_data %>% 
+    group_by(sample) %>% 
+	do(map_len=rep(.$map_len, .$n)) %>% 
+	unnest
+
 
 P2 =  plot_m_gamma(R, gtime) + ggtitle(snakemake@output$rleplot)
 ggsave(snakemake@output$gammaplot, width=10, height=1 + (n_samples)  * .8, limitsize=F)
