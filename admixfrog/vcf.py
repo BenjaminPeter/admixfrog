@@ -226,9 +226,13 @@ def vcf_to_sample(
             with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
                 vcf.subset_samples([sample_id])
                 for row in vcf.fetch(chrom):
-                    ALT_INDEX = 0
+                    ALT_INDEX = 1
+                    if abs(row.pos - 34133936) < 10 :
+                        breakpoint()
 
                     if row.pos in ref_local.pos.values:
+                        if len(row.alleles) == 1:
+                            ALT_INDEX = -1
                         if len(row.alleles) != 2:
                             ref_row = ref_local[ref_local.pos == row.pos]
                             ref_alt = ref_row.alt.values
@@ -252,6 +256,7 @@ def vcf_to_sample(
                                 infile.write("0,0\n")
                         else:
                             alleles = Counter(sample_data[s]["GT"])
+                            #breakpoint()
                             infile.write(f"{alleles[0]},{alleles[ALT_INDEX]}\n")
             log_.debug(f"done processing {chrom}")
 
