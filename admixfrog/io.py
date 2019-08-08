@@ -70,6 +70,7 @@ def load_ref(
     #read correct cols from each file
     dtype_ = dict(chrom="category")
     for i, ref_file in enumerate(ref_files):
+
         cols0 = basic_cols + [col for ix, col in zip(file_ix, data_cols) if ix == i]
         if map_file == i:
             cols0 = cols0 + [map_col] 
@@ -81,13 +82,16 @@ def load_ref(
                            usecols=cols0,
                            index_col=ix_cols)
         #ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
-        ref0.loc[~ref0.index.duplicated()]
+        ref0 = ref0.loc[~ref0.index.duplicated()]
+        ref0 = ref0[~np.isnan(ref0.reset_index('map').map.values)]
+
         if i == 0:
             ref = ref0
         else:
             ref = ref.join(ref0)
 
     ref.fillna(value=0, inplace=True)
+
 
     #aggregate different labels
     ref = ref.rename(D, axis=1).groupby(level=0, axis=1).agg(sum)
@@ -141,9 +145,10 @@ def load_read_data(infile, split_lib=True, downsample=1):
     data = pd.read_csv(infile, dtype=dtype_, index_col=['chrom', 'pos']).dropna()
     #data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
 
-    if "lib" not in data or (not split_lib):
-        data = data.groupby(data.index.names).agg(sum)
+    if "lib" not in data:
         data["lib"] = "lib0"
+    elif not split_lib:
+            data = data.groupby(data.index.names).agg(sum)
 
     if downsample < 1:
         data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))

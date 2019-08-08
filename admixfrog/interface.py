@@ -178,6 +178,7 @@ def run():
     )
     parser.add_argument(
         "--map-col",
+        "--map-column",
         default='map',
         help="""Name of reference-file column that contains the 
         recombination map. (default: 'map')
