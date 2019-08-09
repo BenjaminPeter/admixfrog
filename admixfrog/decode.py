@@ -237,8 +237,9 @@ def pred_sims(
 
 
 def resampling_pars(tbl):
+    #breakpoint()
     in_state = tbl[['state', 'it', 'len']].groupby(['state', 'it']).sum()  
-    tot = tbl[['state', 'it', 'len']].groupby(['it']).sum()                
+    tot = tbl[['it', 'len']].groupby(['it']).sum()                
     Z = in_state / tot
     sds = Z.groupby('state').std()
     means = Z.groupby('state').mean()
