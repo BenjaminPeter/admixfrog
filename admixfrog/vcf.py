@@ -227,8 +227,6 @@ def vcf_to_sample(
                 vcf.subset_samples([sample_id])
                 for row in vcf.fetch(chrom):
                     ALT_INDEX = 1
-                    if abs(row.pos - 34133936) < 10 :
-                        breakpoint()
 
                     if row.pos in ref_local.pos.values:
                         if len(row.alleles) == 1:
