@@ -81,6 +81,7 @@ def load_ref(
         ref0 = pd.read_csv(ref_file, dtype=dtype_, 
                            usecols=cols0,
                            index_col=ix_cols)
+        ref0.index.rename('map', level=map_col, inplace=True)
         #ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
         ref0 = ref0.loc[~ref0.index.duplicated()]
         ref0 = ref0[~np.isnan(ref0.reset_index('map').map.values)]
