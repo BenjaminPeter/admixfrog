@@ -88,6 +88,7 @@ def update_snp_prob(
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
     """
+    #breakpoint()
     #import pdb; pdb.set_trace()
     cflat = np.array([cont[lib] for lib in P.lib])
     eflat = np.array([error[lib] for lib in P.lib])

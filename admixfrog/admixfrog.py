@@ -225,9 +225,10 @@ def load_admixfrog_data(states,
         "3. standard input"
     elif ref_files and target_file and geno_file is None and target is None:
         if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-            data = load_read_data(target_file)
+            data = load_read_data(target_file, high_cov_filter=filter.pop('filter_high_cov'))
         else:
-            data = load_read_data(target_file, split_lib, downsample)
+            #breakpoint()
+            data = load_read_data(target_file, split_lib, downsample, high_cov_filter=filter.pop('filter_high_cov'))
 
         ref = load_ref(ref_files, state_dict, cont_id, ancestral,
                        autosomes_only, map_col=map_col)
@@ -324,6 +325,7 @@ def run_admixfrog(
                              pos_mode=pos_mode,
                              downsample=downsample,
                              guess_ploidy=guess_ploidy,
+                             filter=filter,
                              autosomes_only=autosomes_only)
     log_.info("done loading data")
 

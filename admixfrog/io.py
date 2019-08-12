@@ -140,7 +140,7 @@ def filter_ref(ref, states, filter_delta=None, filter_pos=None, filter_map=None)
     return ref
 
 
-def load_read_data(infile, split_lib=True, downsample=1):
+def load_read_data(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
     dtype_ = dict(chrom="category")
     data = pd.read_csv(infile, dtype=dtype_, index_col=['chrom', 'pos']).dropna()
     #data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
@@ -156,7 +156,7 @@ def load_read_data(infile, split_lib=True, downsample=1):
 
     # rm sites with extremely high coverage
     data = data[data.tref + data.talt > 0]
-    q = np.quantile(data.tref + data.talt, 0.999)
+    q = np.quantile(data.tref + data.talt, 1 - high_cov_filter)
     data = data[data.tref + data.talt <= q]
     return data
 

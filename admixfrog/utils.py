@@ -446,6 +446,7 @@ def scale_mat3d(M):
 
     modifies M and returns log(scaling)
     """
+    #breakpoint()
     scaling = np.max(M, (1, 2))[:, np.newaxis, np.newaxis]
     M /= scaling
     assert np.allclose(np.max(M, (1, 2)), 1)

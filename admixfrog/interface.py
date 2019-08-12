@@ -200,6 +200,13 @@ def run():
         help="""greedily prune sites to be at least MAP recombination distance apart""",
     )
     parser.add_argument(
+        "--filter-high-cov",
+        "--filter-highcov",
+        type=float,
+        default=.001,
+        help="""remove SNP with highest coverage (default 0.001, i.e. 0.1% of SNP are removed)""",
+    )
+    parser.add_argument(
         "--male",
         dest="sex",
         action="store_const",
