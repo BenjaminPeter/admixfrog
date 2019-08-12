@@ -123,16 +123,17 @@ def filter_ref(ref, states, filter_delta=None, filter_pos=None, filter_map=None)
         log_.info("filtering %s SNP due to delta", np.sum(1 - kp))
         ref = ref[kp]
 
+
     if filter_pos is not None:
-        chrom = pd.factorize(ref.chrom)[0]
-        pos = np.array(ref.pos)
+        chrom = ref.index.get_level_values('chrom').factorize()[0]
+        pos = ref.index.get_level_values('pos').values
         kp = nfp(chrom, pos, ref.shape[0], filter_pos)
         log_.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
         ref = ref[kp]
 
     if filter_map is not None:
-        chrom = pd.factorize(ref.chrom)[0]
-        pos = np.array(ref.map)
+        chrom = ref.index.get_level_values('chrom').factorize()[0]
+        pos = ref.index.get_level_values('pos').values
         kp = nfp(chrom, pos, ref.shape[0], filter_map)
         log_.info("filtering %s SNP due to map filter", np.sum(1 - kp))
         ref = ref[kp]
