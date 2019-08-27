@@ -134,7 +134,7 @@ def filter_ref(ref, states, filter_delta=None, filter_pos=None, filter_map=None)
 
     if filter_map is not None:
         chrom = ref.index.get_level_values('chrom').factorize()[0]
-        pos = ref.index.get_level_values('pos').values
+        pos = ref.index.get_level_values('map').values
         kp = nfp(chrom, pos, ref.shape[0], filter_map)
         log_.info("filtering %s SNP due to map filter", np.sum(1 - kp))
         ref = ref[kp]
