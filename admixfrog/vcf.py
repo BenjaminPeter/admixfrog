@@ -77,6 +77,7 @@ def vcf_to_ref(
     rec_rate=1e-8,
     chroms = None,
     bed=None,
+    lax_alleles = False
 ):
 
     pprint(pop2sample)
@@ -140,14 +141,38 @@ def vcf_to_ref(
             with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
                 vcf.subset_samples(samples)
                 for row in vcf.fetch(chrom):
-                    if len(row.alleles) != 2:
+
+                    alt_ix = 0
+
+                    if len(row.alleles) <= 1 or len(row.alleles) > 3:
                         continue
+
+                    if len(row.alleles) == 3:
+                        alleles = [i for v in row.samples.values() for i in v["GT"]]
+                        if 3 in alleles:
+                            continue
+                        elif 1 in alleles and 2 in alleles:
+                            continue
+                        elif 1 not in alleles and 2 not in alleles:
+                            continue
+                        elif 1 in alleles:
+                            alt_ix = 0
+                        elif 2 in alleles:
+                            alt_ix = 1
+                        else:
+                            raise ValueError(f"weird alleles {row.alleles}")
+                        log_.debug(f"{row.chrom}, {row.pos}, {row.alleles}, {Counter(alleles)}")
+
+
+                    if row.alts[alt_ix] not in "ACGT" or lax_alleles:
+                        continue
+
                     D = defaultdict(int)
                     # rec stuff
                     if rec_file is None:
                         map_ = row.pos * rec_rate
                         ref.write(
-                            f"{row.chrom},{row.pos},{row.ref},{row.alts[0]},{map_},"
+                            f"{row.chrom},{row.pos},{row.ref},{row.alts[alt_ix]},{map_},"
                         )
                     else:
                         if R1 is None: 
@@ -178,26 +203,25 @@ def vcf_to_ref(
                                 )
 
                         ref.write(
-                            f"{row.chrom},{row.pos},{row.ref},{row.alts[0]},"
+                            f"{row.chrom},{row.pos},{row.ref},{row.alts[alt_ix]},"
                         )
                         map_str = ",".join((str(m) for m in map_))
                         ref.write(f"{map_str},")
 
 
-
                     sample_data = row.samples
                     for s in sample_data:
                         if s in random_read_samples:
-                            #breakpoint()
                             allele = sample_data[s]["GT"][0]
                             if allele is not None:
                                 for pop in sample2pop[s]:
-                                    D[f"{pop}_{EXT[allele]}"] += 1
+                                    D[f"{pop}_{EXT[allele > 0]}"] += 1
                         else:
                             for allele in sample_data[s]["GT"]:
                                 if allele is not None:
                                     for pop in sample2pop[s]:
-                                        D[f"{pop}_{EXT[allele]}"] += 1
+                                        D[f"{pop}_{EXT[allele > 0]}"] += 1
+
 
                     ref.write(",".join((str(D[c]) for c in data_cols)))
                     ref.write("\n")

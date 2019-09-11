@@ -17,6 +17,7 @@ INFILE_OPTIONS = [
     "minmapq",
     "force_target_file",
     "length_bin_size",
+    "report_alleles",
     "tstv",
     "alleles",
     "vcfgt",
@@ -183,6 +184,13 @@ def add_target_file_options(parser):
         type=int,
         default=None,
         help="""if set, reads are binned by length for contamination estimation""",
+    )
+    g.add_argument(
+        "--report-alleles",
+        dest="report_alleles",
+        action="store_true",
+        default=False,
+        help="""whether contamination/error rates should be conditioned on alleles present at locus""",
     )
     parser.add_argument(
         "--vcfgt",
@@ -401,6 +409,7 @@ def add_base_options(P):
     parser.add_argument(
         "-P",
         "--pos-mode",
+        "--posmode",
         default=False,
         action="store_true",
         help="""Instad of recombination distances, use physical distances for binning""",
