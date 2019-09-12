@@ -62,7 +62,7 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=Fal
             gamma.append(Z[row0 : (row0 + r)])
             emissions.append(E[row0 : (row0 + r)])
         row0 += r
-    #import pdb; pdb.set_trace()
+
 
     s_scaling = update_snp_prob(
         SNP, P, IX, cont, error, F, tau, O["est_inbreeding"], gt_mode

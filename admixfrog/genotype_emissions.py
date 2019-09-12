@@ -100,7 +100,8 @@ def update_snp_prob(
         SNP, P, IX, F, tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding
     )
 
-    assert np.allclose(np.sum(SNP, 2), 1)
+    #breakpoint()
+    assert np.allclose(np.sum(SNP[IX.diploid_snps], 2), 1)
 
     # get P(O | G)
     ll_snp = p_snps_given_gt(P, cflat, eflat, IX, gt_mode)

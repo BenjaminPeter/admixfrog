@@ -198,6 +198,7 @@ def bins_from_bed(df, bin_size, sex=None):
             else:
                 diplo_chroms.append(c)
 
+
     IX.SNP2BIN = np.empty((n_snps), int)
     IX.OBS2SNP = obsix.snp_id.values
 
