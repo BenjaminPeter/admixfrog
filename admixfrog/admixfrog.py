@@ -213,6 +213,7 @@ def load_admixfrog_data(states,
         3. geno (target and/or ref)
     """
 
+    breakpoint()
 
     "1. only geno file"
     if ref_files is None and target_file is None and geno_file and target:
@@ -248,12 +249,13 @@ def load_admixfrog_data(states,
         raise ValueError("ambiguous input")
 
     #get ids of unique snps
-    if 'map' in df: del df['map'] #weird error
     snp_ids = df[~df.index.duplicated()].groupby(df.index.names).ngroup()
     snp_ids = snp_ids.rename('snp_id')
     snp_ids = pd.DataFrame(snp_ids)                              
     snp_ids.set_index('snp_id', append=True, inplace=True)       
     df = snp_ids.join(df)
+
+    df.sort_index(inplace=True)
 
     #breakpoint()
 
