@@ -213,7 +213,6 @@ def load_admixfrog_data(states,
         3. geno (target and/or ref)
     """
 
-    breakpoint()
 
     "1. only geno file"
     if ref_files is None and target_file is None and geno_file and target:
