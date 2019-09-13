@@ -130,6 +130,7 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
         backtrack[i] = np.argmax(aux_mat, 1)
 
     path = np.empty(n_steps, np.int8)
+    breakpoint()
     cursor = np.argmax(ll[-1])
     for i in range(n_steps - 1, -1, -1):
         cursor = backtrack[i, cursor]

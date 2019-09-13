@@ -248,7 +248,7 @@ def load_admixfrog_data(states,
         raise ValueError("ambiguous input")
 
     #get ids of unique snps
-    breakpoint()
+    if 'map' in df: del df['map'] #weird error
     snp_ids = df[~df.index.duplicated()].groupby(df.index.names).ngroup()
     snp_ids = snp_ids.rename('snp_id')
     snp_ids = pd.DataFrame(snp_ids)                              
