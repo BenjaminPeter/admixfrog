@@ -402,24 +402,25 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     return pa, pb
 
 
-def guess_sex(data, sex_ratio_threshold=0.8):
+def guess_sex(ref, data, sex_ratio_threshold=0.88):
     """
         guessing the sex of individuals by comparing heterogametic chromosomes.
         By convention, all chromosomes are assumed to be diploid unless they start
         with an `X` or `W`
     """
+    ref["heterogametic"] = [v[0] in "XZxz" for v in ref.index.get_level_values('chrom')]
     data["heterogametic"] = [v[0] in "XZxz" for v in data.index.get_level_values('chrom')]
-    cov = data.groupby(data.heterogametic).apply(lambda df: np.sum(df.tref + df.talt))
-    cov = cov.astype(float)
+
+    n_sites = ref.groupby(ref.heterogametic).apply(lambda df: len(df))
+    n_reads = data.groupby(data.heterogametic).apply(lambda df: np.sum(df.tref + df.talt))
+    cov = n_reads / n_sites
 
     #no heteogametic data
     if True not in cov:
         return 'f'
 
-    cov[True] /= np.sum(data.heterogametic)
-    cov[False] /= np.sum(data.heterogametic == False)
-
     del data["heterogametic"]
+    del ref['heterogametic']
 
     if cov[True] / cov[False] < sex_ratio_threshold:
         sex = "m"

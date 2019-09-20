@@ -204,6 +204,7 @@ def load_admixfrog_data(states,
                         pos_mode=False,
                         downsample=1,
                         guess_ploidy=True,
+                        sex=None,
                         map_col='map',
                         autosomes_only=False):
     """
@@ -238,6 +239,11 @@ def load_admixfrog_data(states,
             ref.map = ref.index.get_level_values('pos')
             ref.set_index('map', append=True, inplace=True)
         ref = ref.loc[~ref.index.duplicated()]
+
+        # sexing stuff
+        if sex is None:
+            sex = guess_sex(ref, data)
+
         df = ref.join(data, how='inner')
 
 
@@ -258,7 +264,7 @@ def load_admixfrog_data(states,
 
     #breakpoint()
 
-    return df
+    return df, sex
 
 
 
@@ -313,12 +319,13 @@ def run_admixfrog(
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
-    df = load_admixfrog_data(target_file = target_file,
+    df, sex = load_admixfrog_data(target_file = target_file,
                              ref_files=ref_files,
                              geno_file=geno_file,
                              target=target,
                              gt_mode = gt_mode,
                              states=states,
+                             sex=sex,
                              state_dict = state_dict,
                              ancestral=ancestral,
                              cont_id=cont_id,
@@ -332,9 +339,6 @@ def run_admixfrog(
     log_.info("done loading data")
 
 
-    # sexing stuff
-    if sex is None:
-        sex = guess_sex(df)
 
 
     bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex)
