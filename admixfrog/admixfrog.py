@@ -118,6 +118,8 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=Fal
             n_hap,
             est_inbreeding=False,
         )
+        log_.debug(trans)
+        log_.debug(trans_hap)
         alpha0 = np.linalg.matrix_power(trans, 10000)[0]
         alpha0_hap = np.linalg.matrix_power(trans_hap, 10000)[0]
 

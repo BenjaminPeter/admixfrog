@@ -117,7 +117,8 @@ def do_ref():
     logger.info(pformat(args))
 
     pop2sample = load_pop_file(args.state_file, args.states)
-    random_read_samples = load_random_read_samples(args.state_file)
+    random_read_samples = load_random_read_samples(args.state_file,
+                                                   args.random_read_samples)
     logger.debug(pformat(random_read_samples))
     vcf_to_ref(
         args.outfile,
@@ -269,6 +270,8 @@ def run():
             algo_pars[k] = V.pop(k)
         elif k in GENO_OPTIONS:
             geno_pars[k] = V.pop(k)
+
+    del V['random_read_samples']
 
     #all the stuff that will get passed to admixfrog.run_admixfrog
     V["output"] = output_options

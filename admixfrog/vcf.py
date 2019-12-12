@@ -11,20 +11,6 @@ from .log import log_
 
 EXT = "ref", "alt"
 
-""" some debug stuff, to be removed"""
-x = defaultdict(lambda s: s)
-x["AFR"] = "S_Mbuti-1", "S_Mbuti-2", "S_Mbuti-3"
-x["PAN"] = ("panTro4",)
-x["OCE"] = "S_Papuan-1", "S_Papuan-2", "S_Papuan-3", "S_Papuan-4"
-pop2sample = x
-
-rec_file = (
-    "/home/benjamin_peter/proj/100a/basic_processing/recs/maps_b37/maps_chr.{CHROM}"
-)
-vcf_file = (
-    "/mnt/expressions/bpeter/100a/basic_processing/vcfs/merged/tinyvcf_afr.vcf.gz"
-)
-
 def parse_chroms(arg):
     chroms = []
     for s in arg.split(","):
@@ -283,10 +269,13 @@ def vcf_to_sample(
             log_.debug(f"done processing {chrom}")
 
 
-def load_random_read_samples(pop_file=None):
-    if pop_file is None:
-        return []
-    with open(pop_file) as f:
-        y = yaml.load(f, Loader=yaml.FullLoader)
-        y = y["pseudo_haploid"] if "pseudo_haploid" in y else y
-        return y
+def load_random_read_samples(pop_file=None, random_read_samples=[]):
+    pseudo_haps = []
+    if pop_file is not None:
+        with open(pop_file) as f:
+            y = yaml.load(f, Loader=yaml.FullLoader)
+            if "pseudo_haploid" in y:
+                pseudo_haps.extend(y['pseudo_haploid'])
+    pseudo_haps.extend(random_read_samples)
+    print(pseudo_haps)
+    return pseudo_haps

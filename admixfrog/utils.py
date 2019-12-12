@@ -415,12 +415,13 @@ def guess_sex(ref, data, sex_ratio_threshold=0.88):
     n_reads = data.groupby(data.heterogametic).apply(lambda df: np.sum(df.tref + df.talt))
     cov = n_reads / n_sites
 
+    del data["heterogametic"]
+    del ref['heterogametic']
+
     #no heteogametic data
     if True not in cov:
         return 'f'
 
-    del data["heterogametic"]
-    del ref['heterogametic']
 
     if cov[True] / cov[False] < sex_ratio_threshold:
         sex = "m"

@@ -53,3 +53,25 @@ class TestRefVCF2(TestRefVCF):
         print(ret.stderr)
         assert ret.success
 
+## RANDOM READ SAMPLE TEST
+class TestRefVCFPseudoHAP(TestRefVCF):
+    ref='res/ref2ph.xz'
+    rec='data/maps_chr.9'
+    ref_raw='data/oase_small.vcf.gz'
+    final='res/test2_refvcf_pseudohap'
+    def test_reffile_from_vcf(self, script_runner):
+
+        cmd = f'admixfrog-ref --out {self.ref} --vcf-ref {self.ref_raw} '
+        cmd += f'--state-file {self.popfile} '
+        cmd += f'--rec-file {self.rec} '
+        cmd += f'--state-file {self.popfile} '
+        cmd += f'--states AFR NEA=Altai_snpAD.DG ALT '
+        cmd += f'--map-id AA_Map deCODE COMBINED_LD '
+        cmd += f'--chroms 9 '
+        cmd += f'--pseudo-haploid Altai_snpAD.DG'
+        print(cmd)
+        args = cmd.split()
+        ret = script_runner.run(*args, cwd='tests/')
+        print(ret.stdout)
+        print(ret.stderr)
+        assert ret.success

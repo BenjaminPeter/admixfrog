@@ -7,6 +7,7 @@ POP_OPTIONS = ["cont_id",
                "sex", 
                "states", 
                "state_file",
+               "random_read_samples"
                "ancestral"]
 
 
@@ -87,6 +88,15 @@ def add_pop_options(parser):
         help="""Outgroup population with the ancestral allele. By default, assume
         ancestral allele is unknown
         """,
+    )
+    parser.add_argument(
+        "--random-read-samples",
+        "--pseudo-haploid",
+        nargs="*",
+        default=[],
+        help="""Set a sample as a pseudo-haploid random-read sample for the reference. This means when creating a reference,
+        only one allele is taken.
+        """
     )
 
 def add_output_options(parser):

@@ -15,18 +15,24 @@
 \title{Introgression-fragment detection from low-coverage sequences reveals ongoing gene flow between archaic hominins}
 \begin{document}
 	\maketitle
+\section{Abstract}
+\begin{itemize}
+	\item Understanding gene flow is crucial 
+	\item Most gene flow inference is indirect
+	\item Ancestry tract inference
+	\item 
+\end{itemize}
 \section*{Model Overview}
-
-	We present a Hidden Markov Model that classifies a single \emph{target} genome into regions that were derived from different diverged ``source'' populations. This is motivated by admixture between modern humans and Neandertals, although the model is applicable to many other taxa. 
+	We present a Hidden Markov Model that classifies a single \emph{target} genome into regions that were derived from different diverged ``source'' populations. This is presented in the context of admixture between Denisovans, Neandertals and modern humans, although the model is applicable to many other taxa. 
 	
-	We subdivide the diploid target genome into small bins of fixed length (either in genetic units if the recombination rate is known, or physical size otherwise). For each bin, we have a latent variable $Z_i$ that designates the combination of ancestry sources, which we will denote as e.g. homozygous modern human (HH) homozygous Denisovan (DD) and homozygous Neandertal (NN), as well as the heterozygos states HD, DN, and HN, where one haplotype each is derived from the sources. Note that we do not assume phasing, so we do not distinguish HN and NH as distinct states. The vector of all $Z_i$ will be denoted as $\BFZ$.
+	We subdivide the diploid target genome into small bins of fixed length (either in genetic units if the recombination rate is known, or physical size otherwise). For each bin, we define a latent variable $Z_i$ that designates the combination of ancestry sources, which we will denote as e.g. homozygous modern human (HH) homozygous Denisovan (DD) and homozygous Neandertal (NN), as well as the heterozygos states HD, DN, and HN, where one haplotype each is derived from the sources. Note that we do not assume phasing, so we do not distinguish HN and NH as distinct states. The vector of all $Z_i$ will be denoted as $\BFZ$, and the space of all vectors as $\mathcal{Z}$.
 	
-	In each bin, there may be zero or more observed SNP $G$, which we assume mutate according to an infinite sites model. We assume that SNP in different bins are independent conditional on $\BFZ$. Within each bin, we similarly assume that SNP are independent conditional on $Z_i$, although we will investigate alternative models later. For a particular SNP, $P(G_i | Z_i)$ will depend on the allele frequency $p_i$ in the relevant source(s), which is estimated from a reference sample from the source.
+	In each bin, there may be zero or more biallelic observed SNP $G$, which we assume mutate according to an infinite sites model. We assume that SNP in different bins are independent conditional on $\BFZ$. Within each bin, we similarly assume that SNP are independent conditional on $Z_i$, although we will investigate alternative models later. For a particular SNP, $P(G_i | Z_i)$ will depend on the allele frequency $p_i$ in the relevant source(s), which is estimated from a reference sample from the source. The vector of all genotypes is denoted as $\BFG$, and the space of all such vectors is $\mathcal{G}$.
 	
-	Finally, we assume that for each SNP we have reads sampled from zero or more read groups, which will carry at most two alleles. Each read group will have its own contamination and error parameters that are estimated directly from the data.
+	Finally, we assume that for each SNP we have reads sampled from zero or more disjoint read groups. Each read group will have its own contamination and error parameters that are estimated directly from the data.
 	
-	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination rate for each read group, the substructure in each source $\tau_i$, and the average drift since admixture from each source $F_i$. 
-\section*{Notation}
+	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination and error rate for each read group, the substructure in each source $\tau_i$, and the average drift since admixture from each source $F_i$. 
+\section*{Notation overview}
 	Let 
 	\begin{itemize}
 		\item $R, L$ the number of read groups, and hidden-state bins, respectively
@@ -58,19 +64,19 @@ The standard approach in the inference from a Hidden-Markov model is to assume t
 \begin{align}
 \mathcal{L}  = \log P(\BFO, \BFZ, \BFG | \theta) &= \sum_{r=1}^R\sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rsl} | G_{sl}, c_r, e_r)\nonumber\\
 &+ \sum_{l=1}^L \sum_{s=1}^{S_l} \log P(G_{sl} | Z_l = k, F_{Z_l}, \tau_{Z_l})\nonumber\\
-&+ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T) +\log P(Z_0) 
-\label{eq:ll:correct}
+&+ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, A) +\log P(Z_0) 
+\label{eq:ll:correct}.
 \end{align}
 
 
 \subsection*{Transition and initial probabilities}
-The transition probabilities $P(Z_l|Z_{l-1})$ follow a homogeneous Markov chain based on defined by a transition matrix $A$. The initial probabilities $P(Z_0)$ are set to the leading eigenvector of $A$.
+The transition probabilities $P(Z_l|Z_{l-1})$ follow a homogeneous Markov chain based on  the transition matrix $A$. 
 \subsection{State Likelihood}
-We want to calculate $P(G_{sl}|Z_l=k, a_k, d_k, F_k, \tau_k)$; the probability of the genotype of a single locus, given the hidden state $Z_l$ (i.e ancestry). This probability will differ slightly between homozygous and heterozygous ancestries: For homozygous ancestry, if the allele frequency of the introgressed individual were known to be $p$, the genotype probabilities would be $p, 2p(1-p), (1-p)^2$, respectively However, $p$ is unknown, and we need to take three causes of uncertainty into account.
+We want to calculate $P(G_{sl}|Z_l=k, a_k, d_k, F_k, \tau_k)$; the probability of the genotype of a single locus, given the hidden state $Z_l$ (i.e ancestry). This probability will differ slightly between homozygous and heterozygous ancestries: For homozygous ancestry, if the allele frequency of the introgressed individual were known to be $p$, the genotype probabilities would be $p, 2p(1-p), (1-p)^2$, respectively However, $p$ is unknown, and we consider three causes of uncertainty.
 \begin{enumerate}
-	\item Sampling uncertainty from the reference.	
-	\item Genetic drift between the reference and introgressing population
+	\item Sampling uncertainty in the reference panel.	
 	\item Population substructure in the reference population
+	\item Genetic drift in the target population after introgression
 \end{enumerate}
 
 
@@ -83,15 +89,15 @@ G \sim Binom(2, p)
 \end{equation}
 If $p$ is unknown, we estimate it from a sample where we observe $a'$ ancestral and $d'$ derived alleles, respectively. In this case we model the allele frequency as
 \begin{align}
-f &\sim Beta(d' + d_0, a' + a_0)
+p &\sim Beta(d' + d_0, a' + a_0)
 \end{align}
 The prior $d_0, a_0$ can be justified by noting that even if we only observe ancestral alleles in our sample, there is still a small chance that some individuals might have a derived allele, particularly when the sample size is small. There are differing opinions about the values of $d_0, a_0$. For large samples, Balding \& Nichols proposed a uniform prior, i.e. $a_0=d_0=1$. By noting that the derived allele occurs proportionally to $\theta/p$, one can justify $d_0=0, a_0=1$ (DICE model). The third option we use here is an empirical Bayes prior: In the absence of data at a particular locus, the genome wide site-frequency spectrum is a sensible guess for the allele frequency distribution of the focal locus. Hence, we obtain an empirical prior by modelling the (folded or unfolded) site-frequency spectrum as a $Beta(d_0, a_0)$ distribution. $d_0$ and $a_0$ are fitted using a method-of-moments approach from the genome-wide distribution of derived allele frequencies.
 
 
 Writing $d = d' + d_0, a = a'+a_0$, the probability of $G$ is then
 \begin{eqnarray}
-P(G | d, a) &\sim& Betabinom(2, d, a)\nonumber\\
-&=& \binom{2}{G} \frac{B[G+d, 2-G + a]}{B[ d + a]} \label{eq:ll:homo}
+G &\sim& Betabinom(2, d, a)\nonumber\\
+P(G | d, a)&=& \binom{2}{G} \frac{B[G+d, 2-G + a]}{B[ d + a]} \label{eq:ll:homo}
 \end{eqnarray}
 where $B[.]$ denotes the beta function.
 \paragraph{Genetic drift between reference and target}
@@ -113,7 +119,7 @@ P(G=1 | a,d) = 2(1-F) \bigg[\BE{p|a,d} - \BE{p^2 | a,d}\bigg] = \frac{2ad(1-F)}{
 \end{equation} 
 
 \paragraph{Drift to reference, population structure in source}
-As a final complication, the our sources might be only distantly related to the true introgressing individual. Alternatively, ascertainment bias or non-random sampling might result in a lower uncertainty in the reference allele frequency than might be expected from the sample size.For example, we want to infer Neandertal introgression by using the Altai Neandertal \\citep{prufer2014} as a reference, despite it being substantially diverged from the introgressing Neandertal. Thus we follow Bading \& Nichols by scaling the variance (but not mean) of the allele frequency distribution: For this purpose, we introduce a parameter $\tau$
+In many cases, the sources might be only distantly related to the true introgressing individual. Alternatively, ascertainment bias or non-random sampling might result in a lower uncertainty in the reference allele frequency than might be expected from the sample size. For example, we want to infer Neandertal introgression by using the Altai Neandertal \\citep{prufer2014} as a reference, despite it being substantially diverged from the introgressing Neandertal. The approach chosen here is to scaling the variance (but not mean) of the allele frequency distribution: For this purpose, we introduce a parameter $\tau$
 
 \begin{equation}
 p| a, d, \tau \sim Beta (d\tau, a\tau)
@@ -134,7 +140,7 @@ P(G=2 | a,d, F, \tau) &= \frac{\tau d^2 + d + adF\tau}{(a+d)(\tau a+\tau d+1)}
 
 
 \subsubsection{Heterozygous States}
-For a heterozygous latent state, the model is considerably simpler: We know that there is exactly one haploid genome sampled from each source. If we assume that the sources have allele frequencies $p_i$ (described by a Beta distribution with parameters $d_i, a_i$, respectively).
+For a heterozygous latent state, the model is considerably simpler: We know that there is exactly one haploid genome sampled from each source. If we assume that the sources have allele frequencies $p_i$ (described by a Beta distribution with parameters $d_i, a_i$, respectively):
 
 \begin{align}
 P(G_i = 1 | \tau_i, F_i, d_i, a_i) &=  \int p P(f| d_i, a_i, p \tau_i, F_i) dp\nonumber\\
@@ -168,11 +174,11 @@ and $p' =c_{rs} p_c + (1-c_{rs}) G_s$
 
 \section{Parameter estimation}
 \subsection{Estimationg Transitions and Initial State}
-As the model is a homogeneous Hidden-Markov model, $T$ can be estimated using the standard Baum-Welch algorithm. The initial distribution $P(Z_0) = \alpha_0$ is set to the stationary distribution of $T$ after each iteration.
+As the model is a homogeneous Hidden-Markov model, $A$ can be estimated using the standard Baum-Welch algorithm. The initial distribution $P(Z_0) = \alpha_0$ is set to the stationary distribution of $A$ after each iteration.
 
 
 \subsection{Estimating F and $\tau$}
-The hierarchical nature of eq. \ref{eq:ll:correct} simplifies optimization considerably. To estimate $\tau$ and $F$, only the terms $P(G|Z)$ are needed. Likewise, to estimate $c$ and $e$, only $P(O|G)$ is required.
+The hierarchical nature of Eq. \ref{eq:ll:correct} simplifies optimization considerably. To estimate $\tau$ and $F$, only the terms $P(G|Z)$ are needed. Likewise, to estimate $c$ and $e$, only $P(O|G)$ is required.
 
 The $Q$-function is
 \begin{align}

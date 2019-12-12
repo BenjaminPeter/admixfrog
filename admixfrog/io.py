@@ -248,8 +248,11 @@ def write_bin_table(Z, bins, viterbi_df, gamma_names, IX, outname=None):
 
 def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
     D = (
-        data.groupby(["chrom", "pos", "map"])
-        .agg({"tref": sum, "talt": sum})
+        data.reset_index(drop=False)
+        .groupby(["chrom", "snp_id"])
+        .agg({"tref": sum, "talt": sum, 
+              'pos' : lambda x: x.iloc[0],
+              'map' : lambda x: x.iloc[0]})
         .reset_index()
     )
     if gt_mode:
