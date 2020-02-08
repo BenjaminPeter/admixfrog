@@ -6,20 +6,35 @@ from itertools import accumulate
 
 def get_runs(targetid, penalty=0.5):
     target, id_ = targetid.target, np.array(targetid.id)
-    p = np.array(np.log(target + penalty))
-    p = [k for k in accumulate(p, lambda x, y: max(x + y, 0))]
+    p0 = np.array(np.log(target + penalty))
     frag_score = 0
     frags = []
 
-    for i, score in zip(reversed(id_), reversed(p)):
-        if score > 0 and score > frag_score:
-            end_pos, frag_score = i, score
-        if score == 0 and frag_score > 0:
-            if i != end_pos:
-                frags.append((i, end_pos, frag_score))
-            frag_score = 0
-    if frag_score > 0 and i != end_pos:
-        frags.append((i, end_pos, frag_score))
+    while True:
+        p = np.array([k for k in accumulate(p0, lambda x, y: max(x + y, 0))])
+        pos_max, score_max = np.argmax(p), np.max(p)
+        if score_max == 0. :
+            break
+
+        zeros = np.where(p[:pos_max] == 0)[0]
+        if len(zeros) == 0:
+            pos_min = 0
+        else:
+            pos_min = np.max(zeros) + 1
+        if pos_max != pos_min:
+            frags.append((id_[pos_min], id_[pos_max], p[pos_max] - p[pos_min]))
+            print("[%s|%s:%s] : %f" % (targetid.chrom.iloc[0], pos_min, pos_max, p[pos_max] - p[pos_min]))
+        p0[pos_min:(pos_max + 1)] = 0
+
+    #for i, score in zip(reversed(id_), reversed(p)):
+    #    if score > 0 and score > frag_score:
+    #        end_pos, frag_score = i, score
+    #    if score == 0 and frag_score > 0:
+    #        if i != end_pos:
+    #            frags.append((i, end_pos, frag_score))
+    #        frag_score = 0
+    #if frag_score > 0 and i != end_pos:
+    #    frags.append((i, end_pos, frag_score))
     return pd.DataFrame(frags, columns=["start", "end", "score"])
 
 
