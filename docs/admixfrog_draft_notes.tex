@@ -1,0 +1,287 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[top=1in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage{amsmath}
+\usepackage[round]{natbib}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\author{Benjamin Peter}
+
+\newcommand{\BE}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\BFZ}{\mathbf{Z}}
+\newcommand{\BFG}{\mathbf{G}}
+\newcommand{\BFO}{\mathbf{O}}
+
+\title{Some draft notes}
+\begin{document}
+	\maketitle
+\section{additional notes to be removed}
+Note that all the stuff here is mostly mathematical dribble, thoughts about alternative models and related theory. Don't assume anything in here is useful, or correct.
+\section{Post-processing}
+We assume that an introgressed fragment $f \in F$ (or parts thereof) are observed in multiple individuals $s \in S$, and we know it's distribution from a number of samples. We assume that each fragment entered the population at a time $T_f$, and approximate the likelihood as independent between samples:
+
+$$P(L_f | A, T_f, k) = \prod_s P(L_{sf} | A_s, T_f, k) \approx \prod_s \sum_i P(L_{sfi} | A_s, T_f, k)$$
+
+The likelihood $P(L_{sfi} | A_s, T_f, k)$ is written as
+\begin{equation}
+P(L_{sfi} | A_s, T_f, k) = 
+\begin{cases}
+\frac{T_f - A_s}{k} \exp\left(- \frac{T_f - A_s}{k} L_{sfi}\right)  ,& \text{if } T_f \geq A_s \\
+0,              & \text{otherwise}
+\end{cases}
+\end{equation}
+
+To estimate all $T$, we assume that all fragments are independent
+
+$P(T | A, k, L) = \prod_f P(T_f | A, k, L_f)$
+
+\begin{equation}
+P(T_f | L_{f}, A, k) = \prod_s
+\frac{P(L_{sf} | A_s, T_f, k)P(T_f | A, k)}{P(L_{sf} | A_s, k)}
+\end{equation}
+which yields
+
+\begin{equation}
+P(T | L, A, k) = \prod_f\prod_s
+\frac{P(L_{sf} | A_s, T_f, k)P(T_f | A, k)}{P(L_{sf} | A_s, k)}
+\end{equation}
+
+
+
+Let us denote $l_{fsi}$, the $i$-th estimate of the length of a
+
+
+Given a set of samples $S$ with ages $A_s$, and a draw of introgressed fragments for each sample $f_i$. We assume the following mixture model:
+
+$$P(f_{is}|A_s) = \sum_k \pi_{k} P(f_is | A_s, T_k) P(T_k, a_k, b_k)$$
+
+
+
+\begin{align}
+f_{is} | Z_i=i, A_s &\sim Exp[T_i - A_s]\\
+T_i | Z_i= i &\sim \Gamma[a_i, b_i]\\
+Z_i  &\sim Multinomial(\pi)
+\end{align}
+
+
+
+
+\subsubsection{Transitions(HWE)}
+$$\hat{T}_{ij} = \frac{\sum_l P(X_l=i, X_{l+1}=j| \theta', O)}{ P(O | \theta')}$$
+However, the two haplotypes might change ancestry independently from each other. If the transitions from haploid states $H_{ab}$ is known, then 
+$$T_i(j) = T_{i_1, i_2}(j_1, j_2) = \frac{H_{i_1}(j_1)H_{i_2}(j_2) + H_{i_1}(j_2)H_{i_2}(j_1)}{2}$$
+i.e. there are always two possible transitions. We can introduce another inbreeding parameter $f$, so that when $i_1=i_2, j_1=j_2$ 
+$T_i(j) = f H_i(j) + (1-f) H_i(j)^2$. Conversely, if there is only a single introgressed lineage, we would only ever expect haploid introgressed segments:
+
+
+
+Compared to standard BW
+$$\xi_{ij}(t) \propto P(O_{[1\dots l]}, Z_l | \theta') T_{ij}  P(O_{[l+2\dots L]}|Z_{l+1}, \theta') P(O_{l+1}|Z_{l+1}=k)$$
+
+\begin{align}
+P(H_l = N, H_{l+1} = A, O |\theta) &=  P(O_{[1\dots l]}, H_l | \theta') P(H_{l+1} | H_l) P(O_{[l+2\dots L]}|H_{l+1}, \theta') P(O_{l+1}|H_{l+1})\\
+&=P(AN \to NN) + P(AA \to AN) + P(AA \to NN)
+\end{align}
+
+
+
+
+\section{Prior}
+There are a few options for priors. For computational reasons, a beta prior is most suitable.
+One possibility is to use a $Beta[0,0]$ or $Beta[1,1]$, which can be done by adding psuedocounts to the observed data.
+More interesting is the assumption that the observed alleles were drawn from a neutral population with allele frequencies proportional to 
+\begin{equation}
+P(f) \propto \frac{\theta}{x}
+\end{equation}
+If we encounter a sample with $a$ ancestral and $d$ derived alleles, we have by Bayes' theorem
+\begin{align}
+P(f | a, d) &\propto P(f) P(a, d|f) \nonumber\\
+&\propto \frac{\theta}{f} \binom{a+d}{d} f^d (1-f)^a \nonumber\\
+&\propto f^{d-1} (1-f)^a \nonumber\\
+&\sim Beta(d, a+1)
+\end{align}
+I.e. knowing the ancestral allele is equivalent to adding an additional ancestral allele to the observation. If the ancestral allele is unknown, ``mirroring this distribution``
+
+For the folded SFS,
+\begin{align}
+P(f | a, d) &\propto P(f) P(a, d|f) \nonumber\\
+&\propto \left[ \frac{1}{f} + \frac{1}{1-f}\right] f^d (1-f)^a\nonumber\\
+&\propto \frac{1}{f(1-f)} f^d (1-f)^a\nonumber\\
+&\propto f^{d-1} (1-f)^{a-1} \nonumber\\
+&\sim Beta(d, a)
+\end{align}
+
+In a finite population, alleles enter a population at a frequency of $\frac{1}{2N}$, and will become fixed if at frequency $1-\frac{1}{2N}$. Writing
+$$\eta(N) = \frac{1}{2N \sum_{i=1}^{2N-1}1/i}$$
+We find that the shape of the SFS is well approximated by 
+\begin{align}
+P(f | a, d, N) &\sim Beta(d + \eta, a+1 - \eta)\\
+&\sim Beta(d + \eta, a + \eta)
+\end{align}
+for the unfolded and folded case, respectively. As the frequency cannot exceed the limits, we need to truncate this distribution:
+\begin{align}
+E(f | a, d, N) &= \frac{B[\frac{1}{2N}, a+1, d]-B[1-\frac{1}{2N}, a+1, d]}{B[\frac{1}{2N}, a, d]-B[1-\frac{1}{2N}, a, d]}\nonumber\\
+&= \frac{a}{a+d} \frac{\int_\epsilon^{1-\epsilon} t^a(1-t)^{d-1}dt}
+{\int_\epsilon^{1-\epsilon} t^{a-1}(1-t)^{d-1}dt}\nonumber\\
+&= V \frac{a}{a+d}\\
+E(1-f | a, d, N)&= 1-V\frac{a}{a+d} = \left[1 + \frac{a}{d} (1-V)\right] \frac{d}{a+d}\\
+\end{align}
+The term in the squared parentheses is also denoted as $V'$. $V$ in general will depend on 
+
+\subsection{Track lengths}
+To a first approximation, the length of introgressed fragment is 
+$L \sim Exp[r t ]$, where $r$ is a recombination rate and $t$ is the time since the fragment introgressed. However, tracks may overlap or be adjacent in a diploid genome. A simple model to correct for this is to assume that after a track finishes, with some probability $p$ a new introgressed track with the same distribution starts. Let us call this probability $m$. Then
+
+\begin{equation}
+L \sim Exp[(1-m)rt]
+\end{equation}
+writing $K = \frac{1-is}{rt}$, the characteristic function of $L$ is
+\begin{align}
+C(s) &= E[\exp(si [(1-m)L + (1-m)m (L+L')+ \dots  ] )]\nonumber\\
+&=(1-m) K^{-1} + (1-m)m K^{-2} +(1-m)m^2 K^{-3} + \dots\nonumber\\
+&=\frac{(1-m)}{K} \sum_{i=0}^\infty \left(\frac{m}{K}\right)^{i} \nonumber\\
+&= \frac{(1-m)}{K} \frac{1}{1 - m/K}\nonumber\\
+&= \frac{1-m}{K-m}\nonumber\\
+&= \frac{rt(1-m)}{rt (1-m) - is}\nonumber
+\end{align}
+which is the characteristic function of an exponential distribution with parameter $rt(1-m)$.
+
+\subsection{SMC'}
+Under the SMC'-model, the rate is 
+\begin{align}
+r &= 2 N (1-m) \left(1 - exp\left({-\frac{t}{2N}}\right)\right).\\
+& \approx t (1-m) \left( 1- \frac{\tau}{2}\right) + O\left(N^{-3}\right)
+\end{align}
+where $\tau = t/2N$ is the admixture time in coalescence units. This follows from Liang \& Nielsen and a Taylor expansion in $N$.
+
+
+\subsection{Ralph coop theory}
+Let $N(x)$ denote the number of IBD blocks of genetic length at least $x$ shared by two individual chromosomes, and $N_n(x)$ the number of blocks inherited through a path of $n$ meioses. $N(x) = \sum_n N_n(x)$ and
+$$\BE{N(x)} = \sum_n \BE{N_n(x)}$$. $K_n(x)$ denotes the number of pieces of length at least $x$ after $n$ meioses. $\mu(n)$ denotes the probability that the tract introgressed $n$ meioses ago. 
+
+$$\BE{N(x)} = \sum_n \BE{\mu(n) K_n (x)}$$.
+
+Wen we consider introgression from a Neandertal, the same logic applies, except we stop when we enter a Neandertal population. I.e. $n$ measures the number of meioses after the introgression event.
+
+$$K_t(x) = (t(G - x) +22) exp(-x t)$$
+
+
+\subsection{Time of most recent gene flow}
+We estimate the time of the most recent gene flow from the length of the longest fragment:
+After $T$ generations, a fragment has an exponential distribution with rate $r=T(1-M)(1-\tau/2) 1/\text{Morgan} = T(1-m) (1-\tau/2)\frac{1}{100 cM}$.
+
+We approximate the joint distribution of introgressed tracts as independent exponentials. (In truth, they are likely positively correlated, hence this will be an overestimate). We have an expected number of $n=2mg\bar{r}$ fragments, where $m$ is the proportion of introgressed material, and $g$ is the length of the genome, and $\bar{r}$ is the average rate of an introgressed fragment. Assuming $n$ is large, and the longest fragment is $L_0$. will have likelihood:  
+
+\begin{align}
+P(L_0=l | r, m, g, n) 
+&= P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) P(L_0 = l | r_0)\nonumber\\
+&\approx \prod_{i=1}^n P(L_i < l| r_i) P(L_0 = l | r_0)\nonumber\\
+&\approx (1- \exp( -r l ))^{2m g r} r \exp ( -r l)
+\end{align}
+This estimate is true if admixed fragments were i.i.d. exponentials. Thus, this estimator will likely overestimate the most recent time of gene flow as
+\begin{enumerate}
+	\item if admixture is ongoing, $r_i \geq r$.
+	\item if admixture fragments lengths are positively correlated, $P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) < \prod_{i=1}^n P(L_i < l| r_i)$
+	\item the longest introgressed tract may not be the oldest one.
+\end{enumerate}
+
+\subsection{EB time of gene flow per fragment}
+The goal is to estimate, for each fragment, when it was introgressed.
+$$P(T_i | L_i) \propto P(L_i | T_i) P(T_i) $$
+
+$P(L_i)$ is estimated from the genome-wide distribution of tract lengths, and we assume it is gamma distributed. Therefore,
+\begin{equation}
+P(T_i | L) \sim \Gamma(a+1, b+L_i)
+\end{equation}
+
+We estimate the time of the most recent gene flow from the length of the longest fragment:
+After $T$ generations, a fragment has an exponential distribution with rate $r=T(1-M)(1-\tau/2) 1/\text{Morgan} = T(1-m) (1-\tau/2)\frac{1}{100 cM}$.
+
+We approximate the joint distribution of introgressed tracts as independent exponentials. (In truth, they are likely positively correlated, hence this will be an overestimate). We have an expected number of $n=2mg\bar{r}$ fragments, where $m$ is the proportion of introgressed material, and $g$ is the length of the genome, and $\bar{r}$ is the average rate of an introgressed fragment. Assuming $n$ is large, and the longest fragment is $L_0$. will have likelihood:  
+
+\begin{align}
+P(L_0=l | r, m, g, n) 
+&= P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) P(L_0 = l | r_0)\nonumber\\
+&\approx \prod_{i=1}^n P(L_i < l| r_i) P(L_0 = l | r_0)\nonumber\\
+&\approx (1- \exp( -r l ))^{2m g r} r \exp ( -r l)
+\end{align}
+This estimate is true if admixed fragments were i.i.d. exponentials. Thus, this estimator will likely overestimate the most recent time of gene flow as
+\begin{enumerate}
+	\item if admixture is ongoing, $r_i \geq r$.
+	\item if admixture fragments lengths are positively correlated, $P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) < \prod_{i=1}^n P(L_i < l| r_i)$
+	\item the longest introgressed tract may not be the oldest one.
+\end{enumerate}
+
+
+\subsection{$P(G_1, G_2, G_S|Z_l)$}
+The SNP in a single bin are potentially linked (although we assume they have the same ancestry).
+The basic model assumes that 
+$P(G_1, G_2, G_S|Z_l) = \prod_S P(G_s|Z_l)$, which may be unrealistic. Let us assume that $Z$ is homozygous, and that it's prior is $Beta(a_i,d_i)$. The joint distribution of two SNP $i$ and $j$ is then
+\begin{align}
+P(G_0=2) &= F \BE{f_A} + (1-F) \BE{f_A^2}\\
+P(G_1=2,  G_0 = 2) &= F \BE{f_{AB}} + (1-F)(1-r) \BE{f_{AB}^2} + (1-F)r\BE{f_{A}^2f_{B}^2}\\
+P(G_1=2 | G_0 = 2) &= \frac{F\BE{f_A} + (1-F) \BE{f_A^2}}{F \BE{f_{AB}} + (1-F)(1-r) \BE{f_{AB}^2} + (1-F)r\BE{f_{A}^2f_{B}^2}}
+\end{align}
+If we consider two loci, we assume they are completely linked, so that the haplotype frequencies are $f_{01} = f_0 f_1 + D_{01}$
+\begin{align}
+\BE{f_{AB}} &= \BE{f_A f_B} + \BE{D_{AB}}\\
+\BE{f_{Ab}} &= \BE{f_A-f_Af_B} + \BE{D_{01}}\\
+\BE{f_{aB}} &= \BE{f_B-f_Af_B} + \BE{D_{01}}\\
+\BE{f_{ab}} &= \BE{1 + f_Af_B - f_A - f_B} + \BE{D_{01}}
+\end{align}
+
+$$Cov(f_a^2, f_b^2) = \BE{f_{A}^2f_{B}^2} -  \BE{f_A^2}\BE{f_B^2}$$
+
+Further assuming
+$\BE{ ( (f_a-\BE{f_a})^2, (f_b-\BE{f_b}) | f_a, f_b) = 0}$,
+$\BE{f_a^2f_b^2 | f_a, f_b} - f_a^2f_b^2=0$
+
+$\BE{f_a^2 | f_b^2}$
+
+The basic idea is that we have a bunch of fragments that may be the result from the same introgression event. A composite-likelihood estimator for each fragment assumes that all fragments at a particular position have entered the population at the same time, and are independent after that. This is not correct since the fragments at a position are correlated; hence one might expect to be overly confident in ones estimates, but point estimates are likely to be accurate. 
+
+The main issue is that one does not know the rate at wihc fragments deteriorate, since the local recombination rate will be unknown. One possibility is to assume that there is a single average recombination rate-offset factor, which can be learned from e.g. regressing the mean fragment length against introgression time. Based on that, a introgression-time distributon can be inferred. 
+
+
+
+\section{admixfrog one-snp-per-bin}
+The standard likelihood is
+\begin{align}
+P(\BFO, \BFZ, \BFG | \theta)  &= \prod_{r=1}^R\prod_{s=1}^{S_l}\prod_{l=1}^L  P(O_{rsl} | G_{sl}, c_r, e_r)\nonumber\\
+&\times \prod_{l=1}^L \prod_{s=1}^{S_l}  P(G_{sl} | Z_l = k, F_{Z_l}, \tau_{Z_l})\nonumber\\
+&\times \prod_{l=1}^L  \log P(Z_l |Z_{l-1}, A) \times P(Z_0) 
+\label{eq:lik:correct}.
+\end{align}
+which assumes that SNP are independent given the ancestral state. Alternatively, we can assume that we sample exactly one SNP from each bin ($S_l=1,  \forall l$), in which case we would optimize:
+
+\begin{align}
+P(\BFO, \BFZ, \BFG | \theta)  &= \prod_{r=1}^R\prod_{l=1}^L  P(O_{rl} | G_{l}, c_r, e_r)\nonumber\\
+&\times \prod_{l=1}^L   P(G_{l} | Z_l = k, F_{Z_l}, \tau_{Z_l})\nonumber\\
+&\times \prod_{l=1}^L  \log P(Z_l |Z_{l-1}, A) \times P(Z_0) 
+\label{eq:lik:onesnp}.
+\end{align}
+
+using 
+\begin{align}
+\log P(\BFO, \BFZ, \BFG | \theta)  &= \sum_{r=1}^R\sum_{l=1}^L  \log P(O_{rl} | G_{l}, c_r, e_r)\nonumber\\
+&+ \sum_{l=1}^L   \log P(G_{l} | Z_l = k, F_{Z_l}, \tau_{Z_l})\nonumber\\
+&+ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, A) + P(Z_0) 
+\label{eq:ll:onesnp}.
+\end{align}
+
+To sum over all possible samplings $V$, we could use
+\begin{align}
+\sum_v^V \log P(O_v, Z_v, G_v | \theta)\\
+\label{eq:ll:onesnp}.
+\end{align}
+
+\citep{peter2013, pakes1971}
+\citet{peter2010, peter2016, huerta-sanchez2014}
+
+
+\bibliography{main}
+\bibliographystyle{plainnat}
+
+
+\end{document}
