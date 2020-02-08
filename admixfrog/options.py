@@ -44,6 +44,7 @@ ALGORITHM_OPTIONS = [
     "bin_size",
     "autosomes_only",
     "downsample",
+    "fake_contamination",
     "gt_mode",
     "ll_tol",
     "max_iter",
@@ -453,6 +454,12 @@ def add_base_options(P):
         type=float,
         default=1.0,
         help="downsample coverage to a proportion of reads",
+    )
+    parser.add_argument(
+        "--fake-contamination",
+        type=float,
+        default=0.0,
+        help="Adds fake-contamination from the contamination panel",
     )
     parser.add_argument(
         "--init-guess",

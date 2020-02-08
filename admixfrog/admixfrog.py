@@ -208,6 +208,7 @@ def load_admixfrog_data(states,
                         guess_ploidy=True,
                         sex=None,
                         map_col='map',
+                        fake_contamination=0,
                         autosomes_only=False):
     """
         we have the following possible input files
@@ -264,7 +265,32 @@ def load_admixfrog_data(states,
 
     df.sort_index(inplace=True)
 
-    #breakpoint()
+    if fake_contamination and cont_id:
+        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+        mean_endo_cov = np.mean(df.tref + df.talt)
+        """
+            C = x / (e+x);
+            Ce + Cx = x
+            Ce = x - Cx
+            Ce = x(1-C)
+            Ce / ( 1- C) = x
+        """
+        prop_cont = fake_contamination
+        target_cont_cov = prop_cont * mean_endo_cov / (1 - prop_cont)
+        f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt])
+
+        log_.debug(f"endogenous cov: {mean_endo_cov}")
+        log_.debug(f"fake contamination cov: {target_cont_cov}")
+
+
+        c_ref = np.random.poisson( (1 - f_cont) * target_cont_cov)
+        c_alt = np.random.poisson( f_cont * target_cont_cov)
+        log_.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
+        log_.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
+        df.tref += c_ref
+        df.talt += c_alt
+        
+
 
     return df, sex
 
@@ -297,6 +323,7 @@ def run_admixfrog(
     init=defaultdict(lambda: 1e-2),
     guess_ploidy=False,
     est=EST_DEFAULT,
+    fake_contamination=0.,
     filter=defaultdict(lambda: None),
     **kwargs
 ):
@@ -305,6 +332,8 @@ def run_admixfrog(
     on arguments
     """
 
+    from pprint import pprint
+    pprint(kwargs)
 
 
     # numpy config
@@ -316,7 +345,9 @@ def run_admixfrog(
 
     state_dict = parse_state_string(states + [ancestral, cont_id], state_file=state_file) 
     state_dict2 = parse_state_string(states, state_file=state_file) 
-    states = list(set(state_dict2.values()))
+    #states = list(set(state_dict2.values()))
+    #states.sort()
+    states = list(dict(((x, None) for x in state_dict2.values())))
 
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
@@ -336,6 +367,7 @@ def run_admixfrog(
                              pos_mode=pos_mode,
                              downsample=downsample,
                              guess_ploidy=guess_ploidy,
+                             fake_contamination=fake_contamination,
                              filter=filter,
                              autosomes_only=autosomes_only)
     log_.info("done loading data")
