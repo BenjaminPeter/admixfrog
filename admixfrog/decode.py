@@ -2,8 +2,7 @@ from numba import njit
 import pandas as pd
 from collections import Counter
 import numpy as np
-from numpy.random import choice
-from random import random
+from random import random, seed
 from .log import log_
 
 
@@ -31,7 +30,9 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
     # print(D2H)
 
     # init list of ints, numba needs typing
-    runs = [[i for i in range(0)] for i in range(n_homo)]
+    runs = [[(i, i, i) for i in range(0)] for i in range(n_homo)]  # run lengths
+    # else:
+    #    runs = [[i for i in range(0)] for i in range(n_homo)] #run lengths
     for i in range(len(seq)):
         # print(r1, r2, l1, l2)
         if i == 0:
@@ -51,50 +52,48 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                 or (c2 == r2 and c1 != r1)
             ):
                 if r1 == r2:  # homo to het
-                    if choice(2) == 0:
+                    if random() < 0.5:
                         # print(i, "match r1==r2, A")
-                        runs[r1].append(l1)
+                        runs[r1].append((l1, i - l1, i))
                         r1 = c2 if r1 == c1 else c1  # ne run with non-matching
                         l1, l2 = 1, l2 + 1
                     else:
                         # print(i, "match r1==r2, B")
-                        runs[r2].append(l2)
+                        runs[r2].append((l2, i - l2, i))
                         r2 = c2 if r2 == c1 else c1  # ne run with non-matching
                         l1, l2 = l1 + 1, 1
                 else:  # het to homo or AB -> AC or AB -> CB
                     if r1 == c1 and r2 != c2:
-                        runs[r2].append(l2)
+                        runs[r2].append((l2, i - l2, i))
                         r1, r2, l1, l2 = c1, c2, l1 + 1, 1
                     elif r1 == c2 and r2 != c1:
-                        runs[r2].append(l2)
+                        runs[r2].append((l2, i - l2, i))
                         r1, r2, l1, l2 = c2, c1, l1 + 1, 1
                     elif r2 == c2 and r1 != c2:
-                        runs[r1].append(l1)
+                        runs[r1].append((l1, i - l1, i))
                         r1, r2, l1, l2 = c1, c2, 1, l2 + 1
                     elif r2 == c1 and r1 != c2:
-                        runs[r1].append(l1)
+                        runs[r1].append((l1, i - l1, i))
                         r1, r2, l1, l2 = c2, c1, 1, l2 + 1
                     else:
-                        print(
-                            "not handled case", r1, r2, c1, c2, seq[i]
-                        )
+                        print("not handled case", r1, r2, c1, c2, seq[i])
 
             # both strands end
             elif c1 != r1 and c1 != r2 and c2 != r1 and c2 != r2:
                 # print(i, "change both", r1, r2, c1, c2)
-                runs[r1].append(l1)
-                runs[r2].append(l2)
+                runs[r1].append((l1, i - l1, i))
+                runs[r2].append((l2, i - l2, i))
                 r1, r2, l1, l2 = c1, c2, 1, 1
             else:
                 print("not handled case", r1, r2, c1, c2, seq[i])
-    runs[r1].append(l1)
-    runs[r2].append(l2)
+    runs[r1].append((l1, i - l1, i))
+    runs[r2].append((l2, i - l2, i))
     return runs
 
 
 @njit
-def decode_runs_single(seq, n_states):
-    runs = [[i for i in range(0)] for i in range(n_states)]
+def decode_runs_single(seq, n_states, keep_loc=False):
+    runs = [[(i, i, i) for i in range(0)] for i in range(n_states)]  # run lengths
     for i in range(len(seq)):
         # print(r1, r2, l1, l2)
         if i == 0:
@@ -103,10 +102,11 @@ def decode_runs_single(seq, n_states):
             if seq[i] == r:
                 l += 1
             else:
-                runs[r].append(l)
+                runs[r].append((l, i - l, i))
                 r, l = seq[i], 1
 
-    runs[r].append(l)
+    runs[r].append((l, i - 1, i))
+
     return runs
 
 
@@ -130,7 +130,15 @@ def post_trans(trans, emissions, beta, beta_prev, n):
 
 @njit
 def pred_sims_rep(
-    trans, emissions, beta, alpha0, n, n_homo, decode=True, est_inbreeding=False
+    trans,
+    emissions,
+    beta,
+    alpha0,
+    n,
+    n_homo,
+    decode=True,
+    est_inbreeding=False,
+    keep_loc=False,
 ):
     n_steps, n_states = emissions.shape
 
@@ -165,14 +173,20 @@ def pred_sims_single(
     n_sims=100,
     decode=True,
     est_inbreeding=False,
+    keep_loc=False,
 ):
     sims = []
     for it in range(n_sims):
         runs = pred_sims_rep(
-            trans, emissions, beta, alpha0, n, n_homo, decode, est_inbreeding
+            trans, emissions, beta, alpha0, n, n_homo, decode, est_inbreeding, keep_loc
         )
         for i, run in enumerate(runs):
-            df = pd.DataFrame(Counter(run).items(), columns=("len", "n"))
+            if keep_loc:
+                df = pd.DataFrame(run, columns=("len", "start", "end"))
+            else:
+                df = pd.DataFrame(
+                    Counter(r[0] for r in run).items(), columns=("len", "n")
+                )
             df["state"] = i
             df["it"] = it
             sims.append(df)
@@ -188,18 +202,32 @@ def pred_sims(
     n_homo,
     n_sims=100,
     decode=True,
+    keep_loc=False,
     est_inbreeding=False,
 ):
     """simulate runs through the model using posterior parameter.
 
     uses the algorithm of Nielsen, Skov et al. to generate track-length
-    distribution. Could be extended to also give positions of stuff...
+    distribution. 
+
+    Parameters
+    =====
+    trans: transition matrix
+    emissions: list of emission matrices
+    beta: list of result of bwd-algorithm
+    alpha0: initial probability
+    n : list of normalizing factors from fwd-algorithm
+    n_homo: number of homozygous states
+    n_sims: number of reps
+    decode: whether diploid states are decoded into haploid ones
+    keep_loc: whether location info should be kept
+    est_inbreeding: whether inbred states are permitted
 
     """
     output = []
     for i, (e, b, n_) in enumerate(zip(emissions, beta, n)):
         df = pred_sims_single(
-            trans, e, b, alpha0, n_, n_homo, n_sims, decode, est_inbreeding
+            trans, e, b, alpha0, n_, n_homo, n_sims, decode, est_inbreeding, keep_loc
         )
         df["chrom"] = i
         output.append(df)
@@ -207,38 +235,20 @@ def pred_sims(
     return pd.concat(output)
 
 
-def test():
-    beta = np.ones((100000, 6))
-    emissions = np.ones_like(beta)
-    n = np.ones(100000)
-    trans = np.zeros((6, 6)) + 1 / 6
-    alpha0 = [0.3, 0.4, 0.3, 0.0, 0.0, 0.0]
 
-    L = lambda runs, i: sum(runs[runs.state == i].len * runs[runs.state == i].n)
-    return pred_sims_rep(trans, emissions, beta, alpha0, n, 3)
+def resampling_pars(tbl):
+    #breakpoint()
+    in_state = tbl[['state', 'it', 'len']].groupby(['state', 'it']).sum()  
+    tot = tbl[['it', 'len']].groupby(['it']).sum()                
+    Z = in_state / tot
+    sds = Z.groupby('state').std()
+    means = Z.groupby('state').mean()
 
+    sds.columns = ['sd']      
+    means.columns = ['mean']  
+    data = means.join(sds)    
+    data['lower'] = data['mean'] - 1.96 * data['sd']
+    data['upper'] = data['mean'] + 1.96 * data['sd']
 
-def pred_sims_slow(trans, emissions, beta, alpha0, n, n_homo, n_sims=100):
-    n_steps, n_states = emissions.shape
-    X = np.zeros((n_steps, n_states, n_states))
-    X[:] = (beta * n[:, np.newaxis] * emissions)[:, :, np.newaxis]
-    X = X * trans
-    X[1:] /= beta[:-1, :, np.newaxis]
+    return data
 
-    seq = np.zeros(n_steps, dtype=int)
-    sims = []
-    for it in range(n_sims):
-        for i in range(n_steps):
-            if i == 0:
-                state = choice(n_states, p=alpha0)
-            else:
-                state = choice(n_states, p=X[i, state])
-                seq[i] = state
-        runs = decode_runs(seq, n_homo, n_states - n_homo)
-        for i, run in enumerate(runs):
-            df = pd.DataFrame(Counter(run).items(), columns=("len", "n"))
-            df["state"] = i
-            df["it"] = it
-            sims.append(df)
-
-    return pd.concat(sims)

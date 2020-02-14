@@ -1,0 +1,11 @@
+
+geno1: test_oaseAUTO.geno
+snp1:  test_oaseAUTO.snp
+ind1:  test_oaseAUTO.ind
+geno2: test_oaseX.geno
+snp2:  test_oaseX.snp
+ind2:  test_oaseX.ind
+genotypeoutname: test_oaseALL.geno
+snpoutname:      test_oaseALL.snp
+indivoutname:    test_oaseALL.ind
+

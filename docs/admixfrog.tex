@@ -1,474 +1,238 @@
 \documentclass[10pt,a4paper]{article}
-\usepackage[latin1]{inputenc}
+\usepackage[utf8]{inputenc}
 \usepackage[top=1in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
 \usepackage{amsmath}
+\usepackage[round]{natbib}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \author{Benjamin Peter}
 
 \newcommand{\BE}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\BFZ}{\mathbf{Z}}
+\newcommand{\BFG}{\mathbf{G}}
+\newcommand{\BFO}{\mathbf{O}}
 
-\title{Admixfrog model}
+\title{Supplement 1: Admixfrog Model Details}
 \begin{document}
 	\maketitle
 \section*{Model Overview}
-
-	We present a Hidden Markov Model that classifies a single \emph{target} genome into regions that were derived from different diverged ``source'' populations. This is motivated by admixture between modern humans, Neandertals or Denisovans, although the model is applicable to many other taxa. 
+	Here, we present the model and algorithms behind \texttt{admixfrog} in full detail. The Hidden Markov Model (HMM) implemented in \texttt{admixfrog} classifies a single \emph{target} genome into regions that were derived from different diverged ``source'' populations. This is presented in the context of admixture between Denisovans (D), Neandertals (N) and modern humans (H), although the model is applicable to many other taxa. 
 	
-	We subdivide the diploid target genome into small bins of fixed map length (e.g. 0.01 cM). For each bin, we have a latent variable $Z_i$ that designates the combination of ancestry sources, which we will denote as e.g. homozygous modern human (HH) homozygous Denisovan (DD) and homozygous Neandertal (NN), as well as the heterozygosu states HD, DN, and HN, where one haplotype each is derived from the sources. Note that we do not assume phasing, so we do not distinguish HN and NH as distinct states. The set of all $Z_i$ will be denoted as $Z$.
+	We subdivide the diploid target genome into small bins of fixed length (either in genetic map units or physical size ). For each bin, we define a latent variable $Z_l$ that designates the combination of ancestry sources, which we will denote as e.g. homozygous modern human (HH) homozygous Denisovan (DD) and homozygous Neandertal (NN), as well as the heterozygos states HD, DN, and HN, where one haplotype each is derived from the respective sources . Note that we do not assume phasing, so we do not distinguish HN and NH as distinct states. The vector of all $Z_l$ will be denoted as $\BFZ$, and the space of all vectors as $\mathcal{Z}$.
 	
-	In each bin, there may be zero or more observed SNP $G$, which we assume mutate according to an infinite sites model. We assume that SNP in different bins are independent conditional on $\mathbf{Z}$. Within each bin, we similarly assume that SNP are independent conditional on $Z$, although we will investigate alternative models later. For a particular SNP, $P(G_i | Z_i)$ will depend on the allele frequency $f_i$ in the relevant source(s), which is estimated from a reference sample from the source.
+	In each bin, there may be zero or more biallelic observed SNPs, whose genotype is denoted by $G_{ls} \in \{0, 1, 2\}$. We assume that SNPs in different bins are independent conditional on $\BFZ$. Within each bin, we similarly assume that SNPs are independent conditional on $Z_l$. For a particular SNP, $P(G_{ls} | Z_l)$ will depend on the allele frequency $p_{sk}$ in the relevant source $k$, which is estimated from a reference sample from the source. The vector of all genotypes is denoted as $\BFG$, and the space of all such vectors is $\mathcal{G}$.
 	
-	Finally, we assume that for each SNP we have a reads sampled from zero or more read groups $O$, which will carry an ancestral or derived allele. Each read group will have its own contamination and error parameters.
+	Finally, we assume that for each SNP we have zero or more reads sampled from $R$ disjoint read groups. The total number of reads from a particular read group at a particular SNP $G_{sl}$ is $n_{rsl}$, and the random variable denoting the number of non-reference alleles is $O_{rsl}$. Each read group will have its own contamination rate $c_r$ and error parameter $e_r$, that are estimated directly from the data.
 	
-	We are primarily interested in estimating the latent states $\mathbf{Z}$ and $\mathbf{G}$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination rate for each read group, the substructure in each source $\tau_i$, and the average drift since admixture from ech source $F_i$. 
-\section*{Notation}
-	Let 
+	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination and error rate for each read group, the substructure in each source $\tau_k$, and the average drift since admixture from each source $F_k$. 
+\section*{Notation overview}
+	To summarize, the notation is as follows: 
 	\begin{itemize}
-		\item $R, L$ the number of read groups, and hidden-state bins, respectively
-		\item $S_l$ the number of SNP in bin $l$
-		\item $n_{rs}$ the number of reads of readgroup $r$ at SNP $s$
-		\item $O = (O_{rsl})$ the set of derived-alleles from library $r$ at SNP $s$ in bin $l$
-		\item $G = (G_{sl})$ the set of genotypes of SNP $s$ in bin $l$
-		\item $Z = (Z_l)$ be the sequence of hidden states
-		\item $a_{sk}, d_{sk}$ the number of ancestral and derived allele counts in reference $k$ at SNP $s$, (or more generally parameters of a Beta prior)
+		\item $R, L$ denote the number of read groups, and hidden-state bins, respectively
+		\item $K$ is the number of sources 
+		\item $S_l$ is the number of SNPs in bin $l$
+		\item $n_{rsl}$ the number of reads of readgroup $r$ at SNP $s$ of bin $l$.
+		\item $\BFO = (O_{rsl})$ the set of derived-alleles from library $r$ at SNP $s$ in bin $l$
+		\item $\BFG = (G_{sl})$ the set of genotypes of SNP $s$ in bin $l$
+		\item $\BFZ = (Z_l)$ be the sequence of hidden states
+		\item $a_{sli}, d_{sli}$ the number of ancestral and derived allele counts in reference $i$ at $\text{SNP}_{sl}$, (or more generally parameters of a Beta prior)
 		\item $A$ be a transition matrix		
-		\item $F_k$ a measure of distance between source $k$ and the introgressing population
-		\item $c_r$ proportion of contaminant reads in read group $r$
-		\item $p_{sc}$ the allele frequency of a contaminant at position $s$. 
-		\item $e$ the sequencing error rate
-		\item $\mathbf{\theta} = (F_k, c_r, \tau, T, e)$, the set of all parameters to be estimated
+		\item $F_k$ a parameter estimating coalescence sind gene flow from source $k$.
+		\item $\tau_k$ measuring genetic drift between gene flow and the reference sample from source $k$.		
+		\item $c_r, e_r$ proportion of contaminant reads and error rate in read group $r$
+		\item $p_{slk}$ the allele frequency of source $k$ at position $sl$. 		
+		\item $p_{sl}^{c}$ the allele frequency of a contaminant at position $sl$. 
+		\item $\mathbf{\theta} = (A F_k, \tau_k, e_r, c_r)$, the set of all parameters to be estimated
 	\end{itemize}
 The model can be summarized as
 	\begin{itemize}
-		\item $O_{rs} | G_{s}, n_{rs} \sim Binomial(O_{rs}; n_{rs}, p(e, c_r, p_{sc}, G_{s}))$
-		\item $\psi \sim Bernoulli(F)$
-		\item $G_s|Z_l=k \sim \psi Binomial(1, f_{sk}) + (1-\psi) Binomial(2, f_{sk})$
-		\item $f_{sk} | Z_l=k \sim Beta(a_kF_k, d_kF_k)$
-		\item $Z_s | Z_{s-1}= k' \sim T_{k'}$
+		\item $O_{rsl} | G_{sl}, n_{rsl} \sim \text{Binomial}(O_{rsl}; n_{rsl}, p(e_r, c_r, p_{sl}^{c}, G_{sl}))$
+		\item $\psi_k \sim \text{Bernoulli}(F_k)$
+		\item $p_{slk} | Z_l=k \sim \text{Beta}(a_k \tau_k, d_k \tau_k)$		
+		\item $G_{sl}|Z_l=k \sim \psi_k \text{Binomial}(1, p_{slk}) + (1-\psi) \text{Binomial}(2, p_{slk})$
+		\item $Z_s | Z_{s-1}= k' \sim \text{Categorical}(A_{k'})$
 	\end{itemize}
-\section{Algorithm details dependence}
 
-A standard trick is to assume the latent variables $G, Z, U$ are known. $U$ here is a sequence of discrete uniform random variables picking one SNP in each bin at random.
-
-The complete data log likelihood is
+\section*{Algorithm details}
+We assume basic familiarity in the techniques and derivation of the standard algorithms for HMMs. Readers unfamiliar  might consider standard text books, e.g \citep{durbin1998}. The complete-data likelihood (assuming the latent variables $\BFG, \BFZ$ are known) is maximized using an EM-algorithm. The complete data log-likelihood is
 
 \begin{align}
-\mathcal{L}  &= P(O, Z, G, U | \theta)  \nonumber\\
-&= \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T)\nonumber\\
-&+ \sum_{l=1}^L P(U_l) \\
-&+ \sum_{l=1}^L \log P(G_s | U_l, Z_l)\nonumber\\
-&+ \sum_{l=1}^L\sum_{s=1}^{S_l}\sum_{r=1}^R \log P(O_{rs} | G_{sl}, c)\nonumber\\
-& +\log P(Z_0) \\
-\end{align}
-
-The parameters we want to estimate are the contamination rate $c_r$ for each read group, the $F_{ST}$ for each source population, and the sequence of hidden states $Z$.
-
-
-\subsection{Estimating F and $\tau$}
-\begin{align}
-Q(F, \tau|F', \tau' )&= E[\log P(O, Z, G | F, \tau)  P(G, Z | \tau', F', O) ]\nonumber\\
-&=\sum_{Z \in \mathcal{Z}, G \in \mathcal{G}} \log P(G  | Z, F, \tau) P(G|Z, O, F', \theta') P(Z | O, F', \tau')\nonumber\\
-&=\sum_k\sum_{g=0}^2\sum_{l=1}^L\frac{1}{S_l}\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau')
-\end{align}
-Since the $F_k$-parameters are independent for each homozygous state, these likelihoods are optimized numerically and independently.
-
-\begin{equation}
-(\hat{F}_k \hat{\tau}_k) =\operatorname*{argmax}_{F, \tau} \left[ \sum_{g=0}^2\sum_{l=1}^L\frac{1}{S_l}\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau') 
-\right]\label{eq:opt:F}
-\end{equation}
-
-where $P(Z_l = k |O, \theta')$ is the output of the forward-backward algorithm, $P(G_s | Z_l=k, A_{sk}, B_{sk}, F_k)$ is given by (\ref{eq:ll:homo}).   and
-\begin{equation}
-P(G_s | Z_l=k, O) = \frac{P(O_s | G_s, c') P(G_s | Z_l=k, F')}{ \sum_{g=0}^2 P(O_s | G_s=g, c') P(G_s=g | Z_l=k, F_k') }
-\label{eq:em:G}
-\end{equation}
-This equation follows by applying Bayes theorem: 
-\begin{align}
-P(G,Z| O) &= P(G|Z, O)P(Z|O)\nonumber\\
-&=P(G | Z, O_i) P(Z | O)\nonumber\\
-&= \frac{P(O_i | G) P(G|Z)}{P(O_i | Z)} P(Z|O)
-\end{align}
-as $G_i | Z_i$ is independent of all observations except $O_i$.
-
-
-
-
-\subsection{Estimating Contamination}
-\begin{align}
-Q(c|c' )&= E[\log P(O, Z, G )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
-&=\sum_{Z \in \mathcal{Z}}\sum_{G \in \mathcal{G}} \log P( O | G, c) P(G|Z, \theta') P(Z | O, \theta')\nonumber\\
-&=\sum_{r=1}^R\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{lr} | G_s=g, c_r)  P(G_s|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
-\end{align}
-
-We thus optimize
-\begin{align}
-\hat{c}_r = \operatorname*{argmax}_{c_r}\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{lr} | G_s=g, c_r)  P(G_s|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
-\end{align}
-using (\ref{eq:em:G}) and (\ref{eq:ll:geno}).
-\subsection{Estimationg Transitions and Initial State}
-$T$ is estimated using standard Baum-welch, $\alpha_0$ is set to the stationary distribution of $T$.
-\subsubsection{Transitions(HWE)}
-$$\hat{T}_{ij} = \frac{\sum_l P(X_l=i, X_{l+1}=j| \theta', O)}{ P(O | \theta')}$$
-However, the two haplotypes might change ancestry independently from each other. If the transitions from haploid states $H_{ab}$ is known, then 
-$$T_i(j) = T_{i_1, i_2}(j_1, j_2) = \frac{H_{i_1}(j_1)H_{i_2}(j_2) + H_{i_1}(j_2)H_{i_2}(j_1)}{2}$$
-i.e. there are always two possible transitions. We can introduce another inbreeding parameter $f$, so that when $i_1=i_2, j_1=j_2$ 
-$T_i(j) = f H_i(j) + (1-f) H_i(j)^2$. Conversely, if there is only a single introgressed lineage, we would only ever expect haploid introgressed segments:
-
-
-
-Compared to standard BW
-$$\xi_{ij}(t) \propto P(O_{[1\dots l]}, Z_l | \theta') T_{ij}  P(O_{[l+2\dots L]}|Z_{l+1}, \theta') P(O_{l+1}|Z_{l+1}=k)$$
-
-\begin{align}
-P(H_l = N, H_{l+1} = A, O |\theta) &=  P(O_{[1\dots l]}, H_l | \theta') P(H_{l+1} | H_l) P(O_{[l+2\dots L]}|H_{l+1}, \theta') P(O_{l+1}|H_{l+1})\\
-&=P(AN \to NN) + P(AA \to AN) + P(AA \to NN)
-\end{align}
-
-
-\section{Algorithm details}
-A standard trick in the inference from a Hidden-Markov model is to assume the latent variables $G, Z$ are known, and then use an EM-algorithm to estimate parameters. The complete data log-likelihood is
-
-\begin{align}
-\mathcal{L}  = \log P(O, Z, G | \theta) &= \sum_{r=1}^R\sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rsl} | G_{sl}, c, e)\nonumber\\
-&+ \sum_{l=1}^L \sum_{s=1}^{S_l} \log P(G_{sl} | Z_l = k, F, \tau)\nonumber\\
-&+ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, T) +\log P(Z_0) \nonumber\\
-\label{eq:ll:correct}
+\mathcal{L}  = \log P(\BFO, \BFZ, \BFG | \theta) &= \sum_{r=1}^R\sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rsl} | G_{sl}, c_r, e_r)\nonumber\\
+&+ \sum_{l=1}^L \sum_{s=1}^{S_l} \log P(G_{sl} | Z_l = k, F_{Z_l}, \tau_{Z_l})\nonumber\\
+&+ \sum_{l=1}^L  \log P(Z_l |Z_{l-1}, A) +\log P(Z_0) 
+\label{eq:ll:correct}.
 \end{align}
 
 
 \subsection*{Transition and initial probabilities}
-The transition probabilities $P(Z_l|Z_{l-1})$ are given by a transition matrix $T$. The initial probabilities $P(Z_0)$ are set to the leading eigenvector of $T$.
-\subsection{State Likelihood}
-We want to calculate $P(G_{sl}|Z_l, a, d, F, \tau)$, the probability of the genotype of a single locus, given the hidden state (i.e ancestry). This probability will differ between homozygous and heterozygous ancestries. For homozygous ancestry, if the allele frequency of the introgressed individual were known to be $f$, the genotype probabilities would be $f, 2f(1-f), (1-f)^2$, respectively However, $f$ is unknown, and we need to take three causes of uncertainty into account.
-\begin{enumerate}
-	\item Sampling uncertainty from the reference.	
-	\item Genetic drift between the reference and introgressing population
-	\item Population substructure in the reference population
-\end{enumerate}
+The transition probabilities $P(Z_l|Z_{l-1}, A)$ follow a homogeneous Markov chain based on  the transition matrix $A$. 
+\subsection*{State Likelihood}
+In contrast to standard HMMs, our emissions involve the unknown genotypes as an additonal latent variable. We refer to $P(G_{sl} | Z_l = k, F_{Z_l}, \tau_{Z_l})$ as the state likelihood, and $P(O_{rsl} | G_{sl}, c_r, e_r)$ as the genotype likelihood. 
+ The state likelihood $P(G_{sl}|Z_l=k, a_k, d_k, F_k, \tau_k)$ represents the probability of the genotype at a single locus, given the hidden state $Z_l$ (i.e ancestry). The state likelihood depends on the allele frequencies in the samples from the putative sources, and we take into account three sources of uncertainty:
+ 
+ \begin{enumerate}
+ 	\item Sampling uncertainty in the reference panel
+ 	\item Genetic drift in the target population after introgression 	
+ 	\item Population substructure and drift in the source populations
+ \end{enumerate}
+ 
+  The resulting probabilities differs slightly between homozygous and heterozygous ancestries, and so we derive them sepearately.
 
-
-\subsubsection{Homozygous Hidden States}
-As we deal with a single hidden-state bin and locus, subscripts designating the genomic location are omitted in this section. We start with the simplest possible model, and add complexity in sequence.
+\subsubsection*{Homozygous Hidden States}
+As we deal with a single hidden-state bin, locus, and source, subscripts designating them are omitted in this section. We start with the simplest possible model, and add complexity in sequence.
 \paragraph{Known allele frequency}
-If, the allele frequency $f$ is known, 
+If, the allele frequency $p$ is known, 
 \begin{equation}
-G \sim Binom(2, f)
+G \sim Binom(2, p)\text{.}\nonumber
 \end{equation}
-If $f$ is unknown, we estimate it from a sample where we observe $a'$ ancestral and $d'$ derived alleles, respectively. In this case
+\paragraph{Sampling uncertainty} As $p$ is unknown, we estimate it from a sample where we observe $a'$ ancestral and $d'$ derived alleles, respectively. In this case we model the allele frequency as
 \begin{align}
-p &\sim Beta(d' + d_0, a' + a_0)
+p &\sim Beta(d' + d_0, a' + a_0) \nonumber
 \end{align}
-The prior $d_0, a_0$ can be justified by noting that even if we only observe ancestral alleles in our sample, there is still a small chance that some individuals might have a derived allele, particularly when the sample size is small. There are differing opinions about the values of $d_0, a_0$. For large samples, Balding \& Nichols proposed a uniform prior, i.e. $a_0=d_0=1$. By noting that the derived allele occurs proportionally to $\theta/p$, one can justify $d_0=0, a_0=1$ (DICE model). A third option is an empirical Bayes prior: In the absence of data at a particular locus, the genome wide site-frequency spectrum is a sensible guess for the allele frequency distribution of the focal locus. Hence, we obtain an empirical prior by modelling the (folded or unfolded )site-frequency spectrum as a $Beta(d_0, a_0)$ distribution. $d_0$ and $a_0$ are fitted using a method-of-moments approach from the genome-wide distribution.
-
+The prior $d_0, a_0$ can be justified by noting that even if we only observe ancestral alleles in our sample, there is still a small chance that some individuals might have a derived allele, particularly when the sample size is small. There are differing opinions about the values of $d_0, a_0$. For large samples, \citet{balding1995} proposed a uniform prior, i.e. $a_0=d_0=1$. By noting that the derived allele occurs proportionally to $\theta/p$, one can justify $d_0=0, a_0=1$ \citep{racimo2016}. The third option we use here is an empirical Bayes prior \citep{efron2012}: In the absence of data at a particular locus, the genome wide site-frequency spectrum is a sensible guess for the allele frequency distribution of the focal locus. Hence, we obtain an empirical prior by modeling the (folded or unfolded) site-frequency spectrum as a $Beta(d_0, a_0)$ distribution. $d_0$ and $a_0$ are fitted using a method-of-moments approach from the genome-wide distribution of derived allele frequencies.
 
 Writing $d = d' + d_0, a = a'+a_0$, the probability of $G$ is then
 \begin{eqnarray}
-P(G | d, a) &\sim& Betabinom(2, d, a)\nonumber\\
-&=& \binom{2}{G} \frac{B[G+d, 2-G + a]}{B[ d + a]} \label{eq:ll:homo}
+G &\sim& Betabinom(2, d, a)\nonumber\\
+P(G | d, a)&=& \binom{2}{G} \frac{B[G+d, 2-G + a]}{B[ d + a]} \label{eq:ll:homo}
 \end{eqnarray}
 where $B[.]$ denotes the beta function.
-\paragraph{Genetic drift between reference and target}
+\paragraph{Genetic drift in target}
 In many cases, the target individual will not be sampled immediately after admixture, but thousands of generations after. Thus, we need to take into account that the allele frequency might have changed.
 
-Conceptually, genetic drift will increase the chance that the two alleles in the target are derived from the same ancestor: If the target is very distant from the source, the probability $F$ that the two alleles are identical by descent approaches one.  Conversely, if we have a very close reference, that probability is zero. Therefore,
+Conceptually, genetic drift will increase the chance that the two alleles in the target are derived from the same ancestor at introgression time: If the target is very distant from the source, the probability $F$ that the two alleles are identical by descent approaches one.  Conversely, if we have a very close reference, that probability is zero. In other words, $F$  is the probability of coalescence before gene flow. Therefore,
+
 \begin{align}
-P(G=2 | a,d, F) &= \int P(G|p) P(f | a, d) df \nonumber\\
-&= \int \left[ F f + (1-F) f^2\right] P(p | a, d) df\nonumber\\
-&= F \BE{f|a, d} + (1-F)  \BE{f^2|a, d}\label{eq:pg}\\
-&= F \frac{d}{a+d} + (1-F)  \frac{d (d+1)}{(a+d)(a+d+1)}\nonumber\\
+P(G=2 | a,d, F) &= \int P(G|p) P(p | a, d) df \nonumber\\
+&= \int \left[ F p + (1-F) p^2\right] P(p | a, d) df\nonumber\\
+&= F \BE{p|a, d} + (1-F)  \BE{p^2|a, d}\label{eq:pg}
+\end{align}
+
+For the Balding-Nichols-model, we thus obtain
+\begin{subequations}
+\begin{align}
+P(G=2 | a,d, F) &= F \frac{d}{a+d} + (1-F)  \frac{d (d+1)}{(a+d)(a+d+1)}\nonumber\\
 &= \frac{d^2 + d + adF}{(a+d)(a+d+1)}
 \end{align}
-We note that the allle frequency distribution only enters through the first two moments, and that $F>0$ will  result in an excess of homozygous emissions. The probability for $G=0$ is obtained by switching $a$ and $d$, and for $G=1$ by subtracting them from one:
+
+We note that the allele frequency distribution only enters through the first two moments, and hence any model that would us give the some moments for the allele frequency in the source will give the same results. Furthermore, if $F>0$, this will  result in an excess of homozygous emissions, as expected by the loss of (ancestral) heterozygosity expected under genetic drift.
+ 
+The probability for $G=0$ is obtained by symmetry; we simply  switching $a$ and $d$. The probability of a heterozygous genotype ($G=1$) is obtained by subtracting them from one:
 \begin{equation}
-P(G=1 | a,d) = 2(1-F) \bigg[\BE{f|a,d} - \BE{f^2 | a,d}\bigg] = \frac{2ad(1-F)}{(a+d)(a+d+1)}
+P(G=1 | a,d) = 2(1-F) \bigg[\BE{p|a,d} - \BE{p^2 | a,d}\bigg] = \frac{2ad(1-F)}{(a+d)(a+d+1)}
 \end{equation} 
+\end{subequations}
 
-\paragraph{Drift to reference, population structure in source}
-As a final complication, the our sources might be only distantly related to the true introgressing individual. Alternatively, ascertainment bias or non-random sampling might result in a lower uncertainty in the reference allele frequency than might be expected from the sample size.For example, we want to infer Neandertal introgression by using the Altai Neandertal \\citep{prufer2014} as a reference, despite it being substantially diverged from the introgressing Neandertal. Thus we follow Bading \& Nichols by scaling the variance (but not mean) of the allele frequency distribution: For this purpose, we introduce a parameter $\tau$
+\paragraph{Drift and population structure in source}
+In many cases, the available samples from the source might be only distantly related to the true introgressing individual. Alternatively, ascertainment bias or non-random sampling might result in a lower uncertainty in the reference allele frequency than might be expected from the sample size. For example, we want to infer Neandertal introgression by using the Altai Neandertal \citep{prufer2014} as a reference, despite it being substantially diverged from the introgressing Neandertal. The approach chosen here is to scaling the variance (but not mean) of the allele frequency distribution: For this purpose, we introduce a parameter $\tau$
 
 \begin{equation}
-f| a, d, \tau \sim Beta (d\tau, a\tau)
+p| a, d, \tau \sim Beta (d\tau, a\tau)  \nonumber
 \end{equation}
-which leads to
+which leads to (starting from eq \ref{eq:pg}):
 
+\begin{subequations}
 
 \begin{align}
-P(G=2 | a,d, F, \tau) &= F E[f|a,d, \tau] + (1-F)  E[f^2|a, d, \tau]\nonumber\\
+P(G=2 | a,d, F, \tau) &= F \mathbb{E}[p|a,d, \tau] + (1-F)  \mathbb{E}[p^2|a, d, \tau]\nonumber\\
 &= F \frac{d}{a+d} + (1-F)  \frac{d (d\tau+1)}{(a+d)(a\tau+d\tau+1)}\nonumber\\
 &= \frac{\tau d^2 + d + adF\tau}{(a+d)(\tau a+\tau d+1)}\\
 P(G=1 | a,d, F, \tau) &= \frac{2ad(1-F)\tau}{(a+d)(\tau a+\tau d+1)}
 \end{align}
+\end{subequations}
 
 
-\subsubsection{Heterozygous States}
-For a heterozygous latent state, the model is considerably simpler: We know that there is exactly one haploid genome sampled from each source. If we assume that the sources have allele frequencies $f_i$ with prior $d_i, a_i$, respectively.
+\subsubsection*{Heterozygous States}
+For a heterozygous latent state, the model is considerably simpler: We know that there is exactly one haploid genome sampled from each source. If we assume that the sources have allele frequencies $p_i$ (described by a Beta distribution with parameters $d_i, a_i$, respectively):
 
 \begin{align}
-P(G_i = 1 | \tau_i, F_i, d_i, a_i) &=  \int f P(f| d_i, a_i, p \tau_i, F_i) df\nonumber\\
-&= E[f| d_i, a_i, F_i, \tau_i]\nonumber\\
+P(G_i = 1 | \tau_i, F_i, d_i, a_i) &=  \int p P(f| d_i, a_i, p \tau_i, F_i) dp\nonumber\\
+&= E[p| d_i, a_i, F_i, \tau_i]\nonumber\\
 &=\frac{d_i}{a_i+d_i}\label{eq:ll:het}
 \end{align}
 and hence is independent from both $F$ and $\tau$. Intuitively, this is because if we just sample one allele from a population, that population's allele frequency is the best guess for the state of our sample.
-Thus for sources with samples $(a_i, d_i)$ and $(a_j, d_j)$, 
-\begin{align*}
+Thus for sources with samples $(a_i, d_i)$ and $(a_j, d_j)$,
+
+\begin{subequations} 
+\begin{align}
 P(G=0) &= \frac{a_i a_j}{(d_i+a_i)(d_j+a_j)}\\
 P(G=1) &= \frac{a_id_j + a_jd_i}{(d_i+a_i)(d_j+a_j)}\\
-P(G=2) &= \frac{d_i d_j}{(d_i+a_i)(d_j+a_j)}\\
-\end{align*}
+P(G=2) &= \frac{d_i d_j}{(d_i+a_i)(d_j+a_j)}
+\end{align}
+\end{subequations}
 
 
-
-\subsubsection{Haploid States}
+\subsubsection*{Haploid States}
 On the sex chromosome, or when inbreeding is present, we further encounter haploid regions. Here, $G$ takes only values of $0$ or $1$, and reasoning analogous to the heterozygous case yields
+\begin{subequations} 
 \begin{align}
-P(G=0) &= \frac{a}{a+d}\nonumber\\
+P(G=0) &= \frac{a}{a+d}\\
 P(G=1) &= \frac{d}{a+d}\label{eq:ll:hap}
 \end{align}
-
+\end{subequations}
 \subsection*{Genotype Likelihood}
-We assume a simple binomial model with error $e$, and known contamination:
+We assume a simple Bernoulli mixture of contaminant and endogenous reads similar to e.g. \citet{racimo2016}. The error rate $e$ switches the allele to the other state.
 \begin{equation}
-P(O_{rs}| G_s, c_r, n_{rs}) \sim Binom(O_{rs}; n_{rs}, p) \label{eq:ll:geno}
+P(O_{r}| G, c_r, n_{r}, e_r, p^{c}) \sim Binom(O_{r}; n_{r}, p) \label{eq:ll:geno}
 \end{equation}
-where $p = (1-e) p' + e (1-p')$
-and $p' =c_{rs} p_c + (1-c_{rs}) G_s$
-
-\section{Parameter estimation}
-\subsection{Estimationg Transitions and Initial State}
-As the model is a homogeneous Hidden-Markov model, $T$ can be estimated using the standard Baum-Welch algorithm. The initial distribution $P(Z_0) = \alpha_0$ is set to the stationary distribution of $T$ after each iteration.
+where $p = (1-e_r) p' + e_r (1-p')$
+and $p' =c_{r} p_c + (1-c_{r}) G$.
 
 
-\subsection{Estimating F and $\tau$}
-The hierarchical nature of eq. \ref{eq:ll:correct} simplifies optimization considerably. To estimate $\tau$ and $F$, only the terms $P(G|Z)$ are needed. Likewise, to estimate $c$ and $e$, only $P(O|G)$ is required.
+\section*{Parameter estimation}
+One of the strengths of this model formulation is that all parameters can be efficiently estimated from the data. Here, we lay out the specific M-steps implemented in \texttt{admixfrog}.
 
-The $Q$-function is
+
+\subsection*{Estimationg Transitions and Initial State}
+As the model is a homogeneous Hidden-Markov model, $A$ can be estimated using the standard Baum-Welch algorithm. The initial distribution $P(Z_0) = \alpha_0$ is set to the stationary distribution of $A$ after each iteration. The hierarchical nature of eq. \ref{eq:ll:correct} simplifies optimization considerably. To estimate $\tau$ and $F$, only the terms $\log P(G|Z)$ are needed, as all other terms are independent of $\tau$ and $F$. Likewise, to estimate $c$ and $e$, only $\log P(O|G)$ is required.
+
+\subsection*{Estimating F and $\tau$}
+The $Q$-function (dropping the terms not depending on $F$ and $\tau$)is
 \begin{align}
-Q(F, \tau|F', \tau' )&= E[\log P(O, Z, G | F, \tau)  P(G, Z | \tau', F', O) ]\nonumber\\
-&=\sum_{Z \in \mathcal{Z}, G \in \mathcal{G}} \log P(G  | Z, F, \tau) P(G|Z, O, F', \theta') P(Z | O, F', \tau')\nonumber\\
-&=\sum_k\sum_{g=0}^2\sum_{l=1}^L\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau')
+Q(F, \tau|F', \tau' )&= E[\log P(\BFO, \BFZ, \BFG | F, \tau)  P(\BFG, \BFZ | \tau', F', \BFO) ]\nonumber\\
+&=\sum_{\BFZ \in \mathcal{Z}, \BFG \in \mathcal{G}} \log P(\BFG  | \BFZ, F, \tau) P(\BFG|\BFZ, \BFO, F', \theta') P(\BFZ | \BFO, F', \tau')\nonumber\\
+&=\sum_k\sum_{g=0}^2\sum_{l=1}^L\sum_{s=1}^{S_l} \log P(G_{sl}=g | Z_l=k, F_k, \tau_k)  P(G_{sl}=g| Z_l=k, F', \tau', \BFO) P(Z_l=k | \BFO, F', \tau')
 \end{align}
 Since both $F_k$ and $\tau_k$ only depend on the terms for the respective homozygous hidden states,  we numerically optimize
 
 \begin{equation}
-(\hat{F}_k, \hat{\tau}_k) =\operatorname*{argmax}_{F, \tau} \left[ \sum_{g=0}^2\sum_{l=1}^L\sum_{s=1}^{S_l} \log P(G_s=g | Z_l=k, F_k, \tau_k)  P(G_s=g| Z_l=k, F', \tau', O) P(Z_l=k | O, F', \tau') 
+(\hat{F}_k, \hat{\tau}_k) =\operatorname*{argmax}_{F, \tau} \left[ \sum_{g=0}^2\sum_{l=1}^L\sum_{s=1}^{S_l} \log P(G_{sl}=g | Z_l=k, F, \tau)  P(G_{sl}=g| Z_l=k, F', \tau', \BFO) P(Z_l=k | \BFO, F', \tau') 
 \right]\label{eq:opt:F}
 \end{equation}
 
-where $P(Z_l = k |O, \theta')$ is the output of the forward-backward algorithm, $P(G_s | Z_l=k, \tau_k, F_k)$ is given by (\ref{eq:ll:homo}).   and
+where $P(Z_l = k |\BFO, \theta')$ is the output of the forward-backward algorithm, $P(G_s | Z_l=k, \tau_k, F_k)$ is given by eq. 5, and
 \begin{equation}
-P(G_s | Z_l, O, F', \tau') = \frac{P(O_s | G_s, c') P(G_s | Z_l, F', \tau')}{ \sum_{g=0}^2 P(O_s | G_s=g, c') P(G_s=g | Z_l, F', \tau') }
+P(G_{sl} | Z_l, \BFO, F', \tau') = \frac{P(O_{sl} | G_{sl}, c') P(G_{sl} | Z_l, F', \tau')}{ \sum_{g=0}^2 P(O_{sl} | G_{sl}=g, c') P(G_{sl}=g | Z_l, F', \tau') }
 \label{eq:em:G}
 \end{equation}
 This equation follows by applying Bayes theorem: 
 \begin{align}
-P(G,Z| O) &= P(G|Z, O)P(Z|O)\nonumber\\
-&=P(G | Z, O_i) P(Z | O)\nonumber\\
-&= \frac{P(O_i | G) P(G|Z)}{P(O_i | Z)} P(Z|O)
+P(G,Z| \BFO) &= P(G|Z, \BFO)P(Z|\BFO)\nonumber\\
+&=P(G | Z, O_l) P(Z | \BFO)\nonumber\\
+&= \frac{P(O_l | G) P(G|Z)}{P(O_l | Z)} P(Z|\BFO)
 \end{align}
-as $G_i | Z_i$ is independent of all observations except $O_i$.
+as $G_l | Z_l$ is independent of all observations except $O_l$.
 
 
 
 
-\subsection{Estimating Contamination and Error}
+\subsection*{Estimating Contamination and Error}
 The update for contamination and error per read group are analogous:
 \begin{align}
-Q(c, e|c', e' )&= E[\log P(O, Z, G|c, e )  P(G|Z, \theta') P(Z | \theta')]\nonumber\\
-&=\sum_{Z \in \mathcal{Z}}\sum_{G \in \mathcal{G}} \log P( O | G, c, e) P(G|Z, \theta') P(Z | O, \theta')\nonumber\\
-&=\sum_{r=1}^R\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rsl} | G_{sl}=g, c_r, e_r)  P(G_{sl}|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
+Q(c, e|c', e' )&= E[\log P(\BFO, \BFZ, \BFG|c, e )  P(\BFG|\BFZ, \theta') P(\BFZ | \theta')]\nonumber\\
+&=\sum_{\BFZ \in \mathcal{Z}}\sum_{\BFG \in \mathcal{G}} \log P( \BFO | \BFG, c, e) P(\BFG|\BFZ, \theta') P(\BFZ | \BFO, \theta')\nonumber\\
+&=\sum_{r=1}^R\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rsl} | G_{sl}=g, c_r, e_r)  P(G_{sl}|Z_l=k, \theta', O) P(Z_l=k | \BFO, \theta')
 \end{align}
 
 We thus optimize for each read group
 \begin{align}
-(\hat{c}_r, \hat{e}_r) = \operatorname*{argmax}_{e_r, c_r}\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rsl} | G_{sl}=g, c_r)  P(G_{sl}=g|Z_l=k, \theta', O) P(Z_l=k | O, \theta')
+(\hat{c}_r, \hat{e}_r) = \operatorname*{argmax}_{e_r, c_r}\sum_k\sum_{g=0}^2 \sum_{s=1}^{S_l}\sum_{l=1}^L \log P(O_{rsl} | G_{sl}=g, c_r)  P(G_{sl}=g|Z_l=k, \theta', \BFO) P(Z_l=k | \BFO, \theta')
 \end{align}
-using (\ref{eq:em:G}) and (\ref{eq:ll:geno}).
+using (\ref{eq:ll:geno}) and (\ref{eq:em:G}).
 
-\section{Linkage disequilibrium}
-The previous derivation assumed that all SNP in a bin are independent conditional on the latent state $Z$. However, these SNP may be in linkage disequilibrium (LD), and thus the emission probabilities might be misspecified. A common solution is LD-pruning, i.e. taking one SNP each from each bin. Denote the $i$-th replicate as $\mathcal{L}^{(i)} = \log P(O^{(i)}, Z^{(i)}, G^{(i)} | \theta)$. Formally, we can repeat this procedure $n$ times, and obtain the 
-
-$$
-\log P(O, Z, G | \theta)
-$$
-\section{Post-processing}
-
-
-
-\section{additional notes to be removed}
-
-\subsubsection{Transitions(HWE)}
-$$\hat{T}_{ij} = \frac{\sum_l P(X_l=i, X_{l+1}=j| \theta', O)}{ P(O | \theta')}$$
-However, the two haplotypes might change ancestry independently from each other. If the transitions from haploid states $H_{ab}$ is known, then 
-$$T_i(j) = T_{i_1, i_2}(j_1, j_2) = \frac{H_{i_1}(j_1)H_{i_2}(j_2) + H_{i_1}(j_2)H_{i_2}(j_1)}{2}$$
-i.e. there are always two possible transitions. We can introduce another inbreeding parameter $f$, so that when $i_1=i_2, j_1=j_2$ 
-$T_i(j) = f H_i(j) + (1-f) H_i(j)^2$. Conversely, if there is only a single introgressed lineage, we would only ever expect haploid introgressed segments:
-
-
-
-Compared to standard BW
-$$\xi_{ij}(t) \propto P(O_{[1\dots l]}, Z_l | \theta') T_{ij}  P(O_{[l+2\dots L]}|Z_{l+1}, \theta') P(O_{l+1}|Z_{l+1}=k)$$
-
-\begin{align}
-P(H_l = N, H_{l+1} = A, O |\theta) &=  P(O_{[1\dots l]}, H_l | \theta') P(H_{l+1} | H_l) P(O_{[l+2\dots L]}|H_{l+1}, \theta') P(O_{l+1}|H_{l+1})\\
-&=P(AN \to NN) + P(AA \to AN) + P(AA \to NN)
-\end{align}
-
-
-
-
-\section{Prior}
-There are a few options for priors. For computational reasons, a beta prior is most suitable.
-One possibility is to use a $Beta[0,0]$ or $Beta[1,1]$, which can be done by adding psuedocounts to the observed data.
-More interesting is the assumption that the observed alleles were drawn from a neutral population with allele frequencies proportional to 
-\begin{equation}
-P(f) \propto \frac{\theta}{x}
-\end{equation}
-If we encounter a sample with $a$ ancestral and $d$ derived alleles, we have by Bayes' theorem
-\begin{align}
-P(f | a, d) &\propto P(f) P(a, d|f) \nonumber\\
- &\propto \frac{\theta}{f} \binom{a+d}{d} f^d (1-f)^a \nonumber\\
- &\propto f^{d-1} (1-f)^a \nonumber\\
-&\sim Beta(d, a+1)
-\end{align}
-I.e. knowing the ancestral allele is equivalent to adding an additional ancestral allele to the observation. If the ancestral allele is unknown, ``mirroring this distribution``
-
-For the folded SFS,
-\begin{align}
-P(f | a, d) &\propto P(f) P(a, d|f) \nonumber\\
-&\propto \left[ \frac{1}{f} + \frac{1}{1-f}\right] f^d (1-f)^a\nonumber\\
-&\propto \frac{1}{f(1-f)} f^d (1-f)^a\nonumber\\
-&\propto f^{d-1} (1-f)^{a-1} \nonumber\\
-&\sim Beta(d, a)
-\end{align}
-
-In a finite population, alleles enter a population at a frequency of $\frac{1}{2N}$, and will become fixed if at frequency $1-\frac{1}{2N}$. Writing
-$$\eta(N) = \frac{1}{2N \sum_{i=1}^{2N-1}1/i}$$
-We find that the shape of the SFS is well approximated by 
-\begin{align}
-P(f | a, d, N) &\sim Beta(d + \eta, a+1 - \eta)\\
-&\sim Beta(d + \eta, a + \eta)
-\end{align}
-for the unfolded and folded case, respectively. As the frequency cannot exceed the limits, we need to truncate this distribution:
-\begin{align}
-E(f | a, d, N) &= \frac{B[\frac{1}{2N}, a+1, d]-B[1-\frac{1}{2N}, a+1, d]}{B[\frac{1}{2N}, a, d]-B[1-\frac{1}{2N}, a, d]}\nonumber\\
-&= \frac{a}{a+d} \frac{\int_\epsilon^{1-\epsilon} t^a(1-t)^{d-1}dt}
-{\int_\epsilon^{1-\epsilon} t^{a-1}(1-t)^{d-1}dt}\nonumber\\
-&= V \frac{a}{a+d}\\
-E(1-f | a, d, N)&= 1-V\frac{a}{a+d} = \left[1 + \frac{a}{d} (1-V)\right] \frac{d}{a+d}\\
-\end{align}
-The term in the squared parentheses is also denoted as $V'$. $V$ in general will depend on 
-		
-\subsection{Track lengths}
-To a first approximation, the length of introgressed fragment is 
-$L \sim Exp[r t ]$, where $r$ is a recombination rate and $t$ is the time since the fragment introgressed. However, tracks may overlap or be adjacent in a diploid genome. A simple model to correct for this is to assume that after a track finishes, with some probability $p$ a new introgressed track with the same distribution starts. Let us call this probability $m$. Then
-
-\begin{equation}
-L \sim Exp[(1-m)rt]
-\end{equation}
-writing $K = \frac{1-is}{rt}$, the characteristic function of $L$ is
-\begin{align}
-C(s) &= E[\exp(si [(1-m)L + (1-m)m (L+L')+ \dots  ] )]\nonumber\\
-&=(1-m) K^{-1} + (1-m)m K^{-2} +(1-m)m^2 K^{-3} + \dots\nonumber\\
-&=\frac{(1-m)}{K} \sum_{i=0}^\infty \left(\frac{m}{K}\right)^{i} \nonumber\\
-&= \frac{(1-m)}{K} \frac{1}{1 - m/K}\nonumber\\
-&= \frac{1-m}{K-m}\nonumber\\
-&= \frac{rt(1-m)}{rt (1-m) - is}\nonumber
-\end{align}
-which is the characteristic function of an exponential distribution with parameter $rt(1-m)$.
-
-\subsection{SMC'}
-Under the SMC'-model, the rate is 
-\begin{align}
-r &= 2 N (1-m) \left(1 - exp\left({-\frac{t}{2N}}\right)\right).\\
-& \approx t (1-m) \left( 1- \frac{\tau}{2}\right) + O\left(N^{-3}\right)
-\end{align}
-where $\tau = t/2N$ is the admixture time in coalescence units. This follows from Liang \& Nielsen and a Taylor expansion in $N$.
-
-
-\subsection{Ralph coop theory}
-Let $N(x)$ denote the number of IBD blocks of genetic length at least $x$ shared by two individual chromosomes, and $N_n(x)$ the number of blocks inherited through a path of $n$ meioses. $N(x) = \sum_n N_n(x)$ and
-$$\BE{N(x)} = \sum_n \BE{N_n(x)}$$. $K_n(x)$ denotes the number of pieces of length at least $x$ after $n$ meioses. $\mu(n)$ denotes the probability that the tract introgressed $n$ meioses ago. 
-
-$$\BE{N(x)} = \sum_n \BE{\mu(n) K_n (x)}$$.
-
-Wen we consider introgression from a Neandertal, the same logic applies, except we stop when we enter a Neandertal population. I.e. $n$ measures the number of meioses after the introgression event.
-
-$$K_t(x) = (t(G - x) +22) exp(-x t)$$
-
-
-\subsection{Time of most recent gene flow}
-We estimate the time of the most recent gene flow from the length of the longest fragment:
-After $T$ generations, a fragment has an exponential distribution with rate $r=T(1-M)(1-\tau/2) 1/\text{Morgan} = T(1-m) (1-\tau/2)\frac{1}{100 cM}$.
-
-We approximate the joint distribution of introgressed tracts as independent exponentials. (In truth, they are likely positively correlated, hence this will be an overestimate). We have an expected number of $n=2mg\bar{r}$ fragments, where $m$ is the proportion of introgressed material, and $g$ is the length of the genome, and $\bar{r}$ is the average rate of an introgressed fragment. Assuming $n$ is large, and the longest fragment is $L_0$. will have likelihood:  
-
-\begin{align}
-P(L_0=l | r, m, g, n) 
-&= P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) P(L_0 = l | r_0)\nonumber\\
- &\approx \prod_{i=1}^n P(L_i < l| r_i) P(L_0 = l | r_0)\nonumber\\
-&\approx (1- \exp( -r l ))^{2m g r} r \exp ( -r l)
-\end{align}
-This estimate is true if admixed fragments were i.i.d. exponentials. Thus, this estimator will likely overestimate the most recent time of gene flow as
-\begin{enumerate}
-	\item if admixture is ongoing, $r_i \geq r$.
-	\item if admixture fragments lengths are positively correlated, $P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) < \prod_{i=1}^n P(L_i < l| r_i)$
-	\item the longest introgressed tract may not be the oldest one.
-\end{enumerate}
-
-\subsection{EB time of gene flow per fragment}
-The goal is to estimate, for each fragment, when it was introgressed.
-$$P(T_i | L_i) \propto P(L_i | T_i) P(T_i) $$
-
-$P(L_i)$ is estimated from the genome-wide distribution of tract lengths, and we assume it is gamma distributed. Therefore,
-\begin{equation}
-$P(T_i | L) \sim \Gamma(a+1, b+L_i)
-\end{equation}
-
-We estimate the time of the most recent gene flow from the length of the longest fragment:
-After $T$ generations, a fragment has an exponential distribution with rate $r=T(1-M)(1-\tau/2) 1/\text{Morgan} = T(1-m) (1-\tau/2)\frac{1}{100 cM}$.
-
-We approximate the joint distribution of introgressed tracts as independent exponentials. (In truth, they are likely positively correlated, hence this will be an overestimate). We have an expected number of $n=2mg\bar{r}$ fragments, where $m$ is the proportion of introgressed material, and $g$ is the length of the genome, and $\bar{r}$ is the average rate of an introgressed fragment. Assuming $n$ is large, and the longest fragment is $L_0$. will have likelihood:  
-
-\begin{align}
-P(L_0=l | r, m, g, n) 
-&= P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) P(L_0 = l | r_0)\nonumber\\
-&\approx \prod_{i=1}^n P(L_i < l| r_i) P(L_0 = l | r_0)\nonumber\\
-&\approx (1- \exp( -r l ))^{2m g r} r \exp ( -r l)
-\end{align}
-This estimate is true if admixed fragments were i.i.d. exponentials. Thus, this estimator will likely overestimate the most recent time of gene flow as
-\begin{enumerate}
-	\item if admixture is ongoing, $r_i \geq r$.
-	\item if admixture fragments lengths are positively correlated, $P(L_1 \leq l, \dots L_n \leq l | r_1, \dots r_n) < \prod_{i=1}^n P(L_i < l| r_i)$
-	\item the longest introgressed tract may not be the oldest one.
-\end{enumerate}
-
-
-\subsection{$P(G_1, G_2, G_S|Z_l)$}
-The SNP in a single bin are potentially linked (although we assume they have the same ancestry).
-The basic model assumes that 
-$P(G_1, G_2, G_S|Z_l) = \prod_S P(G_s|Z_l)$, which may be unrealistic. Let us assume that $Z$ is homozygous, and that it's prior is $Beta(a_i,d_i)$. The joint distribution of two SNP $i$ and $j$ is then
-\begin{align}
-P(G_0=2) &= F \BE{f_A} + (1-F) \BE{f_A^2}\\
-P(G_1=2,  G_0 = 2) &= F \BE{f_{AB}} + (1-F)(1-r) \BE{f_{AB}^2} + (1-F)r\BE{f_{A}^2f_{B}^2}\\
-P(G_1=2 | G_0 = 2) &= \frac{F\BE{f_A} + (1-F) \BE{f_A^2}}{F \BE{f_{AB}} + (1-F)(1-r) \BE{f_{AB}^2} + (1-F)r\BE{f_{A}^2f_{B}^2}}
-\end{align}
-If we consider two loci, we assume they are completely linked, so that the haplotype frequencies are $f_{01} = f_0 f_1 + D_{01}$
-\begin{align}
-\BE{f_{AB}} &= \BE{f_A f_B} + \BE{D_{AB}}\\
-\BE{f_{Ab}} &= \BE{f_A-f_Af_B} + \BE{D_{01}}\\
-\BE{f_{aB}} &= \BE{f_B-f_Af_B} + \BE{D_{01}}\\
-\BE{f_{ab}} &= \BE{1 + f_Af_B - f_A - f_B} + \BE{D_{01}}
-\end{align}
-
-$$Cov(f_a^2, f_b^2) = \BE{f_{A}^2f_{B}^2} -  \BE{f_A^2}\BE{f_B^2}$$
-
-Further assuming
-$\BE{ ( (f_a-\BE{f_a})^2, (f_b-\BE{f_b}) | f_a, f_b) = 0}$,
-$\BE{f_a^2f_b^2 | f_a, f_b} - f_a^2f_b^2=0$
-
-$\BE{f_a^2 | f_b^2}$
+\bibliography{main}
+\bibliographystyle{plainnat}
 
 
 \end{document}

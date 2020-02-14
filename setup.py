@@ -14,14 +14,22 @@ if USE_CYTHON:
     extensions = cythonize(extensions)
 
     setup(
-        setup_requires =["pbr>=1.9", 'setuptools>=17.1'],
+        setup_requires =["pbr>=1.9", 'setuptools>=17.1', 
+                         'pytest-runner'
+                         ],
+        tests_require = ['pytest',
+                         'pytest-console-scripts',
+                         'pytest-cov'],
         ext_modules = extensions,
           pbr=True)
 else:
 
     setup(
-        setup_requires=["pbr>=1.9", 'setuptools>=17.1'],
-        python_requires=">=3.5",
+        setup_requires=["pbr>=1.9", 'setuptools>=17.1', 'pytest-runner'],
+        python_requires=">=3.6",
+        tests_require = ['pytest',
+                         'pytest-console-scripts',
+                         'pytest-cov'],
         ext_modules = extensions,#cythonize(["admixfrog/*.pyx"], annotate=True),
           pbr=True)
 

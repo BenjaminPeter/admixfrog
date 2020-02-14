@@ -25,24 +25,52 @@ Install `admixfrog` (from source directory):
 pip install .
 ```
 
+## Data
+Admixfrog requires (binary-only) eigenstrat data, vcf and bam-files. Supplementary files are typically in yaml-format. The bam-file is used for the _target_, individual, if genotypes are unknown. If genotypes are known, they can be specified in either the eigenstrat or vcf format. In addition, a set of references are required. These too are specified in the reference.
+
+## Quickstart
+To get things started, consider an analysis where we would like to learn to local Human, Neandertal and Denisovan ancestry of the Oase1 specimen:
+
+```admixfrog --gfile data/oase --target Oase1_d --states NEA=Vindija.DG+Altai.DG YRI=Yoruba.DG  Denisova.DG  --cont YRI --out quickstart```
+this will do the following:
+
+1. `--gfile data/oase`: read the file data/oase.geno|snp|ind (eigenstrat-format)
+2. `--target Oase1_d`: declare that we would use the sample named `Oase1_d` as the target
+3. with `--states NEA=Vindija.DG+Altai.DG YRI=Yoruba.DG  Denisova.DG` we declare the three sources: a) combine the Vindija and Altai populations from the file (third column in the `.ind`) file into a population named NEA, b) use the population Yoruba.DG, but rename it to YRI and c) Denisova.DG is the third possible source
+4. `--cont YRI` designates YRI as a proxy for the contaminant. If there is no contamination, estimating it can be disabled using the `--c0 0 --dont-est-contamination` flags.
+5. `--out quickstart`: a prefix for all output files
+
 ## Running the program
-the program requires two input files (in csv-format). One is specific to each individual
-(infile). And one is a reference file (that contains allele frequencies for a
-set of potential source populations).
+For most analyses, it is often useful to generate the reference-file and target-file before running the main analysis. This is because parsing these files is quite time-consuming, and is not needed for replicate analyses. However, this is not required, and the program will perform all steps automatically if required
 
-A typical command is
-```
-admixfrog --infile {x}.in.xz --ref {y}.ref.xz --out {z} -b 10000 \
-    --ancestral PAN --states AFR NEA DEN --contamination AFR
-```
-there are three required parameters:
 
- - `--infile` gives the input file (see below)
- - `--ref` is the reference file (see below) 
- - `--out` is the prefix for all output files
+Thus, we might run these three commands:
+```
+mkdir res/
+admixfrog-ref --out res/ref_example.xz --vcf-ref data/oase.vcf.gz \
+    --state-file data/pops.yaml \
+    --rec-file data/maps_chr.9 \
+    --states AFR NEA=Altai_snpAD.DG \
+    --map-id AA_Map deCODE COMBINED_LD \
+    --default-map AA_Map \
+    --chroms 9                        
+```
+To create the target file, we might run
+```
+admixfrog-bam --bam data/oase_chr9.bam --ref ref_example.xz  --out oase_example.in.xz 
+```
+and finally, the analysis can be run using
+```
+admixfrog --infile oase_example.in.xz --ref ref_example.xz --out example1 -b 10000 \
+    --states AFR NEA --contamination AFR
+```
+
+Thee most useful command is `admixfrog --help` that will give an up-to-date summary of all the parameters.
+
+
 
 there are a few optional parameters, the most important are
- - `-b` the bin size (in 10^6cM), roughly bp
+ - `-b` the bin size (in 10^6cM), when using a recombination map, or in bp when running without (using `-P`)
  - `--ancestral`: a taxon in that specifies the ancestral allele (must be in the
    reference file)
  - `--states`: the potential admixture sources. (Must be in the reference)
@@ -94,7 +122,7 @@ The options are:
     - `--rec-file` A file specifying the recombination map. I use the file  from here: [https://www.well.ox.ac.uk/~anjali/AAmap/](https://www.well.ox.ac.uk/~anjali/AAmap/)
 
 #### File Format Specification
-The refernce file has the following columns:
+The reference file has the following columns:
 - `chrom` is the chromosome (or contig) id
 - `pos` is the physical position of this chromosome
 - `ref`, `alt` are the two alleles present at this locus
@@ -161,7 +189,7 @@ in bins of size 35bp for contamination estimation.
 
 
 ##### File Format
-the infile has 5 columns, called `chrom`, `pos`, `tref` and `talt`.  `lib` is optional.
+the infile has 5 mandatory columns, called `chrom`, `pos`, `tref` and `talt`.  `lib` is optional.
 
 The columns are
 
@@ -204,9 +232,145 @@ There are currently six output files. All of them are compressed with LZMA.
  - `*.bin.xz` : posterior decoding for each bin along the genome
  - `*.snp.xz` : posterior genotype likelihoods for each SNP, taking contamination into
    acccount
- - `*.pars.xz` : parameter estimates
+ - `*.pars.yaml` : parameter estimates
  - `*.rle.xz` : called runs of ancesstry
  - `*.res.xz` : simulated runs of ancestry
+
+### Contamination estimates (admixfrog.cont.xz)
+The contamination and error estimates are in an  xz-compressed csv format and
+will look like this:
+```
+lib,cont,error,rg,len_bin,deam,n_snps           
+SR_nodeam,0.356971,0.010000,SR_nodeam,0,NA,467  
+SR_deam,0.000554,0.010000,SR_deam,0,NA,76       
+```
+
+Eac row represents a subset of reads for which error and contamination rates estimated
+independently. The columns are
+
+- `lib` : a unique string used to group reads. This can be any value, but the
+  program tries to split the string according to the format `{rg}_{len_bin}_{deam}`.
+If present in this way, the corresponding columns will be filled
+- `rg` : Read group
+- `len_bin` : Length-bin
+- `deam` : whether reads have a terminal deamination
+- `cont` : contamination estimate
+- `error` : sequencing error estimate
+- `n_snps `: how many reads are in this class
+
+
+### Posterior decoding (admixfrog.bin.xz)
+The posterior decoding is in xz-compressed csv format and will look like this
+```
+chrom,map,pos,id,haploid,viterbi,n_snps,AFK,ARC,AFKARC         
+9,200000.000000,281845,0,False,AFK,1,0.541009,0.208888,0.250103
+9,300000.000000,300000,1,False,AFK,0,0.540493,0.205282,0.254225
+9,400000.000000,400000,2,False,AFK,0,0.539910,0.200351,0.259739
+```
+Each row represents a bin used in the HMM-algorithm, and the columns are
+
+ - `chrom`: chromosome of bin
+ - `map` : map (genetic) coordinate of lower bin boundary
+ - `pos` : physical coordinate of lower bin boundary
+ - `id` : id of bin (unique number, starting from 0, ordered along chromosome)
+ - `haploid` : flag set to True if bin is haploid
+ - `viterbi` : Viterbi (Maximum-likelihood) decoding of bin state
+ - `n_snps` : number of observed SNP present in bin
+
+the remaining columns (`AFK`, `ARC`, `AFKARC` in the example) give the posterior probability
+for the bin being in a given state. The number of columns will vary according to the references
+used, and their values sum up to 1. In the example, there are two homozygous  states (`AFK`, `ARC`)
+and a heterozygous state `AFKARC`, designated by a concatenation of the two
+strings.
+
+### Posterior genotype likelihood (admixfrog.snp.xz)
+Results by SNP. xz-compressed csv format.
+
+```
+chrom,pos,map,tref,talt,G0,G1,G2,p,bin                         
+9,281845,281845,1,0,-0.409389,-2.114613,-2.795105,0.005443,0   
+9,635998,635998,0,1,-1.744065,-0.723350,-0.713062,0.288156,4   
+9,660473,660473,1,0,-0.401219,-2.487784,-3.318218,0.002107,4   
+9,1004958,1004958,0,1,-3.356600,-0.726711,-0.530971,0.388274,8 
+9,1463080,1463080,1,0,-0.361344,-2.485787,-4.174832,0.001701,12
+```
+
+Each row is a SNP
+
+ - `chrom`: chromosome SNP is on
+ - `pos`: physical position of SNP
+ - `map`: genetic position of SNP
+ - `tref`: number of reference reads at SNP
+ - `talt`: number of alt reads at SNP
+ - `G0,G1,G2`: log10-likelihood of SNP state 0, 1, 2
+ - `p`: estimated allele frequency of derived allele
+ - `bin`: bin-id this SNP is in
+
+### Posterior samples (admixfrog.res.xz)
+Samples of the posterior given the learned parameters and data are given in xz-compressed csv format and will look like this
+```
+len,start,end,state,it,chrom        
+1,0,1,AFK,0,9                       
+1,0,1,AFK,0,9                       
+16,6,22,AFK,0,9                     
+8,26,34,AFK,0,9                     
+7,36,43,AFK,0,9                     
+5,1,6,ARC,0,9   
+25,1,26,ARC,0,9 
+2,34,36,ARC,0,9 
+1,43,44,ARC,0,9 
+
+```
+Each row represents a segment in the same state, and the columns are:
+- `len` : Length (in bins) of segment
+- `start` :  Start(id) of segment
+- `end` :  End(id) of segment
+- `state` :  State of segment
+- `it` :  iteration / sample number of posterior sample
+- `chrom` :  chromosome sampled
+
+For example, the above snipped designates the 0th iteration of chromosome 9, 
+the first bin is homozyogus for the `AFK` state, then two segments, one 5 bins
+long, one 25 bins long, start in the `ARC` state.
+
+### Estimated introgressed fragments (admixfrog.rle.xz)
+
+Called introgressed tracts. Calls are done in two formats: 
+1. `state` refers to calls where tracts are continued regardless whether they
+   are homozygous or heterozygous
+2. `het` and `homo` designate runs that are strictly heterozygous or homozygous
+
+```
+chrom,start,end,score,target,type,map,pos,id,map_end,pos_end,id_end,len,map_len,pos_len,nscore
+9,154,156,0.145364,AFKARC,het,15600000.000000,15600000,154,15800000.000000,15800000,156,2,200000.000000,200000,0.072682
+9,1216,1404,28.729700,AFK,state,121800000.000000,121800000,1216,140600000.000000,140600000,1404,188,18800000.000000,18800000,0.152818
+9,1187,1193,0.223771,AFK,state,118900000.000000,118900000,1187,119500000.000000,119500000,1193,6,600000.000000,600000,0.037295
+9,250,919,78.011711,AFK,state,25200000.000000,25200000,250,92100000.000000,92100000,919,669,66900000.000000,66900000,0.116609
+```
+Each row represents a segment in the same state, and the columns are:
+- `chrom` : Chromosome the segment is on
+- `score`, `nscore` :  Numerical score giving certainty of fragment,
+  unnormalized or normalized by bin size
+- `target` :  iteration / sample number of posterior sample
+- `map_start` `map_end`, `map_len` :  start, end and length in genetic  map
+- `pos_start` `pos_end`, `pos_len` :  start, end and length in physical map
+- `start`, `end`, `len` : start, end and length in Bin id
+- `type` :  type of segment call (zygosity vs simple state)
+- `target` :  target state for the segment
+
+
+### Other parameters (admixfrog.pars.yaml)
+In yaml format
+
+- `gamma_names`: names of states. All other parameters are given in this order
+- `F`, `tau`: estimates of drift parameters per homozygous state
+- `alpha0, alpha0_hap`: stationary probabilities for diploid and haploid states,
+  respectively
+- `trans`, `trans_hap`: diploid and haploid tranition probability
+- `error` : error estimates
+- `cont`: contamination estimates
+- `sex` : assumed sex of individual
+
 
 
 ## Documentation
@@ -216,293 +380,207 @@ Changes are that `admixfrog --help` will give more up-to-date info
 For the detailed description of the algorithm, see [docs/admixfrog.pdf](docs/admixfrog.pdf)
 
 
+
+
 ## Contact
 Benjamin Peter [benjamin_peter@eva.mpg.de](benjamin_peter@eva.mpg.de)
 
-```python
-    def run():
-        logger = setup_log()
-
-        parser = argparse.ArgumentParser(
-            description="Infer admixture frogments from low-coverage and contaminated genomes"
-            #        formatter_class=argparse.RawTextHelpFormatter
-        )
-
-        parser.add_argument(
-            "-v", "--version", action="version", version="%(prog)s " + admixfrog.__version__
-        )
-
-        parser.add_argument(
-            "--infile", "--in",
-            help="""Sample input file (csv). Contains individual specific data, obtained from
-                            a bam file.
-
-                        - Fields are chrom, pos, map, lib, tref, talt"
-                            - chrom: chromosome
-                            - pos : physical position (int)
-                            - map : rec position (float)
-                            - lib : read group. Any string, same string assumes same contamination 
-                            - tref : number of reference reads observed
-                            - talt: number of alt reads observed""",
-        )
-        parser.add_argument(
-            "--gt-mode", "--gt",
-            help="""Assume genotypes are known.
-            """,
-            action="store_true",
-            default=False
-        )
-        parser.add_argument(
-            "--ref-file",
-            "--ref",
-            help="""refernce input file (csv). 
-                        - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
-                            - chrom: chromosome
-                            - pos : physical position (int)
-                            - ref : refrence allele
-                            - alt : alternative allele
-                            - map : rec position (float)
-                            - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
-                            these are used later in --cont-id and --state-id flags
-                            """,
-        )
-        parser.add_argument(
-            "--out", "-o", required=True, help="""Output file path (without extensions)"""
-        )
-        parser.add_argument(
-            "--state-ids",
-            "--states",
-            nargs="*",
-            default=["AFR", "VIN", "DEN"],
-            help="""the allowed sources. The target will be made of a mix of all homozygous
-            and heterozygous combinations of states. More than 4 or 5 sources have not been
-            tested and are not recommended. Must be present in the ref file, with a few
-            additional ones:
-            - REF : always reference allele
-            - NRE : always non-ref allele
-            - UNIF : allele frequencies are drawn from a uniform / Beta(1, 1) distribution
-            - HALF : allele frequencies are drawn from a  Beta(0.5, 0.5) distribution
-            - ZERO : allele frequencies are drawn from a  Beta(0, 0) distribution
-            """,
-        )
-        parser.add_argument(
-            "-b",
-            "--bin-size",
-            type=float,
-            default=10000,
-            help="""Size of bins. By default, this is given in 1e-8 cM, so that the unit is
-            approximately the same for runs on physical / map positions""",
-        )
-        parser.add_argument(
-            "-P",
-            "--pos-mode",
-            default=False,
-            help="""Instad of recombination distances, use physical distances for binning""",
-        )
-        parser.add_argument(
-            "--max-iter",
-            "-m",
-            type=int,
-            default=1000,
-            help="""maximum number of iterations""",
-        )
-        parser.add_argument(
-            "--ll-tol", type=float, default=1e-2, help="""stop EM when DeltaLL < ll-tol"""
-        )
-        parser.add_argument(
-            "--prior",
-            "-p",
-            type=float,
-            default=None,
-            help="""Prior of reference allele frequencies. If None (default, recommended), this is 
-            estimated from the data
-            
-            This number is added to both the
-            ref and alt allele count for each reference, to reflect the uncertainty in allele
-            frequencies from a sample. If references are stationary with size 2N, this is
-            approximately  [\sum_i^{2N}(1/i) 2N]^{-1}.
-              """,
-        )
-        parser.add_argument(
-            "--dont-est-contamination",
-            action="store_false",
-            dest="est_contamination",
-            default=True,
-            help="""Don't estimate contamination (default do)""",
-        )
-        parser.add_argument(
-            "--freq-contamination",
-            "--fc",
-            type=int,
-            default=1,
-            help="""update frequency for contamination (default 1)""",
-        )
-        parser.add_argument(
-            "--est-F",
-            "-f",
-            action="store_true",
-            default=False,
-            help="""Estimate F (distance from ref, default False)""",
-        )
-        parser.add_argument(
-            "--est-tau",
-            "-tau",
-            action="store_true",
-            default=False,
-            help="""Estimate tau (population structure in references)""",
-        )
-        parser.add_argument(
-            "--freq-F",
-            "--f",
-            type=int,
-            default=1,
-            help="""update frequency for F (default 1)""",
-        )
-        parser.add_argument(
-            "--cont-id",
-            "--cont",
-            default="AFR",
-            help="""the source of contamination. Must be specified in ref file""",
-        )
-        parser.add_argument(
-            "--dont-split-lib",
-            action="store_false",
-            dest="split_lib",
-            default=True,
-            help="""estimate one global contamination parameter (default: one per read
-            group)""",
-        )
-
-        parser.add_argument(
-            "--male",
-            dest="sex",
-            action="store_const",
-            const="m",
-            default=None,
-            help="Assumes haploid X chromosome. Default is guess from coverage. currently broken",
-        )
-        parser.add_argument(
-            "--female",
-            dest="sex",
-            action="store_const",
-            const="f",
-            default=None,
-            help="Assumes diploid X chromosome. Default is guess from coverage",
-        )
-        parser.add_argument(
-            "--autosomes-only",
-            action="store_true",
-            default=False,
-            help="Only run autosomes",
-        )
-        parser.add_argument(
-            "--downsample",
-            type=float,
-            default=1.0,
-            help="downsample coverage to a proportion of reads"
-        )
-        parser.add_argument(
-            "--F0",
-            nargs="*",
-            type=float,
-            default=0.5,
-            help="initial F (should be in [0;1]) (default 0)",
-        )
-        parser.add_argument(
-            "--tau0",
-            nargs="*",
-            type=float,
-            default=0,
-            #help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
-            help="initial log-tau (default 0), at most 1 per source",
-        )
-        parser.add_argument(
-            "--ld-weighting", "--ld", 
-            default=False,
-            action="store_true",
-            help="""downweight SNP in the same bins to counter ancient LD. Very experimental, optimization appears to be broken"""
-        )
-        parser.add_argument(
-            "--e0", "-e", type=float, default=1e-2, help="initial error rate"
-        )
-        parser.add_argument(
-            "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
-        )
-        parser.add_argument(
-            "--ancestral",
-            "-a",
-            type=str,
-            default=None,
-            help="""Outgroup population with the ancestral allele. By default, assume
-            ancestral allele is unknown
-            """,
-        )
-        parser.add_argument(
-            "--n-post-replicates",
-            type=int,
-            default=100,
-            help="""Number of replicates that are sampled from posterior. Useful for
-            parameter estimation and bootstrapping
-            """,
-        )
-        parser.add_argument(
-            "--est-inbreeding",
-            "-I",
-            default=False,
-            action="store_true",
-            help="""allow  haploid (i.e. inbreed) stretches. Experimental""",
-        )
-
-        add_bam_parse_group(parser)
-        add_rle_parse_group(parser)
-
-        from . import __version__
-        log_.info("running admixfrog version %s", __version__)
-        args = parser.parse_args()
-        V = vars(args)
-        log_.info(pformat(V))
-        force_bam = V.pop("force_bam")
-
-        if V["infile"] is not None and V["bamfile"] is not None:
-            raise ValueError("cant specify csv and bam input")
-        # elif V["bamfile"] is not None and V["bedfile"] is None:
-        #    raise ValueError("require bed file to create input from bam")
-        # if V["bamfile"] is not None and V["bedfile"] is not None:
-        if V["bamfile"] is not None:
-            V["infile"] = V["out"] + ".in.xz"
-            if isfile(V["infile"]) and not force_bam:
-                raise ValueError(
-                    """infile exists. Use this or set --force-bam to 
-                                 regenerate"""
-                )
-            print("creating input from bam file")
-            process_bam(
-                outfile=V["infile"],
-                bamfile=V.pop("bamfile"),
-                ref=V["ref_file"],
-                # bedfile=V.pop('bedfile'),
-                deam_cutoff=V.pop("deam_cutoff"),
-                length_bin_size=V.pop("length_bin_size"),
-            )
-        else:
-            del V["bamfile"]
-            del V["deam_cutoff"]
-            del V["length_bin_size"]
-
-        out = V.pop("out")
-
-        from . import __version__
-
-        log_.info("admixfrog %s", __version__)
-        bins, snps, cont, pars, rle, res = run_admixfrog(**vars(args))
-        # bins.to_csv(f"{out}.bin.xz", float_format="%.6f", index=False, compression="xz")
-        # cont.to_csv(f"{out}.cont.xz", float_format="%.6f", index=False, compression="xz")
-        # pars.to_csv(f"{out}.pars.xz", float_format="%.6f", index=False, compression="xz")
-        # snps.to_csv(f"{out}.snp.xz", float_format="%.6f", index=False, compression="xz")
-        res.to_csv("%s.res.xz" % out, float_format="%.6f", index=False, compression="xz")
-        rle.to_csv("%s.rle.xz" % out, float_format="%.6f", index=False, compression="xz")
-        bins.to_csv("%s.bin.xz" % out, float_format="%.6f", index=False, compression="xz")
-        cont.to_csv("%s.cont.xz" % out, float_format="%.6f", index=False, compression="xz")
-        pars.to_csv("%s.pars.xz" % out, float_format="%.6f", index=False, compression="xz")
-        snps.to_csv("%s.snp.xz" % out, float_format="%.6f", index=False, compression="xz")
 ```
+usage: admixfrog [-h] [-v] [--target-file TARGET_FILE] [--ref REF_FILES]
+                 [--filter-delta FILTER_DELTA] [--filter-pos FILTER_POS]
+                 [--filter-map FILTER_MAP] [--male] [--female]
+                 [--bamfile BAMFILE] [--force-target-file]
+                 [--deam-cutoff DEAM_CUTOFF] [--minmapq MINMAPQ]
+                 [--length-bin-size LENGTH_BIN_SIZE] [--vcfgt VCFGT]
+                 [--target TARGET] [--geno-file GENO_FILE] [--guess-ploidy]
+                 [--dont-est-contamination] [--est-error]
+                 [--freq-contamination FREQ_CONTAMINATION] [--est-F]
+                 [--est-tau] [--freq-F FREQ_F] [--est-inbreeding]
+                 [--F0 [F0 [F0 ...]]] [--tau0 [TAU0 [TAU0 ...]]] [--e0 E0]
+                 [--c0 C0] [--gt-mode] [-b BIN_SIZE] [--prior PRIOR] [-P]
+                 [--max-iter MAX_ITER] [--ll-tol LL_TOL] [--dont-split-lib]
+                 [--autosomes-only] [--downsample DOWNSAMPLE]
+                 [--init-guess [INIT_GUESS [INIT_GUESS ...]]]
+                 [--vcf-ref VCF_REF] [--rec-file REC_FILE]
+                 [--rec-rate REC_RATE] [--pos-id POS_ID] [--map-id MAP_ID]
+                 [--chroms CHROMS] [--force-ref] [--run-penalty RUN_PENALTY]
+                 [--n-post-replicates N_POST_REPLICATES] [--outname OUTNAME]
+                 [--no-rle] [--no-snp] [--no-bin] [--no-cont] [--no-rsim]
+                 [--no-pars] [--states [STATES [STATES ...]]]
+                 [--state-file STATE_FILE] [--cont-id CONT_ID]
+                 [--ancestral ANCESTRAL]
+
+Infer admixture frogments from low-coverage and contaminated genomes
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  --target-file TARGET_FILE, --infile TARGET_FILE, --in TARGET_FILE
+                        Sample input file (csv). Contains individual specific
+                        data, obtained from a bam file. - Fields are chrom,
+                        pos, map, lib, tref, talt" - chrom: chromosome - pos :
+                        physical position (int) - map : rec position (float) -
+                        lib : read group. Any string, same string assumes same
+                        contamination - tref : number of reference reads
+                        observed - talt: number of alt reads observed
+  --ref REF_FILES, --ref-file REF_FILES
+                        refernce input file (csv). - Fields are chrom, pos,
+                        ref, alt, map, X_alt, X_ref - chrom: chromosome - pos
+                        : physical position (int) - ref : refrence allele -
+                        alt : alternative allele - map : rec position (float)
+                        - X_alt, X_ref : alt/ref alleles from any number of
+                        sources / contaminant populations. these are used
+                        later in --cont-id and --state-id flags
+  --filter-delta FILTER_DELTA
+                        only use sites with allele frequency difference bigger
+                        than DELTA (default off)
+  --filter-pos FILTER_POS
+                        greedily prune sites to be at least POS positions
+                        apart
+  --filter-map FILTER_MAP
+                        greedily prune sites to be at least MAP recombination
+                        distance apart
+  --male                Assumes haploid X chromosome. Default is guess from
+                        coverage. currently broken
+  --female              Assumes diploid X chromosome. Default is guess from
+                        coverage
+  --vcfgt VCFGT, --vcf-gt VCFGT, --vcf-target_file VCFGT
+                        VCF input file. To generate input format for admixfrog
+                        in genotype mode, use this.
+  --target TARGET, --sample-id TARGET
+                        sample id if target is read from vcf or geno file. No
+                        effect for bam-file
+  --chroms CHROMS, --chromosome-files CHROMS
+                        The chromosomes to be used in vcf-mode.
+  --states [STATES [STATES ...]], --state-ids [STATES [STATES ...]]
+                        the allowed sources. The target will be made of a mix
+                        of all homozygous and heterozygous combinations of
+                        states. More than 4 or 5 sources have not been tested
+                        and are not recommended. Must be present in the ref
+                        file
+  --state-file STATE_FILE, --pop-file STATE_FILE
+                        Population assignments (yaml format)
+  --cont-id CONT_ID, --cont CONT_ID
+                        the source of contamination. Must be specified in ref
+                        file
+  --ancestral ANCESTRAL, -a ANCESTRAL
+                        Outgroup population with the ancestral allele. By
+                        default, assume ancestral allele is unknown
+
+bam parsing:
+  --bamfile BAMFILE, --bam BAMFILE
+                        Bam File to process. Choose this or target_file. The
+                        resulting input file will be writen in {out}.in.xz, so
+                        it doesn't need to be regenerated. If the input file
+                        exists, an error is generated unless --force-target-
+                        file is set
+  --force-target-file, --force-bam, --force-infile
+  --deam-cutoff DEAM_CUTOFF
+                        reads with deamination in positions < deam-cutoff are
+                        considered separately
+  --minmapq MINMAPQ     reads with mapq < MINMAPQ are removed
+  --length-bin-size LENGTH_BIN_SIZE
+                        if set, reads are binned by length for contamination
+                        estimation
+
+geno (Eigenstrat/Admixtools/Reich) format
+                                  parser options:
+  --geno-file GENO_FILE, --gfile GENO_FILE
+                        geno file name (without extension, expects
+                        .snp/.ind/.geno files). Only reads binary format for
+                        now
+  --guess-ploidy        guess ploidy of individuals (use if e.g. random read
+                        sample inds are present)
+
+options that control estimation of model
+                                  parameters:
+  --dont-est-contamination
+                        Don't estimate contamination (default do)
+  --est-error           estimate sequencing error per rg
+  --freq-contamination FREQ_CONTAMINATION, --fc FREQ_CONTAMINATION
+                        update frequency for contamination/error (default 1)
+  --est-F, -f           Estimate F (distance from ref, default False)
+  --est-tau, -tau       Estimate tau (population structure in references)
+  --freq-F FREQ_F, --f FREQ_F
+                        update frequency for F (default 1)
+  --est-inbreeding, -I  allow haploid (i.e. inbreed) stretches. Experimental
+  --F0 [F0 [F0 ...]]    initial F (should be in [0;1]) (default 0)
+  --tau0 [TAU0 [TAU0 ...]]
+                        initial log-tau (default 0), at most 1 per source
+  --e0 E0, -e E0        initial error rate
+  --c0 C0, -c C0        initial contamination rate
+
+options that control the algorithm behavior:
+  --gt-mode, --gt       Assume genotypes are known.
+  -b BIN_SIZE, --bin-size BIN_SIZE
+                        Size of bins. By default, this is given in 1e-8 cM, so
+                        that the unit is approximately the same for runs on
+                        physical / map positions
+  --prior PRIOR, -p PRIOR
+                        Prior of reference allele frequencies. If None
+                        (default, recommended), this is estimated from the
+                        data This number is added to both the ref and alt
+                        allele count for each reference, to reflect the
+                        uncertainty in allele frequencies from a sample. If
+                        references are stationary with size 2N, this is
+                        approximately [\sum_i^{2N}(1/i) 2N]^{-1}.
+  -P, --pos-mode        Instad of recombination distances, use physical
+                        distances for binning
+  --max-iter MAX_ITER, -m MAX_ITER
+                        maximum number of iterations
+  --ll-tol LL_TOL       stop EM when DeltaLL < ll-tol
+  --dont-split-lib      estimate one global contamination parameter (default:
+                        one per read group)
+  --autosomes-only      Only run autosomes
+  --downsample DOWNSAMPLE
+                        downsample coverage to a proportion of reads
+  --init-guess [INIT_GUESS [INIT_GUESS ...]]
+                        init transition so that one state is favored. should
+                        be a state in --state-ids
+
+creating reference file:
+  --vcf-ref VCF_REF, --vcf VCF_REF
+                        VCF File to process. Choose this or reffile. The
+                        resulting ref file will be writen as {out}.ref.xz, so
+                        it doesn't need to be regenerated. If the input file
+                        exists, an error is generated unless --force-ref is
+                        set
+  --rec-file REC_FILE, --rec REC_FILE
+                        Recombination rate file. Modelled after
+                        https://www.well.ox.ac.uk/~anjali/AAmap/ If file is
+                        split by chromosome, use {CHROM} as wildcards where
+                        the chromosome id will be included
+  --rec-rate REC_RATE   Constant recombination rate (per generation per base-
+                        pair)
+  --pos-id POS_ID       column name for position (default: Physical_Pos)
+  --map-id MAP_ID       column name for genetic map (default: AA_Map)
+  --force-ref, --force-vcf
+
+call introgressed fragments:
+  --run-penalty RUN_PENALTY
+                        penalty for runs. Lower value means runs are called
+                        more stringently (default 0.2)
+  --n-post-replicates N_POST_REPLICATES
+                        Number of replicates that are sampled from posterior.
+                        Useful for parameter estimation and bootstrapping
+
+output name and files to be generated:
+  By default, all files are generated. However, if any of the --no-* options
+  are used to disable specific files
+
+  --outname OUTNAME, --out OUTNAME, -o OUTNAME
+                        Output file path (without extensions)
+  --no-rle              Disabble Estimating runs and writeing to file with
+                        extension .rle.xz
+  --no-snp              Disable writing posterior genotype likelihood to file
+                        with extension .snp.xz
+  --no-bin              Disable writing posterior states to file with
+                        extension .bin.xz
+  --no-cont             Disable writing contamination estimates to file with
+                        extension .bin.xz
+  --no-rsim             Disable writing posterior simulations of runs to file
+                        with extension .res.xz
+  --no-pars             Disable writing parameters to file with extension
+                        .pars.yaml
+```
+
