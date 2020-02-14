@@ -31,6 +31,26 @@ rule admixfrog_sample_input:
         " --out {output.csv} " 
         " --length-bin-size {params.length_bin} "
 
+rule admixfrog_sample_input2:
+    input :
+        ref = "ref/ref_{snpset}.csv.xz",
+        bam = "bams/{snpset}/{sample}.bam",
+        bai = "bams/{snpset}/{sample}.bam.bai",
+#        bam = "bams2/{sample}.bam",
+#        bai = "bams2/{sample}.bam.bai"
+#        bam = "bams3/{sample}.bam",
+#        bai = "bams3/{sample}.bam.bai",
+    params:
+        cutoff = 3,
+        length_bin = 35
+    output:
+        csv = "samples2/{sample}_{snpset}.in.xz"
+    shell:
+        "admixfrog_bam --ref {input.ref} --bamfile {input.bam} --force-bam"
+        " --deam-cutoff {params.cutoff} "
+        " --out {output.csv} " 
+        " --length-bin-size {params.length_bin} "
+
 rule run_admixfrog:
     input:
         infile = "samples/{sample}_{snpset}.in.xz",
@@ -57,6 +77,7 @@ rule run_admixfrog:
         res_par = "admixfrog/basic/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/basic/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/basic/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/basic/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
@@ -74,6 +95,91 @@ rule run_admixfrog:
         s += " --n-post-replicates {params.n_post_rep}"
         s += " --filter-pos 50 --filter-map 0"
         s += " --female"
+        shell(s)
+
+rule run_admixfrog_nohyper:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 250,
+        n_post_rep = 200,
+    benchmark:
+        "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
+    version: ".3"
+    log : 
+        log="admixfrog/{bin_size}/{states}/{sample}_{snpset}.log"
+    output:
+        res_bin = "admixfrog/nohyper/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/nohyper/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/nohyper/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/nohyper/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/nohyper/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/nohyper/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/basic/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --c0 0 --dont-est-contamination "
+        s += " --e0 {params.error} "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --filter-pos 50 --filter-map 0"
+        shell(s)
+rule run_admixfrog_rec:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 250,
+        n_post_rep = 200,
+    output:
+        res_bin = "admixfrog/rec{rec}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/rec{rec}/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/rec{rec}/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/rec{rec}/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/rec{rec}/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/rec{rec}/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/rec{rec}/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --filter-pos 50 --filter-map 0"
+        s += " --female"
+        s += " --map-col {wildcards.rec}"
         shell(s)
 
 rule run_admixfrog_mh:
@@ -102,6 +208,7 @@ rule run_admixfrog_mh:
         res_par = "admixfrog/mh/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/mh/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/mh/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/mh/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
@@ -117,8 +224,190 @@ rule run_admixfrog_mh:
         s += " --run-penalty {params.run_penalty}"
         s += " --max-iter {params.max_iter}"
         s += " --n-post-replicates {params.n_post_rep}"
+#        s += " --filter-pos 50 --filter-map 0"
+        s += " --female"
+        s += " --init-guess AFR"
+        shell(s)
+rule run_admixfrog_error:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 250,
+        n_post_rep = 200,
+    benchmark:
+        "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
+    version: ".3"
+    log : 
+        log="admixfrog/{bin_size}/{states}/{sample}_{snpset}.log"
+    output:
+        res_bin = "admixfrog/error/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/error/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/error/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/error/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/error/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/error/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/error/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        s += " --est-error "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
         s += " --filter-pos 50 --filter-map 0"
         s += " --female"
+        s += " --init-guess AFR"
+        shell(s)
+rule run_admixfrog_errorpos:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 250,
+        n_post_rep = 200,
+    benchmark:
+        "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
+    version: ".3"
+    log : 
+        log="admixfrog/{bin_size}/{states}/{sample}_{snpset}.log"
+    output:
+        res_bin = "admixfrog/errorpos/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/errorpos/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/errorpos/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/errorpos/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/errorpos/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/errorpos/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/errorpos/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        s += " --pos-mode "
+        s += " --est-error "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --filter-pos 50 --filter-map 0"
+        s += " --female"
+        s += " --init-guess AFR"
+        shell(s)
+rule run_admixfrog_error2:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 250,
+        n_post_rep = 200,
+    benchmark:
+        "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
+    version: ".3"
+    log : 
+        log="admixfrog/{bin_size}/{states}/{sample}_{snpset}.log"
+    output:
+        res_bin = "admixfrog/error2/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/error2/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/error2/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/error2/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/error2/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/error2/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/error2/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        s += " --est-error "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --filter-pos 50 --filter-map 0.000"
+        s += " --init-guess AFR"
+        shell(s)
+rule run_admixfrog_error2_cont:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 250,
+        n_post_rep = 200,
+    version: ".3"
+    output:
+        res_bin = "admixfrog/error2C{cont}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/error2C{cont}/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/error2C{cont}/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/error2C{cont}/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/error2C{cont}/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/error2C{cont}/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/error2C{cont}/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {wildcards.cont} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --freq-contamination {params.freq_c} "
+        s += " --e0 {params.error} "
+        s += " --est-error "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --filter-pos 50 --filter-map 0.000"
         s += " --init-guess AFR"
         shell(s)
 rule run_admixfrog_ds:
@@ -135,7 +424,7 @@ rule run_admixfrog_ds:
         run_penalty = 0.4,
         max_iter = 250,
         n_post_rep = 200,
-    version: ".3"
+    version: ".4"
     output:
         res_bin = "admixfrog/ds{ds}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
         res_snp = "admixfrog/ds{ds}/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
@@ -143,6 +432,7 @@ rule run_admixfrog_ds:
         res_par = "admixfrog/ds{ds}/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/ds{ds}/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/ds{ds}/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/ds{ds}/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
@@ -153,17 +443,17 @@ rule run_admixfrog_ds:
         s += " --bin-size {wildcards.bin_size} "
         s += " --est-F --est-tau --freq-F {params.freq_f} "
         s += " --dont-est-contamination --c0 0 "
-        s += " --freq-contamination {params.freq_c} "
         s += " --e0 {params.error} "
+        s += " --est-error "
         s += " --ancestral {params.ancestral} "
         s += " --downsample {wildcards.ds} "
         s += " --run-penalty {params.run_penalty}"
         s += " --max-iter {params.max_iter}"
+        s += " --filter-pos 50 --filter-map 0.000"
         s += " --n-post-replicates {params.n_post_rep}"
-        s += " --female"
         shell(s)
 
-rule run_admixfrog_inbreeding:
+rule run_admixfrog_ds_fakecont:
     input:
         infile = "samples/{sample}_{snpset}.in.xz",
         ref = "ref/ref_{snpset}.csv.xz",
@@ -177,6 +467,49 @@ rule run_admixfrog_inbreeding:
         run_penalty = 0.4,
         max_iter = 250,
         n_post_rep = 200,
+    version: ".4"
+    output:
+        res_bin = "admixfrog/cont{cont}_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/cont{cont}_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/cont{cont}_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/cont{cont}_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/cont{cont}_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/cont{cont}_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/cont{cont}_ds{ds}/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --e0 {params.error} "
+        s += " --est-error "
+        s += " --ancestral {params.ancestral} "
+        s += " --downsample {wildcards.ds} "
+        s += " --fake-contamination {wildcards.cont} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --filter-pos 50 --filter-map 0.000"
+        s += " --n-post-replicates {params.n_post_rep}"
+        shell(s)
+
+rule run_admixfrog_inbreeding:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.4,
+        max_iter = 250,
+        n_post_rep = 200,
+        cont_id = "AFR",
     version: ".3"
     output:
         res_bin = "admixfrog/inbreeding/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
@@ -185,6 +518,7 @@ rule run_admixfrog_inbreeding:
         res_par = "admixfrog/inbreeding/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/inbreeding/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/inbreeding/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/inbreeding/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
@@ -201,7 +535,8 @@ rule run_admixfrog_inbreeding:
         s += " --run-penalty {params.run_penalty}"
         s += " --max-iter {params.max_iter}"
         s += " --n-post-replicates {params.n_post_rep}"
-        s += " --female"
+        s += " --est-error "
+        s += " --filter-pos 50 --filter-map 0.000"
         shell(s)
 
 rule run_admixfrog_posmode:
@@ -226,6 +561,7 @@ rule run_admixfrog_posmode:
         res_par = "admixfrog/posmode/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/posmode/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/posmode/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/posmode/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
@@ -266,6 +602,7 @@ rule run_admixfrog_delta:
         res_par = "admixfrog/delta{delta}/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/delta{delta}/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/delta{delta}/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/delta{delta}/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
@@ -307,11 +644,52 @@ rule run_admixfrog_gtmode:
         res_par = "admixfrog/gtmode/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/gtmode/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/gtmode/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/gtmode/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
         s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
         s += " --filter-pos 50 --filter-map 0"
+        s += " --female --gt-mode "
+        s += " --states {states} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        s += " --est-F --est-tau --freq-F {params.freq_f} "
+        s += " --dont-est-contamination "
+        s += " --c0 0"
+        s += " --e0 {params.error} "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        shell(s)
+rule run_admixfrog_gtmode2:
+    input:
+        infile = "samples/{sample}_{snpset}.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-2,
+        freq_f = 3,
+        freq_c = 3,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 250,
+        n_post_rep = 200,
+    output:
+        res_bin = "admixfrog/gtmode2/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/gtmode2/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/gtmode2/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/gtmode2/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/gtmode2/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        res_res = "admixfrog/gtmode2/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/gtmode2/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --filter-pos 50 --filter-map 0.0001"
         s += " --female --gt-mode "
         s += " --states {states} "
         s += " --ll-tol {params.ll_tol} "
@@ -347,6 +725,7 @@ rule run_admixfrog_gtpos:
         res_par = "admixfrog/gtpos/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
         res_rle = "admixfrog/gtpos/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
         res_res = "admixfrog/gtpos/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        res2_res = "admixfrog/gtpos/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
     run:
         outname = path.splitext(path.splitext(output.res_bin)[0])[0]
         states = wildcards.states.split("_")
@@ -358,7 +737,8 @@ rule run_admixfrog_gtpos:
         s += " --bin-size {wildcards.bin_size} "
         s += " --est-F --est-tau --freq-F {params.freq_f} "
         s += " --dont-est-contamination "
-        s += " --c0 0"
+        s += " --c0 0 "
+        s += " -P "
         s += " --e0 {params.error} "
         s += " --ancestral {params.ancestral} "
         s += " --run-penalty {params.run_penalty}"
@@ -436,8 +816,19 @@ rule plot_sample_cont:
     output:
         png = "figures/{type}/{states}/{sample}_cont_{bin_size,\d+}_{snpset}.png",
         png2 = "figures/{type}/{states}/{sample}_cont2_{bin_size,\d+}_{snpset}.png",
+        table = "tables/{type}/{states}/{sample}_cont2_{bin_size,\d+}_{snpset}.csv",
     script:
         "scripts/plotting/hmm_cont.R"
+
+def _merge_cov_table(wc):
+    return expand("tables/{{type}}/{{states}}/{sample}_cont2_{{bin_size,\d+}}_{{snpset}}.csv",
+            sample = config['panels'][wc.panel])
+rule merge_cov_table:
+    input: _merge_cov_table,
+    output:
+        'tables/paper/cont/{type}/{states}/{panel}_{bin_size}_{snpset}.csv'
+    script:
+        'scripts/merge_cont.R'
 
 def _panel_bin(wc):
     l = expand("admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
@@ -527,6 +918,24 @@ rule plot_rle2_fit:
         logrle="figures/{type}/{states}/{panel}_rle3fit{trunc}_{bin_size, \d+}_{snpset}.png",
     script: "scripts/plotting/rle2fit.R"
 
+def _panel_res2(wc):
+    l = expand("admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+        bin_size=["{bin_size}"],
+        type=["{type}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel])
+    return l
+
+rule merge_rle2:
+    input: 
+        res2=_panel_res2,
+        script='scripts/merge_res2.R'
+    output:
+        res2_res = "tables/{type}/{bin_size}/{states}/{panel}_{snpset}.states.xz",
+    script: 'scripts/merge_res2.R'
+        
+
 rule plot_panel_marginal:
     input:
         bins = _panel_bin,
@@ -576,7 +985,7 @@ rule plot_panel_rle2:
         script_ = "scripts/plotting/hmm_rlepred.R"
     params:
         #trunc = 0.1,
-        xmax=2.5,
+        xmax=1002.5,
         generation_time = 30,
     output:
         rleplot="figures/{type}/{states}/{target}__{trunc}/{panel}_rle_{bin_size,\d+}_{snpset}.png",
@@ -592,7 +1001,7 @@ rule plot_panel_rle:
         script_ = "scripts/plotting/hmm_rle.R"
     params:
         #trunc = 0.1,
-        xmax=4,
+        xmax=10004,
         generation_time = 29,
         type = 'state',
     output:
@@ -692,7 +1101,7 @@ rule fig1:
         pars=_panel_pars,
         rle=_panel_rle,
         runs=_panel_rle2,
-        frags="stats/frags/{type}/state_{target}_{penalty}/{states}/{bin_size}/{panel}_{snpset}.mcmc.0.2.gz",
+        frags="stats/frags/{type}/state_{target}_{penalty}/{states}/{bin_size}/{panel}_{snpset}.frags",
     output: 
         plot="figures/paper/{type}/{target}/{states}/fig1_{panel}_{bin_size,\d+}_{snpset}_{penalty}.png",
     script: "scripts/paper/fig1.R"
@@ -723,6 +1132,7 @@ rule fig_salkhit:
         ref="ref/ref_{snpset}.csv.xz",
     output: 
         plot="figures/paper/{type}/{target}/{states}/salkhit_{panel}_{bin_size,\d+}_{snpset}_{penalty}.png",
+        plot2="figures/paper/{type}/{target}/{states}/salkhit_{panel}_{bin_size,\d+}_{snpset}_{penalty}.pdf",
     script: "scripts/paper/salkhit.R"
 
 rule fig_runs:
@@ -742,11 +1152,59 @@ rule call_frags:
         rle=_panel_rle,
         bins=_panel_bin,
     params:
-        MAP_MIN = 0.1,
-        MAP_MAX = 4.
+        MAP_MIN = 0.0,
+        MAP_MAX = 40.
     output:
         frags = "stats/frags/{type}/{tt}_{target}_{penalty}/{states}/{bin_size,\d+}/{panel}_{snpset}.frags"
     script: "scripts/call_frags.R"
+
+def _panel_rle2panel(wc):
+    l1 = expand("rle/{type}/{bin_size}/{states}/{sample}_{snpset}.rle{{penalty}}.xz",
+        bin_size=["{bin_size}"],
+        type=["{type1}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel1])
+    l2 = expand("rle/{type}/{bin_size}/{states}/{sample}_{snpset}.rle{{penalty}}.xz",
+        bin_size=["{bin_size}"],
+        type=["{type2}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel2])
+    return l1 + l2
+def _panel_bin2panel(wc):
+    l1 = expand("admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        bin_size=["{bin_size}"],
+        type=["{type1}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel1])
+    l2 = expand("admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        bin_size=["{bin_size}"],
+        type=["{type2}"],
+        states=["{states}"],
+        snpset=["{snpset}"],
+        sample=config['panels'][wc.panel2])
+    return l1 + l2
+rule call_frags2panel:
+    input:
+        rle=_panel_rle2panel,
+        bins=_panel_bin2panel,
+    params:
+        MAP_MIN = 0.0,
+        MAP_MAX = 4.
+    output:
+        frags = "stats/frags2panel/{type1}_{type2}/{tt}_{target}_{penalty}/{states}/{bin_size,\d+}/{panel1}_{panel2}_{snpset}.frags"
+    script: "scripts/call_frags2.R"
+
+rule plot_frags2panel:
+    input:
+        frags = "stats/frags2panel/{type1}_{type2}/{tt}_{target}_{penalty}/{states}/{bin_size,\d+}/{panel1}_{panel2}_{snpset}.frags",
+        meta='config/sgdp_ancient.csv'
+    output:
+        plot = "stats/frags2panel/{type1}_{type2}/{tt}_{target}_{penalty}/{states}/{bin_size,\d+}/{panel1}_{panel2}_{snpset}.png",
+        plot_data = "stats/frags2panel/{type1}_{type2}/{tt}_{target}_{penalty}/{states}/{bin_size,\d+}/{panel1}_{panel2}_{snpset}.csv.gz"
+    script: "scripts/decay.R"
 
 rule plot_frags:
     input:
@@ -792,3 +1250,91 @@ rule frags:
             cer = ["0.1"],
             panel = ["paper_weu3a", "paper_weu3b", "paper_weu3c"],
             l = ["0", "0.05", "0.1", "0.2"])
+
+rule simple_cont:
+    input:
+        cont=_panel_cont,
+        n_sites_file=_panel_snp,
+        _script = "scripts/simple_cont.R",
+    output:
+        cont="stats/cont/{type}/{bin_size}/{states}/{panel}_{snpset}.cont.xz",
+        cov="stats/cont/{type}/{bin_size}/{states}/{panel}_{snpset}.cov.xz"
+    script:
+        "scripts/simple_cont.R"
+
+rule plot_paper_sample_overview:
+    input:
+        bin = "admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        #snp = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        snp = "samples/{sample}_{snpset}.in.xz",
+        script_ = "scripts/paper/overview_wrap.R"
+    params:
+        pmax = 1.7, #state with avg posterior larger than this is omitted
+        pmin = 1e-4, #states with avg posterior lower than this are omitted
+        type = 'paper',
+    output:
+        mapplot = "figures/paper/{type}/{states}/{sample}_overview_map_{bin_size, \d+}_{snpset}.png",
+    script:
+        "scripts/paper/overview_wrap.R"
+
+rule plot_paper_sample_overview2:
+    input:
+        bin = "admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        #snp = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        snp = "samples/{sample}_{snpset}.in.xz",
+        script_ = "scripts/paper/overview.R"
+    params:
+        pmax = 1.7, #state with avg posterior larger than this is omitted
+        pmin = 1e-4, #states with avg posterior lower than this are omitted
+        type = 'paper',
+    output:
+        mapplot = "figures/paper/{type}/{states}/{sample}_overview2_{bin_size, \d+}_{snpset}.png",
+    script:
+        "scripts/paper/overview.R"
+
+rule plot_talk_sample_overview:
+    input:
+        bin = "admixfrog/{type}/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        #snp = "admixfrog/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        snp = "samples/{sample}_{snpset}.in.xz",
+        script_ = "scripts/paper/overview.R"
+    params:
+        pmax = 0.7, #state with avg posterior larger than this is omitted
+        pmin = 1e-4, #states with avg posterior lower than this are omitted
+        type='talk',
+    output:
+        mapplot = "figures/talk/{type}/{states}/{sample}_overview_map_{bin_size, \d+}_{snpset}.png",
+    script:
+        "scripts/paper/overview.R"
+
+def _paper_all_overview(wc):
+    s1= expand("figures/paper/{{type}}/{{states}}/{sample}_overview2_{{bin_size,\d+}}_{{snpset}}.png",
+        sample = config['panels'][wc.panel])
+    s2= expand("figures/paper/{{type}}/{{states}}/{sample}_overview_map_{{bin_size,\d+}}_{{snpset}}.png",
+        sample = config['panels'][wc.panel])
+    #s3= expand("figures/talk/{{type}}/{{states}}/{sample}_overview2_{{bin_size,\d+}}_{{snpset}}.png",
+    #    sample = config['panels'][wc.panel])
+    s3= expand("figures/{{type}}/{{states}}/{sample}_cont2_{{bin_size,\d+}}_{{snpset}}.png",
+        sample = config['panels'][wc.panel])
+    return s1 + s2 + s3
+
+rule plot_paper_all_overviews:
+    input: 
+        _paper_all_overview,
+        'tables/{type}/{bin_size}/NEA_DEN/deni3_{snpset}.states.xz',
+        'tables/{type}/{bin_size}/A=ALT+D12_D=DEN+D11/deni3_{snpset}.states.xz',
+        'stats/frags/{type}/state_A_0.4/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/state_D_0.4/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/state_NEA_0.4/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/state_DEN_0.4/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/homo_NEA_0.4/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/homo_DEN_0.4/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/state_NEA_0.1/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/state_DEN_0.1/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/homo_NEA_0.1/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/homo_DEN_0.1/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/state_NEA_0.2/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/state_DEN_0.2/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/homo_NEA_0.2/{states}/{bin_size}/{panel}_{snpset}.frags',
+        'stats/frags/{type}/homo_DEN_1.2/{states}/{bin_size}/{panel}_{snpset}.frags',
+    output: touch('controller/overview/{type}/{states}/{panel}_{bin_size}_{snpset}.png')

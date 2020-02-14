@@ -1,5 +1,6 @@
 suppressPackageStartupMessages({
 library(tidyverse)
+library(yaml)
 source("scripts/plotting/fit.R")
 source("scripts/plotting/meancol.R")
 })
@@ -24,10 +25,10 @@ THEME = theme_classic() + FACET_THEME
 
 read_binout <- function(fname){
     COL = cols(
-               chrom=col_factor(),
+               chrom=readr::col_factor(),
                pos=col_integer(),
                id=col_integer(),
-               viterbi=col_factor(),
+               viterbi=readr::col_factor(),
                n_snps=col_integer()
                )
     #COL$cols = strsplit("cdiiilci","")[[1]]
@@ -69,6 +70,19 @@ make_chrom_limits <- function(){
 
 
 }
+bg_chrom_wrap <- function(ref=NULL, map="AA_Map"){
+    x = read_csv("ref/chrom_limits.csv", col_types=cols(chrom=col_factor())) %>% 
+        select('chrom', min=sprintf('%s_min', map), max=sprintf("%s_max", map))
+
+    x_wrap = x %>% mutate(c_wrap=high_chrom(chrom),
+                          min2 = ifelse(as.character(chrom)==as.character(c_wrap), min, 360 - max),
+                          max = ifelse(as.character(chrom)==as.character(c_wrap), max, 360 - min)) %>%
+            select(-min) %>%
+            rename(min=min2)
+
+
+    return(geom_rect(data=x_wrap, color=NA, mapping=aes(xmin=min, xmax=max, ymin=-Inf, ymax=Inf), fill='#efefef'))
+}
 
 bg_chrom <- function(ref=NULL, map="AA_Map", flip=F){
     x = read_csv("ref/chrom_limits.csv", col_types=cols(chrom=col_factor())) %>% 
@@ -79,7 +93,6 @@ bg_chrom <- function(ref=NULL, map="AA_Map", flip=F){
     }
 
     return(geom_rect(data=x, color=NA, mapping=aes(xmin=min, xmax=max, ymin=-Inf, ymax=Inf), fill='#efefef'))
-
 }
 
 read_run <- function(rfile){
@@ -88,7 +101,7 @@ read_run <- function(rfile){
 	    summarize(n=sum(n))
 }
 read_run2 <- function(rfile){ #new format
-    read_csv(rfile, col_types='iiifii') %>%
+    read_csv(rfile, col_types='iiific') %>%
 	    group_by(state, len) %>%
         tally
 }
@@ -118,6 +131,7 @@ load_bin_data <- function(infiles, name, widths=TRUE){
     a <- lapply(infiles, read_binout)
     names(a) <- name
     a <- bind_rows(a, .id="sample")
+    a$sample = factor(a$sample, level=name)
     if(!widths) return(a)
 	a %>% group_by(sample, chrom) %>%
 	arrange(sample, chrom, pos, map)  %>%
@@ -141,6 +155,38 @@ bin_to_long <- function(data){
         gather(variable, value, -sample:-n_snps, -pwidth, -bwidth)
 }
 
+bin_colplot_wrap <- function(d2, add_chrom=T, base_size=8){
+    print(nrow(d2))
+    d_wrap = d2 %>% mutate(c_wrap=high_chrom(chrom), 
+                           m_wrap = ifelse(as.character(chrom)==as.character(c_wrap), map, 360 - map))
+    d_label = data.frame(c_wrap=levels(d_wrap$c_wrap), 
+                         lab=c(paste0(23-c(as.integer(levels(d_wrap$c_wrap)[1:11])), " "), NA))
+    d_label$xintercept=c(rep(360, 11), 0)
+    P = d_wrap %>% ggplot() 
+    if(add_chrom) P = P + bg_chrom_wrap(d_wrap)
+    P +
+        geom_col(mapping=aes(x=m_wrap, 
+                       y=value, 
+                       fill=variable,
+                       width=bwidth * 1.001),
+                        lwd=0) + 
+        facet_wrap(~c_wrap, ncol=1, strip='l') + 
+        geom_text(aes(label=paste0(" ",c_wrap, " ")), x=-0, y=0.5, data=d_label, hjust=1, size=base_size / 3) + 
+        geom_text(aes(label=lab), x=Inf, y=0.5, data=d_label, hjust=.5, size=base_size / 3) +
+        geom_vline(aes(xintercept=xintercept), lwd=.33, color='black', data=d_label) + 
+        geom_vline(xintercept=0, color='black', lwd=0.33) + 
+        scale_y_continuous(name="Pr(Local Ancestry)\n", breaks=c(), expand=expand_scale(0,0)) +
+        scale_x_continuous(name="Position (cM)", 
+			    breaks=seq(0, 360, 40), expand=expand_scale(c(0,0.04),0.00)) +
+        coord_cartesian(ylim=0:1, clip='off') +
+        col_scale() + theme_classic(base_size) +
+        theme(
+          strip.background = element_blank(),
+
+          strip.text = element_blank()
+        )
+}
+
 bin_colplot_map <- function(d2, add_chrom=T){
     P = d2 %>% ggplot() 
     if(add_chrom) P = P + bg_chrom(d2)
@@ -148,23 +194,28 @@ bin_colplot_map <- function(d2, add_chrom=T){
         geom_col(mapping=aes(x=map, 
                        y=value, 
                        fill=variable,
+                       #color=variable,
                        width=bwidth)) + 
-        scale_x_continuous(expand=c(0,0), name='Position (cM)') + 
+        scale_x_continuous(expand=c(0,0), name='Position (cM)', labels=comma) + 
         scale_y_continuous(expand=c(0,0), name='Probability') +
         coord_cartesian(ylim=0:1) +
         col_scale() + THEME
 }
 bin_colplot_pos <- function(d2, add_chrom=T){
-    P = d2 %>% ggplot()
+    P = d2 %>% group_by(sample, pos, chrom) %>%
+        mutate(value=cumsum(value)) %>%
+        mutate(v0 = lag(value, default=0)) %>% 
+        ggplot()
     if(add_chrom) P = P + bg_chrom(d2, map='pos')
     P + 
-        geom_col(mapping=aes(x=pos, 
-                       y=value, 
+        geom_rect(mapping=aes(xmin=pos, xmax=pos+pwidth,
+                       ymin=v0, ymax=value,
                        fill=variable,
-                       width=pwidth)) + 
-        scale_x_continuous(expand=c(0,0), name='Position (bp)') + 
+                       #width=pwidth
+                       )) + 
+        scale_x_continuous(expand=c(0,0), name='Position (Mbp)', labels=function(x)x/1e6) + 
         scale_y_continuous(expand=c(0,0), name='Probability') +
-        coord_cartesian(ylim=0:1) +
+        coord_cartesian(ylim=0:1, expand=c(0,0,0,0)) +
         col_scale() + THEME
 }
 
@@ -174,13 +225,14 @@ rle_plot_map <- function(data, minlen=0.1, maxlen=1){
 	ggplot() +
 	bg_chrom(data) + 
 	geom_tile(aes(x =(map +map_end)/ 2, width = map_end - map, 
-		   y=0.5, height=1, fill=target, alpha=pmin(map_len,maxlen))) + 
+		   y=0.5, height=1, fill=target )) + 
 	facet_wrap(~chrom, ncol=1, strip='left') + 
 	THEME + 
 	col_scale() +
 	scale_alpha_continuous(range=c(0.3,1), limits=c(minlen, maxlen), name='Length(cM)') + 
 	scale_x_continuous(expand=c(0,0), name='Position (cM)') + 
-	scale_y_discrete(expand=c(0,0), name='state')
+	scale_y_discrete(expand=c(0,0), name='State') + 
+    theme(strip.text.y = element_text(angle=180))
 }
 
 
@@ -211,3 +263,17 @@ plot_m_gamma <- function(R, generation_time){
         facet_wrap(~sample, scale="free_y", ncol=1, strip.position="left") +
         geom_rect(aes(xmin=0, ymin=0, ymax=Inf, xmax=age), fill='white')
 }
+
+
+
+high_chrom = function(chrom){
+    chrom = as.character(chrom)
+    chrom[chrom == 'X'] = 0
+    chrom = as.integer(chrom)
+    chrom[is.na(chrom)] = 0
+    chrom[chrom>11] = 23 - chrom[chrom>11]
+    chrom = as.factor(chrom)
+    levels(chrom)[1] = 'X'
+    chrom = factor(chrom, levels=c(1:11, 'X'))
+}
+

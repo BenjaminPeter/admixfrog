@@ -6,8 +6,8 @@ avg_cols <- function(c1, c2){
     return(rgb(col))
 }
 
-col_scale <- function(){
-    x = data.frame(yaml.load_file("colors.yaml")$colors)
+col_vec <- function(){
+    x = data.frame(yaml.load_file("colors.yaml", eval.expr=F)$colors)
     y = col2rgb(as.character(as.matrix(x)))/255
 
     lab_cols = apply(y, 2, convertColor, from="sRGB", to="Lab", clip=NA)
@@ -28,7 +28,13 @@ col_scale <- function(){
     } 
     rr = res[,2]
     names(rr) = res[,1]
+    #print(rr)
+    return(rr)
 
+}
+
+col_scale <- function(){
+    rr = col_vec()
     sc = scale_color_manual(values=rr, aesthetics = c("colour", "fill"))
 }
     #saveRDS(sc, "scripts/plotting/cols.rds")

@@ -21,11 +21,11 @@ ages = read_table2(snakemake@input$ages,
 
 
 data = load_rle_data(rle_files, names) %>%
-	filter(target==target_, type==type_)
+	filter(target==target_, type==type_, map_len >= trunc)
 
 
 SCALING = 100 * gtime #* 2
-R = rle_fit_pars(data) %>%
+R = rle_fit_pars(data, trunc) %>%
 	left_join(ages) %>%
 	mutate(age=replace_na(age, 0)) %>%
 	mutate(sage=age / SCALING) %>%
@@ -34,7 +34,7 @@ R = rle_fit_pars(data) %>%
         arrange(semean) %>% 
         mutate(sample=factor(sample, levels=unique(sample)))
 write_csv(R, snakemake@output$fit)
-save.image("rdebug7")
+save.image("rdebug8")
 
 P2 =  plot_m_gamma(R, gtime) + ggtitle(snakemake@output$rleplot)
 ggsave(snakemake@output$gammaplot, width=10, height=1 + (n_samples)  * .8, limitsize=F)

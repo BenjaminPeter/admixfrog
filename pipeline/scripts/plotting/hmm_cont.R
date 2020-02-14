@@ -6,7 +6,9 @@ infile = snakemake@input$cont
 
 a = read_csv(infile) 
 ref = read_csv(snakemake@input$ref)
-tot_n_snps = nrow(ref)
+tot_n_snps = nrow(ref) - 261587 - 415546
+
+print("WARNING, nsnp for hcneaden panel")
 print(tot_n_snps)
 
 MIN = 100
@@ -26,10 +28,12 @@ b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>%
     ggtitle(snakemake@wildcards$sample)
 ggsave(snakemake@output$png, width=6, height=nrow(a) * .4 +1, limitsize=F)
 
-P2 = a %>% group_by(deam) %>% 
-    summarize(cont=weighted.mean(cont, n_snps), 
-              contaminant=sum(n_snps*(cont) / tot_n_snps), 
-              endogenous=sum(n_snps*(1-cont)) / tot_n_snps)%>%
+tbl =  a %>% group_by(deam) %>%                              
+    summarize(cont=weighted.mean(cont, n_snps),            
+          contaminant=sum(n_snps*(cont) / tot_n_snps), 
+          endogenous=sum(n_snps*(1-cont)) / tot_n_snps)
+ 
+P2 = tbl %>%
     select(deam, contaminant, endogenous) %>%
     gather(k, v, -deam) %>%
     ggplot(aes(x=deam, y=v, fill=k)) +
@@ -41,5 +45,11 @@ P2 = a %>% group_by(deam) %>%
           axis.title.x=element_blank())
 
 
-ggsave(snakemake@output$png2,P2, width=4, height=4, limitsize=F)
+ggsave(snakemake@output$png2,P2, width=2, height=4, limitsize=F)
+
+
+a %>% summarize(cont=weighted.mean(cont, n_snps), 
+                cov=sum(n_snps) / tot_n_snps) %>%
+    mutate(sample=snakemake@wildcards$sample) %>%
+write_csv(snakemake@output$table)
 
