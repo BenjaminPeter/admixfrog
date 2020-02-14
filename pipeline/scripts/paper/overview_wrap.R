@@ -8,7 +8,7 @@ infile = snakemake@input$bin
 names = snakemake@wildcards$sample
 p_max = snakemake@params$pmax
 p_min = snakemake@params$pmin
-base_size = ifelse(snakemake@params$type == 'paper', 9, 12)
+base_sizex = ifelse(snakemake@params$type == 'paper', 9, 12)
 print(c(p_min, p_max))
 
 data = load_bin_data(infile, names)
@@ -19,7 +19,7 @@ d2 = bin_to_long(data) %>%
    #filter(value > .2)  %>% #' debug track'
     filter( variable %in% TRACK) 
 
-P2 = bin_colplot_wrap(d2, base_size=base_size) 
+P2 = bin_colplot_wrap(d2, base_size=base_sizex) 
 if(snakemake@params$type == 'paper'){
     P2 =  P2 + 
         theme(

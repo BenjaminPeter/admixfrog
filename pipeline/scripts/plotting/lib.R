@@ -1,4 +1,5 @@
 suppressPackageStartupMessages({
+library(scales)
 library(tidyverse)
 library(yaml)
 source("scripts/plotting/fit.R")
@@ -71,7 +72,7 @@ make_chrom_limits <- function(){
 
 }
 bg_chrom_wrap <- function(ref=NULL, map="AA_Map"){
-    x = read_csv("ref/chrom_limits.csv", col_types=cols(chrom=col_factor())) %>% 
+    x = read_csv("annotation/chrom_limits.csv", col_types=cols(chrom=readr::col_factor())) %>% 
         select('chrom', min=sprintf('%s_min', map), max=sprintf("%s_max", map))
 
     x_wrap = x %>% mutate(c_wrap=high_chrom(chrom),

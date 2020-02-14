@@ -1,5 +1,6 @@
 require(yaml)
 require(ggplot2)
+require(dplyr)
 
 avg_cols <- function(c1, c2){
     col = convertColor((c1 + c2) / 2, from="Lab", to="sRGB")
@@ -26,6 +27,7 @@ col_vec <- function(){
 	    res <- rbind(res, v)
 	}
     } 
+    res = res %>% as_tibble %>% group_by(V1) %>% summarize(V2=first(V2))
     rr = res[,2]
     names(rr) = res[,1]
     #print(rr)
