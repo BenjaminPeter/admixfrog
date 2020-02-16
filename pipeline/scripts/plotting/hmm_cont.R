@@ -31,25 +31,31 @@ ggsave(snakemake@output$png, width=6, height=nrow(a) * .4 +1, limitsize=F)
 tbl =  a %>% group_by(deam) %>%                              
     summarize(cont=weighted.mean(cont, n_snps),            
           contaminant=sum(n_snps*(cont) / tot_n_snps), 
-          endogenous=sum(n_snps*(1-cont)) / tot_n_snps)
+          endogenous=sum(n_snps*(1-cont)) / tot_n_snps) %>%
+    mutate(deam=as.factor(deam))
+levels(tbl$deam) = c('deam', 'other')
+
  
 P2 = tbl %>%
     select(deam, contaminant, endogenous) %>%
     gather(k, v, -deam) %>%
     ggplot(aes(x=deam, y=v, fill=k)) +
     geom_col() +
-    theme_classic(14) +
-    ylab("coverage") +
-    theme(legend.position='bottom',
+    theme_classic(8) +
+    scale_y_continuous(NULL) +
+    theme(legend.position='none',
+          axis.text.y=element_text(angle=90, hjust=0.5),
           legend.title=element_blank(),
           axis.title.x=element_blank())
 
 
-ggsave(snakemake@output$png2,P2, width=2, height=4, limitsize=F)
+ggsave(snakemake@output$png2,P2, width=.9, height=2)
 
 
-a %>% summarize(cont=weighted.mean(cont, n_snps), 
+a %>% 
+#    group_by(deam) %>%
+    summarize(cont=weighted.mean(cont, n_snps), 
                 cov=sum(n_snps) / tot_n_snps) %>%
     mutate(sample=snakemake@wildcards$sample) %>%
-write_csv(snakemake@output$table)
+    write_csv(snakemake@output$table)
 

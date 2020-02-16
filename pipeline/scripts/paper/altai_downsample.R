@@ -30,10 +30,10 @@ a = load_bin_data(fname, ds_names) %>% filter(chrom==9) %>%
            variable=ifelse(variable=='N', 'NEA', variable),
            variable=str_replace(variable, 'VIN', 'NEA')
            ) %>%
-	filter(value>0.01, variable != "NEA") 
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE+ XSCALE + THEME2
-ggsave("figures/paper/altai_ds2.png", width=3.5, height=1.5)
+ggsave("figures/paper/altai_ds2.png", width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_ds2.pdf", width=3.5, height=1.5)
 
 
@@ -49,13 +49,13 @@ ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, rec_names) %>% filter(chrom==9) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=rec_names)) %>%
-	filter(value>0.01, variable != "NEA")
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_pos(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none", 
           strip.text.x = element_text(size = 6)) +
     YSCALE  + THEME2
 options(scipen = 999)
-ggsave("figures/paper/altai_rec.png", width=3.5, height=1.5)
+ggsave("figures/paper/altai_rec.png", width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_rec.pdf", width=3.5, height=1.5)
 
 
@@ -73,10 +73,10 @@ ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, panel_names) %>% filter(chrom==9) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=panel_names)) %>%
-	filter(value>0.01, variable != "NEA")
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE + XSCALE + THEME2
-ggsave("figures/paper/altai_mode.png", P, width=3.5, height=1.5)
+ggsave("figures/paper/altai_mode.png", P, width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_mode.pdf", P, width=3.5, height=1.5)
 
 
@@ -89,10 +89,10 @@ ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, panel_names) %>% filter(chrom==9) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=panel_names)) %>%
-	filter(value>0.01, variable != "NEA")
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE + XSCALE+ THEME2
-ggsave("figures/paper/altai_panel.pdf", P, width=3.5, height=1.5)
+ggsave("figures/paper/altai_panel.pdf", P, width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_panel.png", P, width=3.5, height=1.5)
 
 # BIN SIZE PLOT
@@ -105,10 +105,10 @@ ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, bs_names) %>% filter(chrom==9) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=bs_names)) %>%
-	filter(value>0.01, variable != "NEA")
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE + XSCALE+ THEME2
-ggsave("figures/paper/altai_bs.pdf", width=3.5, height=1.5)
+ggsave("figures/paper/altai_bs.pdf", width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_bs.png", width=3.5, height=1.5)
 
 # href PLOT 
@@ -128,10 +128,10 @@ a = load_bin_data(fname, href_names) %>% filter(chrom==9) %>%
            variable=str_replace(variable, 'AFK', 'AFR'),
            variable=str_replace(variable, 'EUR', 'AFR'),
            ) %>%
-	filter(value>0.01, !variable %in% c("NEA"))
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE + XSCALE+ THEME2
-ggsave("figures/paper/altai_href.png", width=3.5, height=1.5)
+ggsave("figures/paper/altai_href.png", width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_href.pdf", width=3.5, height=1.5)
 
 ds = 0.02
@@ -144,10 +144,10 @@ ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, fake_cont) %>% filter(chrom==9) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=fake_cont)) %>%
-	filter(value>0.01, variable != "NEA")
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE + XSCALE+ THEME2
-ggsave("figures/paper/altai_cont.pdf", width=3.5, height=1.5)
+ggsave("figures/paper/altai_cont.pdf", width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_cont.png", width=3.5, height=1.5)
 
 ds = 0.005
@@ -160,8 +160,10 @@ ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, fake_cont) %>% filter(chrom==9) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=fake_cont)) %>%
-	filter(value>0.01, variable != "NEA")
+	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE + XSCALE+ THEME2
-ggsave("figures/paper/altai_cont2.pdf", width=3.5, height=1.5)
+ggsave("figures/paper/altai_cont2.pdf", width=3.5, height=1.5, dpi=900)
 ggsave("figures/paper/altai_cont2.png", width=3.5, height=1.5)
+
+print(ALL_NAMES)

@@ -1,7 +1,6 @@
 library(yaml)
 library(tidyverse)
 source("scripts/plotting/lib.R")
-#save.image("bla")
 
 bin_size = as.integer(snakemake@wildcards$bin_size)
 infile = snakemake@input$bin
@@ -9,7 +8,8 @@ names = snakemake@wildcards$sample
 p_max = snakemake@params$pmax
 p_min = snakemake@params$pmin
 base_sizex = ifelse(snakemake@params$type == 'paper', 9, 12)
-print(c(p_min, p_max))
+
+#print(c(p_min, p_max))
 
 data = load_bin_data(infile, names)
 TRACK = get_track(data, snakemake@wildcards$TRACK, p_min, p_max)

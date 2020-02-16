@@ -21,15 +21,17 @@ col_vec <- function(){
 	    s1 = z[i]
 	    s2 = z[j]
 	    pop = ifelse(s1==s2, s1, sprintf("%s%s", s1, s2))
+        if( (pop %in% z) & s1 != s2){next}
 	    col = avg_cols(lab_cols[,i], lab_cols[,j])
 	    v <- c(pop, col)
 	    
 	    res <- rbind(res, v)
 	}
     } 
-    res = res %>% as_tibble %>% group_by(V1) %>% summarize(V2=first(V2))
-    rr = res[,2]
-    names(rr) = res[,1]
+    colnames(res) = c("id", "col")
+    res = res %>% as_tibble %>% group_by(id) %>% summarize(col=first(col))
+    rr = res$col
+    names(rr) = res$id
     #print(rr)
     return(rr)
 

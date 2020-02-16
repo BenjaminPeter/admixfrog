@@ -2,6 +2,8 @@ library(glue)
 library(scales)
 source("scripts/plotting/lib.R")
 
+ALL_NAMES = c()
+
 options(scipen=999)
 YSCALE = scale_y_continuous(name="Prob.", breaks=c(.5, 1), expand=expand_scale(0,0))
 XSCALE = scale_x_continuous(name="Position (cM)", 
@@ -18,6 +20,7 @@ states=c("AFR_NEA_DEN", rep("AFR_NEA_DEN", 3))
 asc=c("archaicadmixture", rep("archaicadmixture", 3))
 ds_names =sprintf("%sx", ds * 40)
 fname = sprintf("admixfrog/ds%s/%s/%s/UstIshim_%s.bin.xz", ds, bs, states, asc)
+ALL_NAMES = c(ALL_NAMES, fname)
 
 a = load_bin_data(fname, ds_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
@@ -36,6 +39,7 @@ fname = sprintf("admixfrog/rec%s/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.
 fname = c(fname, "admixfrog/posmode/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz")
 rec_names = c("AA", "dCode", "YRI", "phys")
 cat(fname)
+ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, rec_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=rec_names)) %>%
@@ -75,6 +79,7 @@ mode = c("basic", "error", "nohyper")
 panel_names = c("basic", "error", "fix", "GTs")
 fname = glue("admixfrog/{mode}/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz")
 fname = c(fname, "admixfrog/gtmode/5000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz")
+ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, panel_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=panel_names)) %>%
@@ -89,6 +94,7 @@ ggsave("figures/paper/ui_mode.png", P, width=3.5, height=1.5)
 panel = c("archaicadmixture", "A3700k", "A1240k", "hcneaden")#, 'thirdallele')
 panel_names = c("AA", "3.7M", "1240", "NEA")# 'thirdallele')
 fname = sprintf("admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_%s.bin.xz", panel)
+ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, panel_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=panel_names)) %>%
@@ -102,6 +108,7 @@ ggsave("figures/paper/ui_panel.png", P, width=3.5, height=1.5)
 bs = c(2000, 5000, 10000, 20000)
 bs_names = bs / 1e6
 fname = sprintf("admixfrog/gtmode/%s/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz", bs)
+ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, bs_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=bs_names)) %>%
@@ -113,9 +120,11 @@ ggsave("figures/paper/ui_gt.png", width=3.5, height=1.5)
 # BIN SIZE PLOT
 bs = c(2000, 5000, 10000, 20000)
 bs_names = bs / 1e6
+ALL_NAMES = c(ALL_NAMES, fname)
 fname = sprintf("admixfrog/basic/%s/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz", bs)
 cat(fname)
 
+ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, bs_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
 	mutate(sample=factor(sample, levels=bs_names)) %>%
@@ -129,6 +138,7 @@ ggsave("figures/paper/ui_bs.png", width=3.5, height=1.5)
 refs=c("AFR_NEA", "AFK_NEA", "EUR_NEA", "EUR_VIN")
 fname = sprintf("admixfrog/nohyper/5000/%s_DEN/Ust_Ishim_archaicadmixture.bin.xz", refs)
 cat(fname)
+ALL_NAMES = c(ALL_NAMES, fname)
 href_names = c("AFR", "AFK", "EUR", "VIN")
 a = load_bin_data(fname, href_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
@@ -145,6 +155,7 @@ fake_cont = c(0.05, 0.2, 0.5, 0.8)
 fname = sprintf("admixfrog/cont%s_ds%s/5000/AFR_NEA_DEN/UstIshim_hcneaden.bin.xz", 
                 fake_cont, ds)
 cat(fname)
+ALL_NAMES = c(ALL_NAMES, fname)
 
 a = load_bin_data(fname, fake_cont) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
