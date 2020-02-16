@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="187.96004mm"
+   height="165.63268mm"
+   viewBox="0 0 187.96004 165.63268"
+   version="1.1"
+   id="svg4865"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="fig_d3.svg"
+   inkscape:export-xdpi="299.94699"
+   inkscape:export-ydpi="299.94699"
+   style="enable-background:new">
+  <defs
+     id="defs4859">
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter5995">
+      <feBlend
+         inkscape:collect="always"
+         mode="darken"
+         in2="BackgroundImage"
+         id="feBlend5997" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.61416069"
+     inkscape:cx="813.71784"
+     inkscape:cy="354.01518"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="996"
+     inkscape:window-x="1920"
+     inkscape:window-y="28"
+     inkscape:window-maximized="1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
+  <metadata
+     id="metadata4862">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-3.7659271,-31.228648)"
+     style="filter:url(#filter5995)">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="112.08003"
+       y="6.0084248"
+       id="text5706"><tspan
+         sodipodi:role="line"
+         id="tspan5704"
+         x="112.08003"
+         y="10.105074"
+         style="stroke-width:0.26458332px" /></text>
+    <g
+       id="g6150"
+       transform="translate(-10.371655)" />
+    <g
+       id="g6181">
+      <image
+         width="88.900002"
+         height="50.799999"
+         preserveAspectRatio="none"
+         xlink:href="{d3_ad}"
+         id="image5603-7-5-9-2"
+         x="3.7659619"
+         y="34.301327"/>
+      <text
+         id="text5702"
+         y="33.640911"
+         x="10.339937"
+         style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.17499995px;stroke-width:0.26458332px"
+           y="33.640911"
+           x="10.339937"
+           id="tspan5700"
+           sodipodi:role="line">a) Denisova 3 (D3 + D11 vs Altai + D11)</tspan></text>
+      <g
+         transform="translate(-10.371655)"
+         id="g6155">
+        <image
+           y="34.301327"
+           x="104.30762"
+           id="image5603-7-5-9-2-2"
+           xlink:href="{d3_vd}"
+           preserveAspectRatio="none"
+           height="50.799999"
+           width="88.900002" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="109.29412"
+           y="33.640903"
+           id="text5702-8"><tspan
+             sodipodi:role="line"
+             id="tspan5700-9"
+             x="109.29412"
+             y="33.640903"
+             style="font-size:3.17499995px;stroke-width:0.26458332px">b) Denisova 3 (D3 + D11 vs Vindija + D11)</tspan></text>
+      </g>
+      <image
+         y="90.181328"
+         x="104.30762"
+         id="image5603-7-5-9"
+         xlink:href="{d5_ad}"
+         preserveAspectRatio="none"
+         height="50.799999"
+         width="88.900002"
+         style="filter:url(#filter5995);enable-background:new"
+         transform="translate(-10.371655)" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter5995);enable-background:new"
+         x="110.88161"
+         y="89.762749"
+         id="text5702-7"
+         transform="translate(-10.371655)"><tspan
+           sodipodi:role="line"
+           id="tspan5700-3"
+           x="110.88161"
+           y="89.762749"
+           style="font-size:3.17499995px;stroke-width:0.26458332px">c) Altai Neandertal (D3 + D11 vs Altai + D11)</tspan></text>
+      <g
+         transform="translate(-10.371655)"
+         id="g6145">
+        <image
+           y="146.06133"
+           x="104.30762"
+           id="image5603-7-5"
+           xlink:href="{vindija_vd}"
+           preserveAspectRatio="none"
+           height="50.799999"
+           width="88.900002" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="109.29412"
+           y="145.40091"
+           id="text5702-8-6"><tspan
+             sodipodi:role="line"
+             id="tspan5700-9-1"
+             x="109.29412"
+             y="145.40091"
+             style="font-size:3.17499995px;stroke-width:0.26458332px">d) Vindija  (D3 + D11 vs Vindija + D11)</tspan></text>
+      </g>
+      <g
+         transform="translate(-2e-5,-55.88)"
+         id="g6105">
+        <image
+           y="146.06133"
+           x="3.7659643"
+           id="image5603"
+           xlink:href="{d5_normal}"
+           preserveAspectRatio="none"
+           height="50.799999"
+           width="88.900002" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="10.339937"
+           y="145.40091"
+           id="text5702-7-2"><tspan
+             sodipodi:role="line"
+             id="tspan5700-3-9"
+             x="10.339937"
+             y="145.40091"
+             style="font-size:3.17499995px;stroke-width:0.26458332px">e) Altai Neandertal (D3 vs Altai + Vindija)</tspan></text>
+      </g>
+      <image
+         style="fill:#ff2a2a"
+         width="88.900002"
+         height="50.799999"
+         preserveAspectRatio="none"
+         xlink:href="{vindija_normal}"
+         id="image5603-7"
+         x="3.7659271"
+         y="146.06133" />
+      <text
+         id="text5702-8-6-3"
+         y="145.40091"
+         x="8.7524233"
+         style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.17499995px;stroke-width:0.26458332px"
+           y="145.40091"
+           x="8.7524233"
+           id="tspan5700-9-1-1"
+           sodipodi:role="line">f) Vindija  (D3 vs Altai + Vindija)</tspan></text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="7.0416656in"
+   height="6.0962791in"
+   viewBox="0 0 178.85831 154.84548"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="figS5_altai.svg"
+   inkscape:export-xdpi="299.94699"
+   inkscape:export-ydpi="299.94699">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.1009789"
+     inkscape:cx="205.4614"
+     inkscape:cy="251.73536"
+     inkscape:document-units="mm"
+     inkscape:current-layer="svg8"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="996"
+     inkscape:window-x="1920"
+     inkscape:window-y="28"
+     inkscape:window-maximized="1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     units="in" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-5.3236666,-26.688105)">
+    <image
+       sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{a_downsample}"
+       xlink:href="{a_downsample}"
+       y="29.133606"
+       x="5.3236666"
+       id="image1594-0"
+       preserveAspectRatio="none"
+       height="38.099998"
+       width="88.900002" />
+    <text
+       id="text5369-8-4"
+       y="27.168688"
+       x="7.0072885"
+       style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.96994042px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.55921876;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       xml:space="preserve"
+       transform="scale(0.93541432,1.069045)"><tspan
+         style="fill:#000000;fill-opacity:1;stroke-width:1.55921876"
+         y="27.168688"
+         x="7.0072885"
+         id="tspan5367-5-1"
+         sodipodi:role="line">a Coverage</tspan></text>
+    <g
+       id="g5134"
+       transform="translate(88.900002,-35.387627)">
+      <image
+         xlink:href="{a_href}"
+         width="88.900002"
+         height="38.099998"
+         preserveAspectRatio="none"
+         id="image1594-0-3"
+         x="5.3236666"
+         y="64.521233" />
+      <text
+         xml:space="preserve"
+         style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.666875;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         x="6.631845"
+         y="64.560303"
+         id="text5369-8-4-5"><tspan
+           sodipodi:role="line"
+           id="tspan5367-5-1-9"
+           x="6.631845"
+           y="64.560303"
+           style="fill:#000000;fill-opacity:1;stroke-width:1.666875">b Reference populations</tspan></text>
+    </g>
+    <g
+       id="g5139"
+       transform="translate(0,-32.675247)">
+      <image
+         xlink:href="{a_mode}"
+         width="88.900002"
+         height="38.099998"
+         preserveAspectRatio="none"
+         id="image1594-0-4-5"
+         x="5.3236666"
+         y="99.908852" />
+      <text
+         xml:space="preserve"
+         style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.666875;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         x="6.631845"
+         y="99.519012"
+         id="text5369-8-4-1-9"><tspan
+           sodipodi:role="line"
+           id="tspan5367-5-1-5-9"
+           x="6.631845"
+           y="99.519012"
+           style="fill:#000000;fill-opacity:1;stroke-width:1.666875">c Parameter settings</tspan></text>
+    </g>
+    <g
+       id="g5144"
+       transform="translate(88.900002,-68.062859)"><image
+   sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{a_panel}"
+   xlink:href="{a_panel}"
+   width="88.900002"
+   height="38.099998"
+   preserveAspectRatio="none"
+   id="image1594-0-4"
+   x="5.3236666"
+   y="135.29646" />
+
+      text
+         transform=&quot;scale(0.93541433,1.069045)&quot;
+         xml:space=&quot;preserve&quot;
+         style=&quot;color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.96994042px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.55921876;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate&quot;
+         x=&quot;7.1131501&quot;
+         y=&quot;126.28738&quot;
+         id=&quot;text5369-8-4-1&quot;&gt;<tspan
+   sodipodi:role="line"
+   id="tspan5367-5-1-5"
+   x="7.1131501"
+   y="126.28738"
+   style="fill:#000000;fill-opacity:1;stroke-width:1.55921876">d SNP Ascertainment Scheme</tspan>
+</g>
+  </g>
+  <g
+     id="g5149"
+     transform="translate(-5.2916662,-91.808814)">
+    <image
+       sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{a_bs}"
+       xlink:href="{a_bs}"
+       y="170.68408"
+       x="5.3236661"
+       id="image1594"
+       preserveAspectRatio="none"
+       height="38.099998"
+       width="88.900002" />
+    <text
+       transform="scale(0.93541432,1.069045)"
+       id="text5369-8"
+       y="159.48325"
+       x="7.2088614"
+       style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.96994042px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.55921876;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       xml:space="preserve"><tspan
+         style="fill:#000000;fill-opacity:1;stroke-width:1.55921876"
+         y="159.48325"
+         x="7.2088614"
+         id="tspan5367-5"
+         sodipodi:role="line">e Bin size (cM)</tspan></text>
+  </g>
+  <g
+     id="g5154"
+     transform="translate(83.608335,-127.19645)">
+    <image
+       sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{a_rec}"
+       xlink:href="{a_rec}"
+       width="88.900002"
+       height="38.099998"
+       preserveAspectRatio="none"
+       id="image1594-0-4-8"
+       x="5.3236666"
+       y="206.0717" />
+    <text
+       transform="scale(0.93541432,1.069045)"
+       xml:space="preserve"
+       style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.96994042px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.55921876;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       x="7.1131506"
+       y="192.18401"
+       id="text5369-8-4-1-3"><tspan
+         sodipodi:role="line"
+         id="tspan5367-5-1-5-5"
+         x="7.1131506"
+         y="192.18401"
+         style="fill:#000000;fill-opacity:1;stroke-width:1.55921876">f Recombination map</tspan></text>
+  </g>
+  <g
+     id="g5149-3"
+     transform="translate(-5.2916662,-53.708816)">
+    <image
+       sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{a_cont}"
+       xlink:href="{a_cont}"
+       y="170.68408"
+       x="5.3236661"
+       id="image1594-09"
+       preserveAspectRatio="none"
+       height="38.099998"
+       width="88.900002" />
+    <text
+       transform="scale(0.93541432,1.069045)"
+       id="text5369-8-9"
+       y="159.48325"
+       x="7.2088614"
+       style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.96994042px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.55921876;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       xml:space="preserve"><tspan
+         style="fill:#000000;fill-opacity:1;stroke-width:1.55921876"
+         y="159.48325"
+         x="7.2088614"
+         id="tspan5367-5-13"
+         sodipodi:role="line">g Contamination</tspan></text>
+  </g>
+</svg>
