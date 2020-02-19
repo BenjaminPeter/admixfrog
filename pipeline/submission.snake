@@ -1565,7 +1565,7 @@ rule validation_figures:
     output:
         d2_chr11="figures/paper/longest/d2_run11.png",
         d8_chrX="figures/paper/longest/d8_run.png",
-        d3_chr6="figures/paper/longest/d3_run_c6.png",
+        d3_chr6="figures/paper/longest/d3_run6.png",
         d5_chr9="figures/paper/longest/d5_run.png",
     script:
         'scripts/paper/validation.R'
@@ -1574,7 +1574,7 @@ rule figS7_validation:
     input:
         d2_chr11="figures/paper/longest/d2_run11.png",
         d8_chrX="figures/paper/longest/d8_run.png",
-        d3_chr6="figures/paper/longest/d3_run_c6.png",
+        d3_chr6="figures/paper/longest/d3_run6.png",
         d5_chr9="figures/paper/longest/d5_run.png",
         template="figures/svg_templates/figS7_validation.svg",
     output:
@@ -1626,6 +1626,35 @@ rule figS4_ustishim:
         with open(output[0], 'w') as f:
             f.write(svg)
 
+rule tables:
+    input:
+        a_den = "stats/frags/error2CAFR/state_DEN_0.2/NEA_DEN/5000/deni3_hcneaden.frags",
+        h_nea = "stats/frags/error2CAFR/homo_NEA_0.2/NEA_DEN/5000/deni3_hcneaden.frags",
+        h_den = "stats/frags/error2CAFR/homo_DEN_0.2/NEA_DEN/5000/deni3_hcneaden.frags",
+
+        x_den = "stats/frags/error2CAFR/state_A_0.2/A=ALT+D12_D=DEN+D11/5000/deni3_hcneaden.frags",
+        y_den = "stats/frags/error2CAFR/state_D_0.2/A=ALT+D12_D=DEN+D11/5000/deni3_hcneaden.frags",
+
+        ages = 'config/age_ranges.tsv',
+        _script = "scripts/paper/tables.R"
+    output:
+        tableS1='tables/paper/clean/tableS1_raw.csv',
+        tableS2='tables/paper/clean/tableS2_frags.csv.gz',
+    script: "scripts/paper/tables.R"
+
+rule functional_tests:
+    input:
+        'tables/paper/clean/tableS2_frags.csv.gz',
+        'tables/paper/bvals.csv.xz',
+        _script='scripts/paper/gene_annotation.R'
+    output:
+        'tables/paper/p_bbin.csv',
+        'tables/paper/p_deserts.csv',
+        'tables/paper/p_X.csv',
+        'figures/paper/s_resample.png',
+    script: 'scripts/paper/gene_annotation.R'
+
+
 rule paper:
     input:
         'figures/paper/clean/fig1_overview.png',
@@ -1637,6 +1666,10 @@ rule paper:
         'figures/paper/clean/figS7_validation.png',
         'figures/paper/clean/figS8_othersamples.png',
         'figures/paper/clean/figS9_d3_validation.png',
-        #'figures/paper/clean/tableS1.csv',
-        #'figures/paper/clean/tableS2.csv',
+        'tables/paper/clean/tableS1_raw.csv',
+        'tables/paper/clean/tableS2_frags.csv.gz',
+        'tables/paper/p_bbin.csv',
+        'tables/paper/p_deserts.csv',
+        'tables/paper/p_X.csv',
+        'figures/paper/s_resample.png',
     

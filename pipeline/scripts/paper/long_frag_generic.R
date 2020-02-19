@@ -109,7 +109,7 @@ plot_snp_run <- function(snp, ref, run, ext=c(4e5, 5e4),
         theme(axis.text.x=element_text(angle=90, vjust=.5, size=6), #strip.text.x=element_text(size=0),
               legend.position='none', panel.spacing.x=unit(0.05, 'lines'),
               strip.text.x=element_blank()) +
-        scale_alpha_discrete(range=c(0.2, 1)) +
+        scale_alpha_discrete(range=c(0.3, 1)) +
         scale_x_discrete("SNP position") +
         scale_y_continuous("frequency", labels = scales::rescale_max, 
                            breaks=function(x){c(mean(x), x[2])}, 
@@ -254,31 +254,6 @@ paper_d3 <- function(){
     ggsave("figures/paper/longest/d3_run6.png", P, width=7.2, height=2)
 }
 
-paper_d3_c6 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CEUR/5000/A=ALT+D12_D=DEN+D11/denisova3_hcneaden"
-
-    TARGET = 'A'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state', chrom == '6' , map_len > 0.1) 
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run,
-                     filter_multi=F,
-                     plot_coverage=F,
-                     plot_est = F,
-                     min_cov = 3,
-                     ignore_bins=T,
-                     large_top = 2.6,
-                     one_snp_per_bin=F,
-                     ext=c(5e6, 5e6), filter_ambiguous=F, 
-                     pops=c("NEA", 'DEN'), base_pop='DEN',
-                     p_read_name='Denisova3') +
-        theme(axis.text.x = element_blank())
-    ggsave("figures/paper/longest/d3_run_c6.png", P, width=7.2, height=1.75)
-}
 
 paper_d2 <- function(){
     ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))

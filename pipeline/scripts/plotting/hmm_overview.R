@@ -1,5 +1,5 @@
-library(tidyverse)
 library(scales)
+library(tidyverse)
 source("scripts/plotting/lib.R")
 
 

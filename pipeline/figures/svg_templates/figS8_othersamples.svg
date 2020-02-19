@@ -111,17 +111,6 @@
     </clipPath>
     <clipPath
        clipPathUnits="userSpaceOnUse"
-       id="clipPath5502">
-      <rect
-         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:0.31372549;fill-rule:nonzero;stroke:none;stroke-width:0.26511383;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
-         id="rect5504"
-         width="83.82"
-         height="44.450001"
-         x="7.5752144"
-         y="12.074603" />
-    </clipPath>
-    <clipPath
-       clipPathUnits="userSpaceOnUse"
        id="clipPath5506">
       <rect
          style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:0.31372549;fill-rule:nonzero;stroke:none;stroke-width:0.27985343;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
@@ -142,6 +131,17 @@
          x="102.8252"
          y="-139.05539" />
     </clipPath>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath4585">
+      <rect
+         y="-42.535389"
+         x="102.82522"
+         height="44.450001"
+         width="83.82"
+         id="rect4587"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:0.31372549;fill-rule:nonzero;stroke:none;stroke-width:0.26511383;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+    </clipPath>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -150,9 +150,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.7779301"
-     inkscape:cx="557.69396"
-     inkscape:cy="515.758"
+     inkscape:zoom="1.2940387"
+     inkscape:cx="284.99506"
+     inkscape:cy="548.40211"
      inkscape:document-units="mm"
      inkscape:current-layer="g5862"
      showgrid="false"
@@ -186,15 +186,36 @@
     <g
        id="g5862">
       <image
-         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{mez1}"
-         xlink:href="{mez1}"
-         clip-path="url(#clipPath5471)"
-         y="-92.065414"
-         x="8.8606949"
-         id="image5689-2-2"
+         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{spy}"
+         xlink:href="{spy}"
+         clip-path="url(#clipPath4585)"
+         y="-43.805397"
+         x="97.760696"
+         id="image5689-4-3"
          preserveAspectRatio="none"
          height="50.799999"
          width="88.900002" />
+      <text
+         id="text5805-9-6"
+         y="-43.957821"
+         x="97.472336"
+         style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.666875;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         xml:space="preserve"><tspan
+           style="stroke-width:1.666875"
+           y="-43.957821"
+           x="97.472336"
+           id="tspan5803-2-0"
+           sodipodi:role="line">h: Spy 1</tspan></text>
+      <image
+         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{mez1}"
+         xlink:href="{mez1}"
+         width="88.900002"
+         height="50.799999"
+         preserveAspectRatio="none"
+         id="image5689-2-2"
+         x="8.8606949"
+         y="-92.065414"
+         clip-path="url(#clipPath5471)" />
       <image
          sodipodi:absref="{mez2}"
          y="-92.065414"
@@ -205,35 +226,35 @@
          width="88.900002"
          clip-path="url(#clipPath5498)" />
       <image
-         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{denisova4}"
-         xlink:href="{denisova4}"
-         clip-path="url(#clipPath5486)"
-         y="-140.32541"
-         x="8.8606949"
-         id="image5689-2-2-2"
-         preserveAspectRatio="none"
-         height="50.799999"
-         width="88.900002" />
-      <image
-         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{chagyrskaya08}"
-         xlink:href="{chagyrskaya08}"
-         clip-path="url(#clipPath5494)"
+         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{vindija3319}"
+         xlink:href="{vindija3319}"
          width="88.900002"
          height="50.799999"
          preserveAspectRatio="none"
-         id="image5689-4-3-7-9"
+         id="image5689-2-2-2"
+         x="8.8606949"
+         y="-140.32541"
+         clip-path="url(#clipPath5486)" />
+      <image
+         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{chagyrskaya08}"
+         xlink:href="{chagyrskaya08}"
+         y="-140.32541"
          x="97.760696"
-         y="-140.32541" />
+         id="image5689-4-3-7-9"
+         preserveAspectRatio="none"
+         height="50.799999"
+         width="88.900002"
+         clip-path="url(#clipPath5494)" />
       <image
          sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{denisova11}"
          xlink:href="{denisova11}"
-         clip-path="url(#clipPath5482)"
-         y="-188.5854"
-         x="8.8606949"
-         id="image5689-2-2-9"
-         preserveAspectRatio="none"
+         width="88.900002"
          height="50.799999"
-         width="88.900002" />
+         preserveAspectRatio="none"
+         id="image5689-2-2-9"
+         x="8.8606949"
+         y="-188.5854"
+         clip-path="url(#clipPath5482)" />
       <text
          xml:space="preserve"
          style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.666875;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
@@ -246,15 +267,15 @@
            y="-188.12238"
            style="stroke-width:1.666875">a: Denisova 11</tspan></text>
       <image
-         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{vindija3319}"
-         xlink:href="{vindija3319}"
-         clip-path="url(#clipPath5490)"
-         width="88.900002"
-         height="50.799999"
-         preserveAspectRatio="none"
-         id="image5689-4-3-7-1"
+         sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{denisova4}"
+         xlink:href="{denisova4}"
+         y="-188.58542"
          x="97.760696"
-         y="-188.58542" />
+         id="image5689-4-3-7-1"
+         preserveAspectRatio="none"
+         height="50.799999"
+         width="88.900002"
+         clip-path="url(#clipPath5490)" />
       <text
          id="text5805-9-6-9-29"
          y="-188.73784"
@@ -298,7 +319,7 @@
            id="tspan5803-0-1"
            x="8.6700068"
            y="-92.217834"
-           style="stroke-width:1.666875">e: Mezmayskaya 1</tspan></text>
+           style="stroke-width:1.666875">e: Mezmaiskaya 1</tspan></text>
       <text
          id="text5805-9-6-9"
          y="-92.217834"
@@ -309,17 +330,17 @@
            y="-92.217834"
            x="97.472336"
            id="tspan5803-2-0-2"
-           sodipodi:role="line">f: Mezmayskaya 2</tspan></text>
+           sodipodi:role="line">f: Mezmaiskaya 2</tspan></text>
       <image
          sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{goyet}"
          xlink:href="{goyet}"
-         clip-path="url(#clipPath5478)"
-         y="-43.805408"
-         x="8.8606949"
-         id="image5689-2"
-         preserveAspectRatio="none"
+         width="88.900002"
          height="50.799999"
-         width="88.900002" />
+         preserveAspectRatio="none"
+         id="image5689-2"
+         x="8.8606949"
+         y="-43.805408"
+         clip-path="url(#clipPath5478)" />
       <text
          xml:space="preserve"
          style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.666875;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
@@ -337,13 +358,13 @@
         <image
            sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{lescottes}"
            xlink:href="{lescottes}"
-           clip-path="url(#clipPath5467)"
-           width="88.900002"
-           height="50.799999"
-           preserveAspectRatio="none"
-           id="image5689"
+           y="10.804588"
            x="8.8606949"
-           y="10.804588" />
+           id="image5689"
+           preserveAspectRatio="none"
+           height="50.799999"
+           width="88.900002"
+           clip-path="url(#clipPath5467)" />
         <text
            xml:space="preserve"
            style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.666875;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
@@ -355,31 +376,6 @@
              x="8.6700068"
              y="11.267629"
              style="stroke-width:1.666875">i: Les Cottes</tspan></text>
-      </g>
-      <g
-         transform="translate(95.250003,-54.609992)"
-         id="g5807-9"
-         clip-path="url(#clipPath5502)">
-        <image
-           sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{spy}"
-           xlink:href="{spy}"
-           y="10.804596"
-           x="2.5106928"
-           id="image5689-4-3"
-           preserveAspectRatio="none"
-           height="50.799999"
-           width="88.900002" />
-        <text
-           xml:space="preserve"
-           style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'Ume P Mincho, Normal';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.666875;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.94117647;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
-           x="2.2223353"
-           y="10.652171"
-           id="text5805-9-6"><tspan
-             sodipodi:role="line"
-             id="tspan5803-2-0"
-             x="2.2223353"
-             y="10.652171"
-             style="stroke-width:1.666875">h: Spy 1</tspan></text>
       </g>
       <text
          id="text5805-9"
@@ -395,24 +391,24 @@
       <image
          sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{hst}"
          xlink:href="{hst}"
-         clip-path="url(#clipPath5506)"
-         y="4.4546041"
-         x="97.760696"
-         id="image5689-4"
-         preserveAspectRatio="none"
+         width="88.900002"
          height="50.799999"
-         width="88.900002" />
+         preserveAspectRatio="none"
+         id="image5689-4"
+         x="97.760696"
+         y="4.4546041"
+         clip-path="url(#clipPath5506)" />
       <image
          sodipodi:absref="/home/benjamin_peter/pipeline/figures/svg_templates/{mez2}"
          xlink:href="{mez2}"
-         transform="translate(0,48.260002)"
-         y="-140.32541"
-         x="97.760696"
-         id="image5689-4-3-7-9-2"
-         preserveAspectRatio="none"
-         height="50.799999"
+         clip-path="url(#clipPath5494-4)"
          width="88.900002"
-         clip-path="url(#clipPath5494-4)" />
+         height="50.799999"
+         preserveAspectRatio="none"
+         id="image5689-4-3-7-9-2"
+         x="97.760696"
+         y="-140.32541"
+         transform="translate(0,48.260002)" />
     </g>
   </g>
 </svg>

@@ -3,20 +3,17 @@ library(reshape2)
 
 infile = snakemake@input$cont
 
+save.image("bla.rdebug")
 
 a = read_csv(infile) 
-ref = read_csv(snakemake@input$ref)
-tot_n_snps = nrow(ref) - 261587 - 415546
 
-print("WARNING, nsnp for hcneaden panel")
-print(tot_n_snps)
 
 MIN = 100
-a = a %>% filter(n_snps > MIN) %>% select(-lib)
-a = a %>% arrange(-n_snps) %>% mutate(rg=factor(rg, unique(rg)))
-b = a %>% mutate(contam.=n_snps*cont, endogenous =n_snps-contam.)  %>% 
-    select(-n_snps, -cont)                      
-b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>% 
+a = a %>% filter(n_reads > MIN) %>% select(-lib)
+a = a %>% arrange(-n_reads) %>% mutate(rg=factor(rg, unique(rg)))
+b = a %>% mutate(contam.=n_reads*cont, endogenous =n_reads-contam.)  %>% 
+    select(-n_reads, -cont)                      
+P = b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>% 
     ggplot(aes(x=len_bin, y=value, fill=variable)) + 
     geom_col() + 
     #facet_wrap(~rg * len_bin, ncol=1, strip.position="left") +
@@ -29,9 +26,9 @@ b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>%
 ggsave(snakemake@output$png, width=6, height=nrow(a) * .4 +1, limitsize=F)
 
 tbl =  a %>% group_by(deam) %>%                              
-    summarize(cont=weighted.mean(cont, n_snps),            
-          contaminant=sum(n_snps*(cont) / tot_n_snps), 
-          endogenous=sum(n_snps*(1-cont)) / tot_n_snps) %>%
+    summarize(cont=weighted.mean(cont, n_reads),            
+          contaminant=sum(n_reads*(cont) / first(tot_n_snps)), 
+          endogenous=sum(n_reads*(1-cont)) / first(tot_n_snps)) %>%
     mutate(deam=as.factor(deam))
 levels(tbl$deam) = c('deam', 'other')
 
@@ -54,8 +51,8 @@ ggsave(snakemake@output$png2,P2, width=.9, height=2)
 
 a %>% 
 #    group_by(deam) %>%
-    summarize(cont=weighted.mean(cont, n_snps), 
-                cov=sum(n_snps) / tot_n_snps) %>%
+    summarize(cont=weighted.mean(cont, n_reads), 
+                cov=sum(n_reads) / first(tot_n_snps)) %>%
     mutate(sample=snakemake@wildcards$sample) %>%
     write_csv(snakemake@output$table)
 
