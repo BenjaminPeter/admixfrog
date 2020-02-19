@@ -402,7 +402,7 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     return pa, pb
 
 
-def guess_sex(ref, data, sex_ratio_threshold=0.88):
+def guess_sex(ref, data, sex_ratio_threshold=0.80):
     """
         guessing the sex of individuals by comparing heterogametic chromosomes.
         By convention, all chromosomes are assumed to be diploid unless they start

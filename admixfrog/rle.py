@@ -23,7 +23,7 @@ def get_runs(targetid, penalty=0.5):
             pos_min = np.max(zeros) + 1
         if pos_max != pos_min:
             frags.append((id_[pos_min], id_[pos_max], p[pos_max] - p[pos_min]))
-            print("[%s|%s:%s] : %f" % (targetid.chrom.iloc[0], pos_min, pos_max, p[pos_max] - p[pos_min]))
+            #print("[%s|%s:%s] : %f" % (targetid.chrom.iloc[0], pos_min, pos_max, p[pos_max] - p[pos_min]))
         p0[pos_min:(pos_max + 1)] = 0
 
     #for i, score in zip(reversed(id_), reversed(p)):

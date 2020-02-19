@@ -45,11 +45,9 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=Fal
     Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
     # P(O, G | Z), scaled such that max for each row is 1
-    # if gll_mode:
-    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z)
+    
+    SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z), scaled such that  the max is 1
     PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
-    # else:
-    #    SNP = np.zeros((IX.n_snps, n_states))  # P(G | Z)
 
     gamma, emissions = [], []
     hap_gamma, hap_emissions = [], []
@@ -216,6 +214,7 @@ def load_admixfrog_data(states,
         2. ref (standalone csv)
         3. geno (target and/or ref)
     """
+    tot_n_snps = 0
 
 
     "1. only geno file"
@@ -237,6 +236,8 @@ def load_admixfrog_data(states,
         ref = load_ref(ref_files, state_dict, cont_id, ancestral,
                        autosomes_only, map_col=map_col)
         ref = filter_ref(ref, states, **filter)
+        tot_n_snps = ref.shape[0]
+
         if pos_mode:
             ref.reset_index('map', inplace=True)
             ref.map = ref.index.get_level_values('pos')
@@ -292,7 +293,7 @@ def load_admixfrog_data(states,
         
 
 
-    return df, sex
+    return df, sex, tot_n_snps
 
 
 
@@ -352,7 +353,7 @@ def run_admixfrog(
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
-    df, sex = load_admixfrog_data(target_file = target_file,
+    df, sex, tot_n_snps = load_admixfrog_data(target_file = target_file,
                              ref_files=ref_files,
                              geno_file=geno_file,
                              target=target,
@@ -372,13 +373,8 @@ def run_admixfrog(
                              autosomes_only=autosomes_only)
     log_.info("done loading data")
 
-
-
-
     bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex)
     log_.info("done creating bins")
-    #breakpoint()
-
     
     P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral)
     log_.info("done creating prior")
@@ -442,7 +438,7 @@ def run_admixfrog(
         df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode, outname=f'{outname}.snp.xz')
 
     if output["output_cont"]:
-        df_cont = write_cont_table(df, pars.cont, pars.error, outname=f'{outname}.cont.xz')
+        df_cont = write_cont_table(df, pars.cont, pars.error, tot_n_snps, outname=f'{outname}.cont.xz')
 
     if output["output_rle"]:
         df_rle = get_rle(df_bin, states, init["run_penalty"])

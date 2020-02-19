@@ -16,6 +16,7 @@ INFILE_OPTIONS = [
     "bamfile",
     "deam_cutoff",
     "minmapq",
+    "min_length",
     "force_target_file",
     "length_bin_size",
     "report_alleles",
@@ -189,6 +190,12 @@ def add_target_file_options(parser):
         type=int,
         default=25,
         help="""reads with mapq < MINMAPQ are removed""",
+    )
+    g.add_argument(
+        "--min-length",
+        type=int,
+        default=35,
+        help="""reads with length < MIN_LENGTH are removed""",
     )
     g.add_argument(
         "--length-bin-size",

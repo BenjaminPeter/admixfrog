@@ -41,6 +41,7 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
     # snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
     log_.debug("mean emission %s" % np.mean(E))
 
+
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     if sum(bad_bins) > 0:
         log_.warning("%s underflow bins: %s", sum(bad_bins), np.where(bad_bins)[0])
@@ -88,7 +89,6 @@ def update_snp_prob(
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
     """
-    #breakpoint()
     #import pdb; pdb.set_trace()
     cflat = np.array([cont[lib] for lib in P.lib])
     eflat = np.array([error[lib] for lib in P.lib])
@@ -100,7 +100,6 @@ def update_snp_prob(
         SNP, P, IX, F, tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding
     )
 
-    #breakpoint()
     assert np.allclose(np.sum(SNP[IX.diploid_snps], 2), 1)
 
     # get P(O | G)
