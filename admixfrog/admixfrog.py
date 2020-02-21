@@ -44,11 +44,11 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000, ll_tol=1e-1, gt_mode=Fal
     # create arrays for posterior, emissions
     Z = np.zeros((sum(IX.bin_sizes), n_states))  # P(Z | O)
     E = np.ones((sum(IX.bin_sizes), n_states))  # P(O | Z)
-    # P(O, G | Z), scaled such that max for each row is 1
     
     SNP = np.zeros((IX.n_snps, n_states, n_gt))  # P(O, G | Z), scaled such that  the max is 1
     PG = np.zeros((IX.n_snps, n_states, n_gt))  # P(G Z | O)
 
+    #pointers to the same data, but split by chromosome
     gamma, emissions = [], []
     hap_gamma, hap_emissions = [], []
     row0 = 0
@@ -311,6 +311,7 @@ def run_admixfrog(
     bin_size=1e4,
     prior=None,
     ancestral=None,
+    ancestral_prior = 0,
     sex=None,
     pos_mode=False,
     autosomes_only=False,
@@ -376,7 +377,7 @@ def run_admixfrog(
     bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex)
     log_.info("done creating bins")
     
-    P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral)
+    P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral, ancestral_prior=ancestral_prior)
     log_.info("done creating prior")
 
     pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], **init)
