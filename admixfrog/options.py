@@ -16,6 +16,7 @@ INFILE_OPTIONS = [
     "bamfile",
     "deam_cutoff",
     "minmapq",
+    "min_length",
     "force_target_file",
     "length_bin_size",
     "report_alleles",
@@ -51,6 +52,7 @@ ALGORITHM_OPTIONS = [
     "n_post_replicates",
     "pos_mode",
     "prior",
+    "ancestral_prior",
     "split_lib",
 ]
 
@@ -189,6 +191,12 @@ def add_target_file_options(parser):
         type=int,
         default=25,
         help="""reads with mapq < MINMAPQ are removed""",
+    )
+    g.add_argument(
+        "--min-length",
+        type=int,
+        default=35,
+        help="""reads with length < MIN_LENGTH are removed""",
     )
     g.add_argument(
         "--length-bin-size",
@@ -416,6 +424,12 @@ def add_base_options(P):
         frequencies from a sample. If references are stationary with size 2N, this is
         approximately  [\\sum_i^{2N}(1/i) 2N]^{-1}.
           """
+    )
+    parser.add_argument(
+        "--ancestral-prior",
+        type=float,
+        default=0,
+        help="""Prior added to ancestral allele."""
     )
     parser.add_argument(
         "-P",

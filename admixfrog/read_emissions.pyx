@@ -53,8 +53,6 @@ def update_contamination(cont, error, P, PG, IX,
     cont: dict of contamination rates (by library)
     PG: Pr(G, Z | O)
 
-
-
     """
     delta = 0.
 
@@ -84,8 +82,7 @@ def update_contamination(cont, error, P, PG, IX,
             bounds.append((0, 1-1e-10))
         if est_options['est_error']:
             init.append(error[lib])
-            bounds.append((0.0001, .1))
-
+            bounds.append((0.00001, .1))
 
         prev = get_po_given_c_all(init)
         OO =  minimize(get_po_given_c_all, init, bounds=bounds, method="L-BFGS-B")

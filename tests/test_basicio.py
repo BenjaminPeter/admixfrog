@@ -49,3 +49,4 @@ def test_fake_cont(script_runner):
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
+

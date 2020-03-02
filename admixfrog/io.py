@@ -201,8 +201,7 @@ def write_pars_table(pars, outname=None):
     return s
 
 
-def write_cont_table(data, cont, error, outname=None):
-
+def write_cont_table(data, cont, error, tot_n_snps, outname=None):
     df_libs = pd.DataFrame(cont.items(), columns=["lib", "cont"])
     df_error = pd.DataFrame(error.items(), columns=["lib", "error"])
     df_libs = df_libs.merge(df_error)
@@ -220,13 +219,15 @@ def write_cont_table(data, cont, error, outname=None):
     df_libs["len_bin"] = len_bins
     df_libs["deam"] = deams
 
+    #breakpoint()
     CC = data.groupby(["lib"]).agg(({"tref": sum, "talt": sum})).reset_index()
-    CC["n_snps"] = CC.tref + CC.talt
+    CC["n_reads"] = CC.tref + CC.talt
     del CC["tref"]
     del CC["talt"]
 
     df_libs = df_libs.merge(CC)
-    df_libs.sort_values("n_snps", ascending=False)
+    df_libs.sort_values("n_reads", ascending=False)
+    df_libs['tot_n_snps'] = tot_n_snps
 
     if outname is not None:
         df_libs.to_csv(outname, float_format="%.6f", index=False, compression="xz")
