@@ -10,13 +10,13 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="187.96004mm"
-   height="165.63268mm"
-   viewBox="0 0 187.96004 165.63268"
+   width="7.1999998in"
+   height="8.6499996in"
+   viewBox="0 0 180.33999 164.97053"
    version="1.1"
    id="svg4865"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   sodipodi:docname="fig_d3.svg"
+   sodipodi:docname="figS9_d3_validation.svg"
    inkscape:export-xdpi="299.94699"
    inkscape:export-ydpi="299.94699"
    style="enable-background:new">
@@ -40,11 +40,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.61416069"
-     inkscape:cx="813.71784"
-     inkscape:cy="354.01518"
+     inkscape:zoom="11.820504"
+     inkscape:cx="101.07713"
+     inkscape:cy="142.71259"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g926"
      showgrid="false"
      inkscape:window-width="1920"
      inkscape:window-height="996"
@@ -54,7 +54,16 @@
      fit-margin-top="0"
      fit-margin-left="0"
      fit-margin-right="0"
-     fit-margin-bottom="0" />
+     fit-margin-bottom="0"
+     units="in"
+     showguides="true"
+     inkscape:guide-bbox="true">
+    <sodipodi:guide
+       position="8.1313322,32.254111"
+       orientation="0,1"
+       id="guide5808"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
   <metadata
      id="metadata4862">
     <rdf:RDF>
@@ -63,7 +72,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -71,7 +80,7 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-3.7659271,-31.228648)"
+     transform="translate(14.141076,-111.57342)"
      style="filter:url(#filter5995)">
     <text
        xml:space="preserve"
@@ -88,137 +97,231 @@
        id="g6150"
        transform="translate(-10.371655)" />
     <g
-       id="g6181">
+       id="g926"
+       transform="translate(0,56.620835)">
       <image
+         sodipodi:absref="/r1/people/benjamin_peter/pipeline/figures/svg_templates/{d3_frag}"
+         xlink:href="{d3_frag}"
+         width="180.34"
+         height="43.832638"
+         preserveAspectRatio="none"
+         id="image5337"
+         x="-14.141076"
+         y="201.5107" />
+      <image
+         sodipodi:absref="/r1/people/benjamin_peter/pipeline/figures/svg_templates/{d3_ad}"
+         xlink:href="{d3_ad}"
          width="88.900002"
          height="50.799999"
          preserveAspectRatio="none"
-         xlink:href="{d3_ad}"
          id="image5603-7-5-9-2"
-         x="3.7659619"
-         y="34.301327"/>
+         x="-13.95578"
+         y="35.105762" />
       <text
          id="text5702"
-         y="33.640911"
-         x="10.339937"
+         y="34.445347"
+         x="-7.3818102"
          style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
            style="font-size:3.17499995px;stroke-width:0.26458332px"
-           y="33.640911"
-           x="10.339937"
+           y="34.445347"
+           x="-7.3818102"
            id="tspan5700"
-           sodipodi:role="line">a) Denisova 3 (D3 + D11 vs Altai + D11)</tspan></text>
-      <g
-         transform="translate(-10.371655)"
-         id="g6155">
-        <image
-           y="34.301327"
-           x="104.30762"
-           id="image5603-7-5-9-2-2"
-           xlink:href="{d3_vd}"
-           preserveAspectRatio="none"
-           height="50.799999"
-           width="88.900002" />
-        <text
-           xml:space="preserve"
-           style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-           x="109.29412"
-           y="33.640903"
-           id="text5702-8"><tspan
-             sodipodi:role="line"
-             id="tspan5700-9"
-             x="109.29412"
-             y="33.640903"
-             style="font-size:3.17499995px;stroke-width:0.26458332px">b) Denisova 3 (D3 + D11 vs Vindija + D11)</tspan></text>
-      </g>
+           sodipodi:role="line">a: Denisova 3 (D3 vs D5, <tspan
+   style="font-style:italic"
+   id="tspan847">a</tspan><tspan
+   style="font-style:italic;font-size:64.99999762%;baseline-shift:sub"
+   id="tspan845">0</tspan>=<tspan
+   style="font-style:italic"
+   id="tspan851">d</tspan><tspan
+   style="font-size:64.99999762%;baseline-shift:sub"
+   id="tspan843">0</tspan>=1)</tspan></text>
       <image
-         y="90.181328"
-         x="104.30762"
-         id="image5603-7-5-9"
+         sodipodi:absref="/r1/people/benjamin_peter/pipeline/figures/svg_templates/{d3_vd}"
+         xlink:href="{d3_vd}"
+         width="88.900002"
+         height="50.799999"
+         preserveAspectRatio="none"
+         id="image5603-7-5-9-2-2"
+         x="76.214211"
+         y="35.105762" />
+      <text
+         id="text5702-8"
+         y="34.445339"
+         x="81.200714"
+         style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.17499995px;stroke-width:0.26458332px"
+           y="34.445339"
+           x="81.200714"
+           id="tspan5700-9"
+           sodipodi:role="line">b: Denisova 3 (D3 vs Vindija, <tspan
+   id="tspan855"
+   style="font-style:italic">a</tspan><tspan
+   id="tspan857"
+   style="font-size:64.99999762%;baseline-shift:sub">0</tspan>=<tspan
+   id="tspan853"
+   style="font-style:italic">d</tspan><tspan
+   id="tspan859"
+   style="font-size:64.99999762%;baseline-shift:sub">0</tspan>=1)</tspan></text>
+      <image
+         sodipodi:absref="/r1/people/benjamin_peter/pipeline/figures/svg_templates/{d5_ad}"
          xlink:href="{d5_ad}"
+         y="90.985779"
+         x="76.214195"
+         id="image5603-7-5-9"
          preserveAspectRatio="none"
          height="50.799999"
          width="88.900002"
-         style="filter:url(#filter5995);enable-background:new"
-         transform="translate(-10.371655)" />
+         style="filter:url(#filter5995);enable-background:new" />
       <text
          xml:space="preserve"
          style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter5995);enable-background:new"
-         x="110.88161"
-         y="89.762749"
-         id="text5702-7"
-         transform="translate(-10.371655)"><tspan
+         x="82.788185"
+         y="90.5672"
+         id="text5702-7"><tspan
            sodipodi:role="line"
            id="tspan5700-3"
-           x="110.88161"
-           y="89.762749"
-           style="font-size:3.17499995px;stroke-width:0.26458332px">c) Altai Neandertal (D3 + D11 vs Altai + D11)</tspan></text>
-      <g
-         transform="translate(-10.371655)"
-         id="g6145">
-        <image
-           y="146.06133"
-           x="104.30762"
-           id="image5603-7-5"
-           xlink:href="{vindija_vd}"
-           preserveAspectRatio="none"
-           height="50.799999"
-           width="88.900002" />
-        <text
-           xml:space="preserve"
-           style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-           x="109.29412"
-           y="145.40091"
-           id="text5702-8-6"><tspan
-             sodipodi:role="line"
-             id="tspan5700-9-1"
-             x="109.29412"
-             y="145.40091"
-             style="font-size:3.17499995px;stroke-width:0.26458332px">d) Vindija  (D3 + D11 vs Vindija + D11)</tspan></text>
-      </g>
-      <g
-         transform="translate(-2e-5,-55.88)"
-         id="g6105">
-        <image
-           y="146.06133"
-           x="3.7659643"
-           id="image5603"
-           xlink:href="{d5_normal}"
-           preserveAspectRatio="none"
-           height="50.799999"
-           width="88.900002" />
-        <text
-           xml:space="preserve"
-           style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-           x="10.339937"
-           y="145.40091"
-           id="text5702-7-2"><tspan
-             sodipodi:role="line"
-             id="tspan5700-3-9"
-             x="10.339937"
-             y="145.40091"
-             style="font-size:3.17499995px;stroke-width:0.26458332px">e) Altai Neandertal (D3 vs Altai + Vindija)</tspan></text>
-      </g>
+           x="82.788185"
+           y="90.5672"
+           style="font-size:3.17499995px;stroke-width:0.26458332px">d: Denisova 5 (D3 vs D5, <tspan
+   style="font-style:italic"
+   id="tspan865">a</tspan><tspan
+   style="font-size:64.99999762%;baseline-shift:sub"
+   id="tspan863">0</tspan>=<tspan
+   style="font-style:italic"
+   id="tspan867">d</tspan><tspan
+   style="font-size:64.99999762%;baseline-shift:sub"
+   id="tspan861">0</tspan>=1)</tspan></text>
       <image
+         sodipodi:absref="/r1/people/benjamin_peter/pipeline/figures/svg_templates/{d5_normal}"
+         xlink:href="{d5_normal}"
+         width="88.900002"
+         height="50.799999"
+         preserveAspectRatio="none"
+         id="image5603"
+         x="-13.955808"
+         y="90.985764" />
+      <text
+         id="text5702-7-2"
+         y="90.325348"
+         x="-7.381835"
+         style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.17499995px;stroke-width:0.26458332px"
+           y="90.325348"
+           x="-7.381835"
+           id="tspan5700-3-9"
+           sodipodi:role="line">c: Denisova 5 (D3 vs D5 + Vindija)</tspan></text>
+      <image
+         sodipodi:absref="/r1/people/benjamin_peter/pipeline/figures/svg_templates/{vindija_vd}"
+         xlink:href="{vindija_vd}"
+         width="88.900002"
+         height="50.799999"
+         preserveAspectRatio="none"
+         id="image5603-7-5"
+         x="76.214195"
+         y="144.77844" />
+      <text
+         id="text5702-8-6"
+         y="144.11803"
+         x="81.200691"
+         style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:3.17499995px;stroke-width:0.26458332px"
+           y="144.11803"
+           x="81.200691"
+           id="tspan5700-9-1"
+           sodipodi:role="line">f: Vindija  (D3 vs Vindija, <tspan
+   id="tspan871"
+   style="font-style:italic">a</tspan><tspan
+   id="tspan873"
+   style="font-size:64.99999762%;baseline-shift:sub">0</tspan>=<tspan
+   id="tspan869"
+   style="font-style:italic">d</tspan><tspan
+   id="tspan875"
+   style="font-size:64.99999762%;baseline-shift:sub">0</tspan>=1)</tspan></text>
+      <image
+         sodipodi:absref="/r1/people/benjamin_peter/pipeline/figures/svg_templates/{vindija_normal}"
+         xlink:href="{vindija_normal}"
          style="fill:#ff2a2a"
          width="88.900002"
          height="50.799999"
          preserveAspectRatio="none"
-         xlink:href="{vindija_normal}"
          id="image5603-7"
-         x="3.7659271"
-         y="146.06133" />
+         x="-13.955814"
+         y="144.77844" />
       <text
          id="text5702-8-6-3"
-         y="145.40091"
-         x="8.7524233"
+         y="144.11803"
+         x="-8.9693232"
          style="font-style:normal;font-weight:normal;font-size:4.63020849px;line-height:125%;font-family:sans-serif;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          xml:space="preserve"><tspan
            style="font-size:3.17499995px;stroke-width:0.26458332px"
-           y="145.40091"
-           x="8.7524233"
+           y="144.11803"
+           x="-8.9693232"
            id="tspan5700-9-1-1"
-           sodipodi:role="line">f) Vindija  (D3 vs Altai + Vindija)</tspan></text>
+           sodipodi:role="line">e: Vindija  (D3 vs D5 + Vindija)</tspan></text>
+      <text
+         id="text6213-2-9-6"
+         y="199.13321"
+         x="-13.816259"
+         style="color:#000000;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.17499995px;line-height:125%;font-family:'sans serif';-inkscape-font-specification:'sans serif';text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;baseline-shift:baseline;text-anchor:start;white-space:normal;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000080;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.26458332;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         xml:space="preserve"><tspan
+           style="fill:#000000;fill-opacity:1;stroke-width:0.26458332"
+           y="199.13321"
+           x="-13.816259"
+           id="tspan6211-1-9-0"
+           sodipodi:role="line">g: Denisova 3: chr6:32,798,795-51,824,475</tspan></text>
+      <path
+         transform="matrix(0.26090857,0,0,0.26090857,10.233878,201.52147)"
+         sodipodi:nodetypes="cc"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#aaaaaa;stroke-width:7.55905485;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;filter:url(#filter5995);color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         d="M 0,0.94488193 H 21.476635"
+         id="path5343"
+         inkscape:connector-curvature="0" />
+      <path
+         transform="matrix(0.26090857,0,0,0.26090857,10.233878,201.52147)"
+         sodipodi:nodetypes="cc"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#aaaaaa;stroke-width:7.55905485;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;filter:url(#filter5995);color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         d="m 30.970209,0.94488193 h 9.041302"
+         id="path5343-7"
+         inkscape:connector-curvature="0" />
+      <path
+         transform="matrix(0.26090857,0,0,0.26090857,10.233878,201.52147)"
+         sodipodi:nodetypes="cc"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#aaaaaa;stroke-width:7.55905485;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;filter:url(#filter5995);color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         d="M 57.596426,0.94488193 H 156.6818"
+         id="path5343-7-8"
+         inkscape:connector-curvature="0" />
+      <path
+         transform="matrix(0.26090857,0,0,0.26090857,10.233878,201.52147)"
+         sodipodi:nodetypes="cc"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#aaaaaa;stroke-width:7.55905485;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;filter:url(#filter5995);color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         d="M 396.82961,0.94488193 H 543.74928"
+         id="path5343-7-8-6"
+         inkscape:connector-curvature="0" />
     </g>
+    <path
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#444444;stroke-width:0.49305555;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       d="m 50.47005,260.02807 -25.382942,0"
+       id="path5827"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#444444;stroke-width:0.49305556;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       d="m 17.779898,260.02807 h 2.197656"
+       id="path5859"
+       inkscape:connector-curvature="0" />
+    <path
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#444444;stroke-width:0.49305556;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       d="m 113.43293,260.02807 h 37.96453"
+       id="path5861"
+       inkscape:connector-curvature="0" />
+    <path
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#444444;stroke-width:0.49305556;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       d="M 15.414057,260.02807 H 10.094574"
+       id="path5952"
+       inkscape:connector-curvature="0" />
   </g>
 </svg>

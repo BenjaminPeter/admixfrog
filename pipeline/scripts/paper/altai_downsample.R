@@ -16,7 +16,7 @@ ALL_NAMES = c()
 # DOWNSAMPLE PLOT  
 ds = c(0.0002, 0.01, 0.02, 1)
 bs = c(50000, 20000, 20000, 5000)
-states=c("VIN_DEN", rep("NEA_DEN", 3))
+states=c("NEA_DEN", rep("NEA_DEN", 3))
 asc=c("hcneaden")
 ds_names =sprintf("%sx", ds * 50)
 fname = sprintf("admixfrog/ds%s/%s/%s/altai_%s.bin.xz", ds, bs, states, asc)
@@ -27,14 +27,12 @@ ALL_NAMES = c(ALL_NAMES, fname)
 a = load_bin_data(fname, ds_names) %>% filter(chrom==9) %>%
 	bin_to_long %>% 
     mutate(sample=fct_rev(sample),
-           variable=ifelse(variable=='N', 'NEA', variable),
            variable=str_replace(variable, 'VIN', 'NEA')
            ) %>%
 	filter(value>0.001)  #, variable != "NEA")
 P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
 	theme(legend.position="none") + YSCALE+ XSCALE + THEME2
 ggsave("figures/paper/altai_ds2.png", width=3.5, height=1.5, dpi=900)
-ggsave("figures/paper/altai_ds2.pdf", width=3.5, height=1.5)
 
 
 

@@ -9,13 +9,15 @@ YSCALE = scale_y_continuous(name="Prob.", breaks=c(.5, 1), expand=expand_scale(0
 XSCALE = scale_x_continuous(name="Position (cM)", 
 			    breaks=seq(0, 283, 40), expand=expand_scale(0,0),
                 labels=comma)
-THEME2 = theme(strip.text.y = element_text(size = 7, angle=180))
+NO_XSCALE = scale_x_continuous(NULL, breaks=seq(0, 283, 40), expand=expand_scale(0,0))
+THEME2 = theme(strip.text.y = element_text(size = 7, angle=180),
+               panel.spacing.y = unit(0.05, 'lines'))
 STUFF = list(XSCALE, YSCALE, THEME2)
 
 
 # DOWNSAMPLE PLOT  // DONE
 ds = c(0.00025, 0.0025, 0.01, 1)
-bs = c(20000, 50000, 5000, 5000)
+bs = c(20000, 5000, 5000, 5000)
 states=c("AFR_NEA_DEN", rep("AFR_NEA_DEN", 3))
 asc=c("archaicadmixture", rep("archaicadmixture", 3))
 ds_names =sprintf("%sx", ds * 40)
@@ -26,10 +28,9 @@ a = load_bin_data(fname, ds_names) %>% filter(chrom==1) %>%
 	bin_to_long %>% 
 	filter(value>0.01, variable != "AFR") %>%
     mutate(sample=fct_rev(sample))
-P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
-	theme(legend.position="none") + YSCALE+ XSCALE + THEME2
-ggsave("figures/paper/ui_ds2.png", width=3.5, height=1.5)
-ggsave("figures/paper/ui_ds2.pdf", width=3.5, height=1.5)
+P_ds = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
+	theme(legend.position="none") + YSCALE+ NO_XSCALE + THEME2
+ggsave("figures/paper/ui_ds2.png", P_ds, width=3.5, height=1.05)
 
 
 
@@ -64,14 +65,13 @@ L$map = approx(rec$pos, rec$map, L$start)$y
 L$map_end = approx(rec$pos, rec$map, L$end)$y 
 L$src = "Skov"
 L2 = fu %>% mutate(map_end = map+0.05, src='Fu') %>% select(map, map_end, src) %>% bind_rows(L, .)
-P= L2 %>% ggplot(aes(xmin=map, xmax=map_end, ymin=0, ymax=1)) + 
+P_skov= L2 %>% ggplot(aes(xmin=map, xmax=map_end, ymin=0, ymax=1)) + 
 	geom_rect() +
 	facet_wrap(~src, strip='left', ncol=1) + 
 	coord_cartesian(xlim=range(0,285.8846))                         + 
     THEME +
-	YSCALE  + XSCALE+ THEME2
-ggsave("figures/paper/ui_skov.pdf", P, width=3.5, height=1.0)
-ggsave("figures/paper/ui_skov.png", P, width=3.5, height=1.0)
+	YSCALE  + NO_XSCALE + THEME2
+ggsave("figures/paper/ui_skov.png", P_skov, width=3.5, height=0.7)
 
 #mode
 mode = c("basic", "error", "posmode", "inbreeding", "errorpos", "nohyper")

@@ -214,7 +214,7 @@ bin_colplot_pos <- function(d2, add_chrom=T){
                        fill=variable,
                        #width=pwidth
                        )) + 
-        scale_x_continuous(expand=c(0,0), name='Position (Mbp)', labels=function(x)x/1e6) + 
+        scale_x_continuous(expand=c(0,0), name=NULL, labels=function(x)x/1e6) + 
         scale_y_continuous(expand=c(0,0), name='Probability') +
         coord_cartesian(ylim=0:1, expand=c(0,0,0,0)) +
         col_scale() + THEME

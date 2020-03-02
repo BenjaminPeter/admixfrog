@@ -7,24 +7,9 @@ THEME2 = theme(strip.text.y = element_text(size = 6))
 STUFF = list(XSCALE, YSCALE, THEME2)
 
 
-# DOWNSAMPLE PLOT
-ds = c(0.002, 0.005, 0.01, 1)
-ds_names =sprintf("%sx", ds * 40)
-fname = sprintf("admixfrog/ds%s/20000/NEA_DEN/UstIshim_archaicadmixture.bin.xz", ds)
-print(fname)
-
-a = load_bin_data(fname, ds_names) %>% filter(chrom==1) %>%
-	bin_to_long %>% 
-	filter(value>0.01, variable != "AFR") %>%
-    mutate(sample=fct_rev(sample))
-P = bin_colplot_map(a) + facet_wrap(~sample, ncol=1, strip='left') +
-	theme(legend.position="none") + YSCALE+ XSCALE 
-ggsave("figures/paper/ui_ds.pdf", width=8, height=1.8)
-ggsave("figures/paper/ui_ds.png", width=8, height=1.8)
-
-# DOWNSAMPLE PLOT 2
+# DOWNSAMPLE PLOT 
 ds = c(0.00025, 0.0025, 0.01, 1)
-bs = c(20000, 50000, 5000, 5000)
+bs = c(2000, 5000, 5000, 5000)
 states=c("AFR_NEA_DEN", rep("AFR_NEA_DEN", 3))
 asc=c("archaicadmixture", rep("archaicadmixture", 3))
 ds_names =sprintf("%sx", ds * 40)

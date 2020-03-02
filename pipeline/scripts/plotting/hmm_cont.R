@@ -23,7 +23,7 @@ P = b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>%
     theme_classic(7) + 
     xlab("length bin") + ylab("# reads") +
     ggtitle(snakemake@wildcards$sample)
-ggsave(snakemake@output$png, width=6, height=nrow(a) * .4 +1, limitsize=F)
+ggsave(snakemake@output$png, width=6, height=min(14,nrow(a) * .4 +1), limitsize=F)
 
 tbl =  a %>% group_by(deam) %>%                              
     summarize(cont=weighted.mean(cont, n_reads),            
