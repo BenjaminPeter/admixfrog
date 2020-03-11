@@ -2,12 +2,29 @@ colors:
     AFR: "#ffffff"
     AFK: "#ffffff"
     OCE: "#ffbbbb"
-    EUR: "#bbbbff"
+    EUR: "#ffffff"
     UST: "#bbffbb"
-    VIN: "#678cc6"
-    NEA: "#678cc6"
     CHA: "#c16be0"
-    ALT: "#00af3d"
-    DEN: "#F98400"
+    C: "#c16be0"
+    A:   "#678cc6"
+    ALT: "#678cc6"
+    NEA: "#678cc6"
+    'N': "#678cc6"
+    VIN: "#678cc6"
+    V:   "#678cc6"
+    DEN: "#FAA545"
+    D:   "#FAA545"
+    D11: "#ffff00"
     ZERO: "#111111"
     h: "#000000"
+    NEADEN : '#813405'
+    DENNEA : '#813405'
+    ND : '#813405'
+    DN : '#813405'
+    AD : '#813405'
+    ALTDEN : '#813405'
+    VD : '#813405'
+    VINDEN : '#813405'
+    DV : '#813405'
+    DA : '#813405'
+    ARC: "#678cc6"

@@ -1,3 +1,5 @@
+library(scales)
+library(tidyverse)
 source("scripts/plotting/lib.R")
 
 
@@ -7,7 +9,7 @@ snpfile = snakemake@input$snp
 names = snakemake@wildcards$sample
 p_max = snakemake@params$pmax
 p_min = snakemake@params$pmin
-#save.image("rdebug")
+save.image("rdebug")
 
 
 data = load_bin_data(infile, names)

@@ -1,0 +1,424 @@
+from os import path
+
+configfile: "config/config.yaml"
+configfile: "config/data.yaml"
+configfile: "config/panels.yaml"
+configfile: "config/regions.yaml"
+
+CHROMS = [str(i+1) for i in range(22)] + ["X"]
+
+
+rule svg_to_png:
+    input:
+        'figures/rawsvg/{name}.svg'
+    output:
+        'figures/paper/clean/{name}.png'
+    shell: 'inkscape -z {input} -e {output} --export-background="#fff" --export-dpi 600'
+
+rule fig2_d28:
+    input:
+        d8='figures/paper/error2CAFR/NEA_DEN/denisova8_overview_map_5000_hcneaden.png',
+        d2='figures/paper/error2CAFR/NEA_DEN/denisova2_overview_map_5000_hcneaden.png',
+        template='figures/svg_templates/fig2_d28.svg'
+    output:
+        'figures/rawsvg/fig2_d28.svg',
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule fig3_d35:
+    input:
+        d2='figures/paper/error2CAFR/NEA_DEN/altai_overview_map_5000_hcneaden.png',
+        #d8='figures/paper/error2CAFR/A=ALT+D12_D=DEN+D11/denisAova3_overview_map_5000_hcneaden.png',
+        d8='figures/paper/prior0.1/NEA_DEN/denisova3_overview_map_5000_hcneaden.png',
+        template='figures/svg_templates/fig3_d35.svg'
+    output:
+        'figures/rawsvg/fig3_d35.svg',
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule fig3_d35c8:
+    input:
+        d5='figures/paper/error2CAFR/NEA_DEN/altai_overview_map_5000_hcneaden.png',
+        c8='figures/paper/error2CAFR/NEA_DEN/chagyrskaya08_overview_map_5000_hcneaden.png',
+        d3='figures/paper/prior0.1/NEA_DEN/denisova3_overview_map_5000_hcneaden.png',
+        template='figures/svg_templates/fig3_d35c8.svg'
+    output:
+        'figures/rawsvg/fig3_d35c8.svg',
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule ui_tests:
+    input:
+        "admixfrog/ds0.00025/20000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/ds0.0025/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/ds0.01/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/ds1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/recAA_Map/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/recdeCODE/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/recYRI_LD/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/posmode/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/error/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/nohyper/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/5000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_A3700k.bin.xz",
+        "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_A1240k.bin.xz",
+        "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_hcneaden.bin.xz",
+        "admixfrog/gtmode/2000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/5000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/10000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/20000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/2000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/5000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/10000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/gtmode/20000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/basic/2000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/basic/10000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/basic/20000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+        "admixfrog/nohyper/5000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/nohyper/5000/AFK_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/nohyper/5000/EUR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/nohyper/5000/EUR_VIN_DEN/Ust_Ishim_archaicadmixture.bin.xz",
+        "admixfrog/cont0.05_ds0.1/5000/AFR_NEA_DEN/UstIshim_hcneaden.bin.xz",
+        "admixfrog/cont0.2_ds0.1/5000/AFR_NEA_DEN/UstIshim_hcneaden.bin.xz",
+        "admixfrog/cont0.5_ds0.1/5000/AFR_NEA_DEN/UstIshim_hcneaden.bin.xz",
+        "admixfrog/cont0.8_ds0.1/5000/AFR_NEA_DEN/UstIshim_hcneaden.bin.xz",
+        _script="scripts/paper/ui_downsample2.R",
+    output:
+        ui_ds2='figures/paper/ui_ds2.png',
+        ui_href='figures/paper/ui_href.png',
+        ui_mode='figures/paper/ui_mode.png',
+        ui_panel='figures/paper/ui_panel.png',
+        ui_gt='figures/paper/ui_gt.png',
+        ui_bs='figures/paper/ui_bs.png',
+        ui_rec='figures/paper/ui_rec.png',
+        ui_compare="figures/paper/ui_skov.png",
+        ui_cont='figures/paper/ui_cont.png',
+    script: "scripts/paper/ui_downsample2.R"
+
+
+
+rule fig1x:
+    input: 'figures/svg_templates/fig1_overview.svg'
+    output: 'figures/rawsvg/fig1_overview.svg'
+    shell: 'cp {input} {output}'
+
+
+rule altai_tests:
+    input:
+        "admixfrog/ds0.0002/50000/VIN_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/ds0.01/20000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/ds0.02/20000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/ds1/5000/NEA_DEN/altai_hcneaden.bin.xz",
+
+        "admixfrog/recAA_Map/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/recdeCODE/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/recYRI_LD/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/posmode/5000/NEA_DEN/altai_hcneaden.bin.xz",
+
+        "admixfrog/basic/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/nohyper/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/inbreeding/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/gtmode/5000/NEA_DEN/Altai_hcneaden.bin.xz",
+
+        "admixfrog/basic/5000/NEA_DEN/altai_archaicadmixture.bin.xz",
+        "admixfrog/basic/5000/NEA_DEN/altai_A1240k.bin.xz",
+        "admixfrog/basic/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/basic/5000/NEA_DEN/altai_hcneaden2.bin.xz",
+
+        "admixfrog/basic/2000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/basic/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/basic/10000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/basic/20000/NEA_DEN/altai_hcneaden.bin.xz",
+
+        "admixfrog/basic/5000/VIN_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/basic/5000/AFR_NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/basic/5000/CHA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/basic/5000/N=ALT+D11_D=DEN+D12/altai_hcneaden.bin.xz",
+
+        "admixfrog/cont0.05_ds0.02/20000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/cont0.2_ds0.02/20000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/cont0.5_ds0.02/20000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/cont0.8_ds0.02/20000/NEA_DEN/altai_hcneaden.bin.xz",
+
+        "admixfrog/cont0.05_ds0.005/50000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/cont0.2_ds0.005/50000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/cont0.5_ds0.005/50000/NEA_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/cont0.8_ds0.005/50000/NEA_DEN/altai_hcneaden.bin.xz",
+        _script = 'scripts/paper/altai_downsample.R'
+    output:
+        a_downsample='figures/paper/altai_ds2.png',
+        a_href='figures/paper/altai_href.png',
+        a_mode='figures/paper/altai_mode.png',
+        a_panel='figures/paper/altai_panel.png',
+        a_bs='figures/paper/altai_bs.png',
+        a_rec='figures/paper/altai_rec.png',
+        a_cont='figures/paper/altai_cont.png',
+    script:
+        'scripts/paper/altai_downsample.R'
+
+rule figS8_othersamples:
+    input:
+        denisova11='figures/paper/error2CAFR/NEA_DEN/denisova11_overview_map_5000_hcneaden.png',
+        denisova4='figures/paper/error2CAFR/NEA_DEN/denisova4_overview_map_5000_hcneaden.png',
+        vindija3319='figures/paper/error2CAFR/NEA_DEN/vindija3319_overview_map_5000_hcneaden.png',
+        chagyrskaya08='figures/paper/error2CAFR/NEA_DEN/chagyrskaya08_overview_map_5000_hcneaden.png',
+        lescottes='figures/paper/error2CAFR/NEA_DEN/lescottes_overview_map_5000_hcneaden.png',
+        spy='figures/paper/error2CAFR/NEA_DEN/spy1_overview_map_5000_hcneaden.png',
+        goyet='figures/paper/error2CAFR/NEA_DEN/goyet_overview_map_5000_hcneaden.png',
+        scladina='figures/paper/error2CAFR/NEA_DEN/scladina_overview_map_5000_hcneaden.png',
+        hst='figures/paper/error2CAFR/NEA_DEN/hst_overview_map_5000_hcneaden.png',
+        mez1='figures/paper/error2CAFR/NEA_DEN/mez1_overview_map_5000_hcneaden.png',
+        mez2='figures/paper/error2CAFR/NEA_DEN/mez2_overview_map_5000_hcneaden.png',
+        template='figures/svg_templates/figS8_othersamples.svg',
+    output:
+        'figures/rawsvg/figS8_othersamples.svg'
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+rule figS6_contamination:
+    input:
+        altai='figures/error2CAFR/NEA_DEN/altai_cont2_5000_hcneaden.png',
+        denisova2='figures/error2CAFR/NEA_DEN/denisova2_cont2_5000_hcneaden.png',
+        denisova8='figures/error2CAFR/NEA_DEN/denisova8_cont2_5000_hcneaden.png',
+        denisova11='figures/error2CAFR/NEA_DEN/denisova11_cont2_5000_hcneaden.png',
+        denisova4='figures/error2CAFR/NEA_DEN/denisova4_cont2_5000_hcneaden.png',
+        denisova3='figures/error2CAFR/NEA_DEN/denisova3_cont2_5000_hcneaden.png',
+        vindija3319='figures/error2CAFR/NEA_DEN/vindija3319_cont2_5000_hcneaden.png',
+        chagyrskaya08='figures/error2CAFR/NEA_DEN/chagyrskaya08_cont2_5000_hcneaden.png',
+        lescottes='figures/error2CAFR/NEA_DEN/lescottes_cont2_5000_hcneaden.png',
+        spy='figures/error2CAFR/NEA_DEN/spy1_cont2_5000_hcneaden.png',
+        goyet='figures/error2CAFR/NEA_DEN/goyet_cont2_5000_hcneaden.png',
+        scladina='figures/error2CAFR/NEA_DEN/scladina_cont2_5000_hcneaden.png',
+        hst='figures/error2CAFR/NEA_DEN/hst_cont2_5000_hcneaden.png',
+        mez1='figures/error2CAFR/NEA_DEN/mez1_cont2_5000_hcneaden.png',
+        mez2='figures/error2CAFR/NEA_DEN/mez2_cont2_5000_hcneaden.png',
+        template='figures/svg_templates/figS6_contamination.svg'
+    output:
+        'figures/rawsvg/figS6_contamination.svg',
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule figS9_d3_validation:
+    input:
+        #d3_ad="figures/paper/error2CAFR/A=ALT+D12_D=DEN+D11/denisova3_overview_map_5000_hcneaden.png",
+        #d3_vd="figures/paper/error2CAFR/V=VIN+D12_D=DEN+D11/denisova3_overview_map_5000_hcneaden.png",
+        #d5_ad="figures/paper/error2CAFR/A=ALT+D12_D=DEN+D11/altai_overview_map_5000_hcneaden.png",
+        #d5_normal="figures/paper/error2CAFR/NEA_DEN/altai_overview_map_5000_hcneaden.png",
+        #vindija_vd="figures/paper/error2CAFR/V=VIN+D12_D=DEN+D11/vindija3319_overview_map_5000_hcneaden.png",
+        #vindija_normal="figures/paper/error3CAFR/NEA_DEN/vindija3319_overview_map_5000_hcneaden.png",
+        d3_ad="figures/paper/prior0.1/ALT_DEN/denisova3_overview_map_5000_hcneaden.png",
+        d3_vd="figures/paper/prior0.1/VIN_DEN/denisova3_overview_map_5000_hcneaden.png",
+        d5_ad="figures/paper/prior0.1/ALT_DEN/altai_overview_map_5000_hcneaden.png",
+        d5_normal="figures/paper/error2CAFR/NEA_DEN/altai_overview_map_5000_hcneaden.png",
+        vindija_vd="figures/paper/prior0.1/VIN_DEN/vindija3319_overview_map_5000_hcneaden.png",
+        vindija_normal="figures/paper/error2CAFR/NEA_DEN/vindija3319_overview_map_5000_hcneaden.png",
+        d3_frag="figures/paper/longest/d3_run6.png",
+        template="figures/svg_templates/figS9_d3_validation.svg",
+    output:
+        "figures/rawsvg/figS9_d3_validation.svg",
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+
+rule validate_d3:
+    input:
+        ref='ref/ref_hcneaden.csv.xz',
+        rle_d3='rle/prior0.1/5000/ALT_DEN/denisova3_hcneaden.rle0.4.xz',
+        snp_d3='admixfrog/prior0.1/5000/ALT_DEN/denisova3_hcneaden.snp.xz',
+        
+        lib='scripts/paper/long_frag_generic.R',
+        script='scripts/paper/validate_d3.R'
+    output:
+        frag_d3="figures/paper/longest/d3_run6.png",
+    script:'scripts/paper/validate_d3.R'
+
+
+rule validate_c8:
+    input:
+        ref='ref/ref_hcneaden.csv.xz',
+        rle_c8='rle/error2CAFR/5000/NEA_DEN/chagyrskaya08_hcneaden.rle0.4.xz',
+        snp_c8='admixfrog/error2CAFR/5000/NEA_DEN/chagyrskaya08_hcneaden.snp.xz',
+        
+        lib='scripts/paper/long_frag_generic.R',
+        script='scripts/paper/validate_c8.R'
+    output:
+        c8_chr11="figures/paper/longest/c8_run11.png",
+    script:'scripts/paper/validate_c8.R'
+
+
+rule validate_d8:
+    input:
+        ref='ref/ref_hcneaden.csv.xz',
+
+        rle_d8='rle/error2CAFR/5000/NEA_DEN/denisova8_hcneaden.rle0.4.xz',
+        snp_d8='admixfrog/error2CAFR/5000/NEA_DEN/denisova8_hcneaden.snp.xz',
+        lib='scripts/paper/long_frag_generic.R',
+        frag='scripts/paper/validate_d8.R',
+    output:
+        d8_chrX="figures/paper/longest/d8_run.png",
+    script : 'scripts/paper/validate_d8.R'
+
+
+rule validate_altai:
+    input:
+        ref='ref/ref_hcneaden.csv.xz',
+
+        rle_altai='rle/error2CAFR/5000/NEA_DEN/altai_hcneaden.rle0.4.xz',
+        snp_altai='admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden.snp.xz',
+
+        lib='scripts/paper/long_frag_generic.R',
+        frag='scripts/paper/validate_altai.R',
+    output:
+        d5_chr9="figures/paper/longest/d5_run.png",
+    script : 'scripts/paper/validate_altai.R'
+
+
+rule validate_d2:
+    input:
+        ref='ref/ref_hcneaden.csv.xz',
+        rle_d2='rle/error2CAFR/5000/NEA_DEN/denisova2_hcneaden.rle0.4.xz',
+        snp_d2='admixfrog/error2CAFR/5000/NEA_DEN/denisova2_hcneaden.snp.xz',
+        lib='scripts/paper/long_frag_generic.R',
+        frag='scripts/paper/validate_d8.R',
+    output:
+        d2_chr11="figures/paper/longest/d2_run11.png",
+    script : 'scripts/paper/validate_d2.R'
+
+
+rule figS7_validation:
+    input:
+        d2_chr11="figures/paper/longest/d2_run11.png",
+        d8_chrX="figures/paper/longest/d8_run.png",
+        d5_chr9="figures/paper/longest/d5_run.png",
+        c8_chr11="figures/paper/longest/c8_run11.png",
+        template="figures/svg_templates/figS7_validation.svg",
+    output:
+        "figures/rawsvg/figS7_validation.svg",
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule figS5_altai:
+    input:
+        a_downsample='figures/paper/altai_ds2.png',
+        a_href='figures/paper/altai_href.png',
+        a_mode='figures/paper/altai_mode.png',
+        a_panel='figures/paper/altai_panel.png',
+        a_bs='figures/paper/altai_bs.png',
+        a_rec='figures/paper/altai_rec.png',
+        a_cont='figures/paper/altai_cont.png',
+        template='figures/svg_templates/figS5_altai.svg'
+    output:
+        'figures/rawsvg/figS5_altai.svg',
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule figS4_ustishim:
+    input:
+        ui_ds2='figures/paper/ui_ds2.png',
+        ui_href='figures/paper/ui_href.png',
+        ui_mode='figures/paper/ui_mode.png',
+        ui_panel='figures/paper/ui_panel.png',
+        ui_gt='figures/paper/ui_gt.png',
+        ui_bs='figures/paper/ui_bs.png',
+        ui_rec='figures/paper/ui_rec.png',
+        ui_skov="figures/paper/ui_skov.png",
+        ui_cont='figures/paper/ui_cont.png',
+        template='figures/svg_templates/figS4_ustishim.svg'
+    output:
+        'figures/rawsvg/figS4_ustishim.svg',
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule tables:
+    input:
+        a_nea = "stats/frags/error2CAFR/state_NEA_0.4/NEA_DEN/5000/deni3_hcneaden.frags",
+        a_den = "stats/frags/error2CAFR/state_DEN_0.4/NEA_DEN/5000/deni3_hcneaden.frags",
+        h_nea = "stats/frags/error2CAFR/homo_NEA_0.4/NEA_DEN/5000/deni3_hcneaden.frags",
+        h_den = "stats/frags/error2CAFR/homo_DEN_0.4/NEA_DEN/5000/deni3_hcneaden.frags",
+
+        x_nea = "stats/frags/prior0.1/state_ALT_0.4/ALT_DEN/5000/deni3_hcneaden.frags",
+        x_den = "stats/frags/prior0.1/state_DEN_0.4/ALT_DEN/5000/deni3_hcneaden.frags",
+
+        ages = 'config/age_ranges.tsv',
+        _script = "scripts/paper/tables.R"
+    output:
+        tableS1='tables/paper/clean/tableS1_raw.csv',
+        tableS2='tables/paper/clean/tableS2_frags.csv.gz',
+    script: "scripts/paper/tables.R"
+
+rule bvals:
+    input:
+        panel = 'ref/ref_hcneaden.csv.xz',
+        bin = 'admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden.bin.xz',
+    output:
+        bvals='tables/paper/bvals.csv.xz',
+
+rule functional_tests:
+    input:
+        'tables/paper/clean/tableS2_frags.csv.gz',
+        'tables/paper/bvals.csv.xz',
+        _script='scripts/paper/gene_annotation.R'
+    output:
+        'tables/paper/p_bbin.csv',
+        'tables/paper/p_deserts.csv',
+        'tables/paper/p_X.csv',
+        'figures/paper/s_resample.png',
+    script: 'scripts/paper/gene_annotation.R'
+
+
+rule paper:
+    input:
+        'figures/paper/clean/fig1_overview.png',
+        'figures/paper/clean/fig2_d28.png',
+        'figures/paper/clean/fig3_d35.png',
+        'figures/paper/clean/figS4_ustishim.png',
+        'figures/paper/clean/figS5_altai.png',
+        'figures/paper/clean/figS6_contamination.png',
+        'figures/paper/clean/figS7_validation.png',
+        'figures/paper/clean/figS8_othersamples.png',
+        'figures/paper/clean/figS9_d3_validation.png',
+        'tables/paper/clean/tableS1_raw.csv',
+        'tables/paper/clean/tableS2_frags.csv.gz',
+        'tables/paper/p_bbin.csv',
+        'tables/paper/p_deserts.csv',
+        'tables/paper/p_X.csv',
+        'figures/paper/s_resample.png',
+    
