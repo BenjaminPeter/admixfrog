@@ -68,8 +68,14 @@ def vcf_to_ref(
 
     pprint(pop2sample)
 
+
+    if chroms is None:
+        vcf_first = vcf_file
+    else: 
+        vcf_first = vcf_file.format(CHROM=chroms[0])
+
     #  get chromosomes
-    with VariantFile(vcf_file.format(CHROM='1')) as vcf:
+    with VariantFile(vcf_first) as vcf:
         if chroms is None:
             chroms = [i for i in vcf.header.contigs]
         else:

@@ -236,6 +236,14 @@ def load_admixfrog_data(states,
         ref = load_ref(ref_files, state_dict, cont_id, ancestral,
                        autosomes_only, map_col=map_col)
         ref = filter_ref(ref, states, **filter)
+
+
+        if fake_contamination and cont_id:
+            """filter for SNP with fake ref data"""
+            cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+            ref = ref[ref[cont_ref] + ref[cont_alt] > 0 ]
+
+
         tot_n_snps = ref.shape[0]
 
         if pos_mode:
@@ -276,6 +284,7 @@ def load_admixfrog_data(states,
             Ce = x(1-C)
             Ce / ( 1- C) = x
         """
+
         prop_cont = fake_contamination
         target_cont_cov = prop_cont * mean_endo_cov / (1 - prop_cont)
         f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt])
@@ -284,8 +293,12 @@ def load_admixfrog_data(states,
         log_.debug(f"fake contamination cov: {target_cont_cov}")
 
 
-        c_ref = np.random.poisson( (1 - f_cont) * target_cont_cov)
-        c_alt = np.random.poisson( f_cont * target_cont_cov)
+        try:
+            c_ref = np.random.poisson( (1 - f_cont) * target_cont_cov)
+            c_alt = np.random.poisson( f_cont * target_cont_cov)
+        except ValueError:
+            breakpoint()
+            raise ValueError()
         log_.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
         log_.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
         df.tref += c_ref

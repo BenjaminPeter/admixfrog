@@ -312,7 +312,7 @@ def add_ref_options(parser):
     parser.add_argument(
         "--chroms",
         "--chromosome-files",
-        default="1-22,X",
+        default=None,
         help="""The chromosomes to be used in vcf-mode.
         """,
     )
