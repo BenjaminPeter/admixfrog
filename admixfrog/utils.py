@@ -136,9 +136,11 @@ def data2probs(
                 ref_prior[ref_is_anc, i] += panc
                 ref_prior[ref_is_der, i] += pder
 
+        assert np.all(df.tref.values + df.talt.values < 256)
+
         P = Probs2(
-            O=np.array(df.talt.values, np.int8),
-            N=np.array(df.tref.values + df.talt.values, np.int8),
+            O=np.array(df.talt.values, np.uint8),
+            N=np.array(df.tref.values + df.talt.values, np.uint8),
             P_cont=np.zeros_like(df.talt.values)
             if cont_id is None
             else np.array(
@@ -169,9 +171,10 @@ def data2probs(
         alt_prior = snp_df[alt_ix].to_numpy() + prior_anc_alt[:, np.newaxis] + prior
         ref_prior = snp_df[ref_ix].to_numpy() + prior_anc_ref[:, np.newaxis] + prior
         #breakpoint()
+        assert df.tref.values + df.talt.values < 256
         P = Probs2(
-            O=np.array(df.talt.values, np.int8),
-            N=np.array(df.tref.values + df.talt.values, np.int8),
+            O=np.array(df.talt.values, np.uint8),
+            N=np.array(df.tref.values + df.talt.values, np.uint8),
             P_cont=0.
             if cont_id is None
             else np.array(

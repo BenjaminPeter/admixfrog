@@ -9,7 +9,7 @@ from .log import log_
 @njit  # ('i8(i8, i8)')
 def get_hap_from_diploid(n_states, n_homo, est_inbreeding=False):
     n_states = n_states + n_homo if est_inbreeding else n_states
-    het2homo = np.zeros((n_states, 2), np.int8)
+    het2homo = np.zeros((n_states, 2), np.uint8)
     for s in range(n_homo):
         het2homo[s] = s
     for s1 in range(n_homo):

@@ -116,7 +116,7 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
     n_steps, n_states = emissions.shape
 
     ll = np.ones_like(emissions)
-    backtrack = np.zeros_like(emissions, np.int8)
+    backtrack = np.zeros_like(emissions, np.uint8)
 
     log_e = np.log(emissions)
     log_t = np.log(trans_mat)
@@ -129,7 +129,7 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
         ll[i] = np.max(aux_mat, 1)
         backtrack[i] = np.argmax(aux_mat, 1)
 
-    path = np.empty(n_steps, np.int8)
+    path = np.empty(n_steps, np.uint8)
     if ll.size == 0:
         return np.zeros(0, dtype=int)
     cursor = np.argmax(ll[-1])
