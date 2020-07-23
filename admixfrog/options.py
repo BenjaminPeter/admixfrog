@@ -43,6 +43,7 @@ REFFILE_OPTIONS = [
 #algorithm control options
 ALGORITHM_OPTIONS = [
     "bin_size",
+    "snp_mode",
     "autosomes_only",
     "downsample",
     "fake_contamination",
@@ -54,6 +55,7 @@ ALGORITHM_OPTIONS = [
     "prior",
     "ancestral_prior",
     "split_lib",
+    "do_hmm"
 ]
 
 #geno format options
@@ -160,6 +162,14 @@ def add_output_options(parser):
         dest="output_pars",
         help="""Disable writing parameters 
             to file with extension .pars.yaml""",
+    )
+
+    parser.add_argument(
+        "--no-sfs",
+        action="store_false",
+        default=True,
+        dest="output_sfs",
+        help="""Disable output of sfs""",
     )
 
 
@@ -381,7 +391,7 @@ def add_estimation_options(P):
         "--tau0",
         nargs="*",
         type=float,
-        default=0,
+        default=0.3,
         # help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
         help="initial log-tau (default 0), at most 1 per source",
     )
@@ -410,6 +420,15 @@ def add_base_options(P):
         default=10000,
         help="""Size of bins. By default, this is given in 1e-8 cM, so that the unit is
         approximately the same for runs on physical / map positions""",
+    )
+
+    parser.add_argument(
+        "--snp-mode",
+        action='store_true',
+        default=False,
+        help="""in SNP mode, no binning of nearby SNP is done,
+        instead each SNP is a bin. Recombination is assumed to be constant
+        between SNPs.""",
     )
     parser.add_argument(
         "--prior",
@@ -480,6 +499,15 @@ def add_base_options(P):
         nargs="*",
         help="""init transition so that one state is favored. should be a 
         state in --state-ids """,
+    )
+
+    parser.add_argument(
+        "--no-hmm",
+        "--nohmm",
+        dest='do_hmm',
+        action="store_false",
+        default=True,
+        help="""no hmm, bins are independent"""
     )
 
 
