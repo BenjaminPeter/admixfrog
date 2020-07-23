@@ -32,6 +32,17 @@ ParsHD = namedtuple(
     ),
 )  # for returning from varios functions
 
+ParsSFS = namedtuple(
+    "ParsSFS",
+    (
+        "cont",
+        "error",
+        "F",
+        "tau",
+        "sex"
+    ),
+) 
+
 
 class _IX:
     """class to be filled with various indices
@@ -48,7 +59,8 @@ def data2probs(
     prior=None,
     cont_prior=(1e-8, 1e-8),
     ancestral=None,
-    ancestral_prior = 0
+    ancestral_prior = 0,
+    doalphabeta=True
 ):
     """create data structure that holds the reference genetic data
 
@@ -69,18 +81,21 @@ def data2probs(
     state_ids: the references to keep
     prior: None for empirical bayes prior, otherwise prior to be added
     ancestral: ancestray allele
+    doalphabeta: for e.g. SFS mode, alpha and beta don't need to be calcuated
     """
+
 
     alt_ix = ["%s_alt" % s for s in state_ids]
     ref_ix = ["%s_ref" % s for s in state_ids]
     snp_ix_states = set(alt_ix + ref_ix)
+    ca, cb = cont_prior
 
     if cont_id is not None:
-        cont = "%s_alt" % cont_id, "%s_ref" % cont_id
-        snp_ix_states.update(cont)
+        cont_ref, cont_alt = "%s_alt" % cont_id, "%s_ref" % cont_id
+        snp_ix_states.update([cont_ref, cont_alt])
     if ancestral is not None:
-        anc = "%s_alt" % ancestral, "%s_ref" % ancestral
-        snp_ix_states.update(anc)
+        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        snp_ix_states.update([anc_ref, anc_alt])
 
     snp_df = df[list(snp_ix_states)]
     snp_df = snp_df[~snp_df.index.get_level_values('snp_id').duplicated()]
@@ -88,12 +103,31 @@ def data2probs(
     n_snps = len(snp_df.index.get_level_values('snp_id'))
     n_states = len(state_ids)
 
+    if not doalphabeta:
+        if prior is None and cont_id is not None:
+            ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
+
+        P = Probs2(
+            O=np.array(df.talt.values, np.uint8),
+            N=np.array(df.tref.values + df.talt.values, np.uint8),
+            P_cont=0.
+            if cont_id is None
+            else np.array(
+                (df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)
+            ),
+            alpha=[],
+            beta=[],
+            alpha_hap=[],
+            beta_hap=[],
+            lib=np.array(df.lib),
+        )
+        return P
 
     if prior is None:  # empirical bayes, estimate from data
         alt_prior = np.empty((n_snps, n_states))
         ref_prior = np.empty((n_snps, n_states))
         if cont_id is not None:
-            ca, cb = empirical_bayes_prior(snp_df[cont[0]], snp_df[cont[1]])
+            ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
 
         if ancestral is None:
             for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, state_ids)):
@@ -123,8 +157,8 @@ def data2probs(
                 ref_prior[anc_is_unknown, i] += pb
 
                 #3. where anc is known, create indices
-                m_anc = pd.concat((ref_is_anc, alt_is_anc), 1)
-                m_der = pd.concat((ref_is_der, alt_is_der), 1)
+                m_anc = np.array(pd.concat((ref_is_anc, alt_is_anc), 1))
+                m_der = np.array(pd.concat((ref_is_der, alt_is_der), 1))
                 ANC = np.array(snp_df[[ref_col, alt_col]])[m_anc]
                 DER = np.array(snp_df[[ref_col, alt_col]])[m_der]
 
@@ -138,23 +172,7 @@ def data2probs(
 
         assert np.all(df.tref.values + df.talt.values < 256)
 
-        P = Probs2(
-            O=np.array(df.talt.values, np.uint8),
-            N=np.array(df.tref.values + df.talt.values, np.uint8),
-            P_cont=np.zeros_like(df.talt.values)
-            if cont_id is None
-            else np.array(
-                (df[cont[0]].values + ca) / (df[cont[0]].values + df[cont[1]].values + ca + cb)
-            ),
-            alpha=alt_prior[IX.diploid_snps],
-            beta=ref_prior[IX.diploid_snps],
-            alpha_hap=alt_prior[IX.haploid_snps],
-            beta_hap=ref_prior[IX.haploid_snps],
-            lib=np.array(df.lib),
-        )
-        return P
     else:
-
         """ancestral allele contribution to prior
         the ancestral allele adds one pseudocount to the data
         """
@@ -165,31 +183,30 @@ def data2probs(
             prior_anc_alt = snp_df[anc_alt] * ancestral_prior
             prior_anc_ref = snp_df[anc_ref] * ancestral_prior
 
-        cont = "%s_alt" % cont_id, "%s_ref" % cont_id
-        ca, cb = cont_prior
 
         alt_prior = snp_df[alt_ix].to_numpy() + prior_anc_alt[:, np.newaxis] + prior
         ref_prior = snp_df[ref_ix].to_numpy() + prior_anc_ref[:, np.newaxis] + prior
-        #breakpoint()
-        assert df.tref.values + df.talt.values < 256
-        P = Probs2(
-            O=np.array(df.talt.values, np.uint8),
-            N=np.array(df.tref.values + df.talt.values, np.uint8),
-            P_cont=0.
-            if cont_id is None
-            else np.array(
-                (df[cont[0]] + ca) / (df[cont[0]] + df[cont[1]] + ca + cb)
-            ),
-            alpha=alt_prior[IX.diploid_snps],
-            beta=ref_prior[IX.diploid_snps],
-            alpha_hap=alt_prior[IX.haploid_snps],
-            beta_hap=ref_prior[IX.haploid_snps],
-            lib=np.array(df.lib),
-        )
-        return P
+        assert np.all(df.tref.values + df.talt.values < 256)
+
+    #create named tuple for return
+    P = Probs2(
+        O=np.array(df.talt.values, np.uint8),
+        N=np.array(df.tref.values + df.talt.values, np.uint8),
+        P_cont=0.
+        if cont_id is None
+        else np.array(
+            (df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)
+        ),
+        alpha=alt_prior[IX.diploid_snps],
+        beta=ref_prior[IX.diploid_snps] ,
+        alpha_hap=alt_prior[IX.haploid_snps],
+        beta_hap=ref_prior[IX.haploid_snps],
+        lib=np.array(df.lib),
+    )
+    return P
 
 
-def bins_from_bed(df, bin_size, sex=None):
+def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     """create a bunch of auxillary data frames for binning
 
     - bins: columns are chrom_id, chrom, bin_pos, bin_id, map
@@ -249,26 +266,44 @@ def bins_from_bed(df, bin_size, sex=None):
         chrom_end = float(np.ceil(map_.tail(1) / bin_size) * bin_size)
         chrom_is_hap = chrom in haplo_chroms
 
-        # create bins
-        bins = np.arange(chrom_start, chrom_end, bin_size)
-        log_.debug("binning chrom %s: %d bins", chrom, len(bins))
+        if snp_mode:
+            bins = np.arange(bin0, bin0 + np.sum(snp.chrom == chrom))
+            log_.debug("binning chrom %s: %d snp bins", chrom, len(bins))
 
-        IX.bin_sizes.append(len(bins))
-        bin_ids = range(bin0, bin0 + len(bins))
-        _bin = np.empty_like(bins, dtype_bin)
-        _bin["chrom"] = chrom
-        _bin["pos"] = np.interp(bins, map_, pos)
-        _bin["id"] = bin_ids
-        _bin["map"] = bins
-        _bin["haploid"] = chrom_is_hap
-        bin_loc.append(_bin)
+            IX.bin_sizes.append(len(bins))
+            bin_ids = bins
+            _bin = np.empty_like(bins, dtype_bin)
+            _bin["chrom"] = chrom
+            _bin["pos"] = pos
+            _bin["id"] = bin_ids
+            _bin["map"] = bins
+            _bin["haploid"] = chrom_is_hap
+            bin_loc.append(_bin)
+
+            snp_ids = bins
+            IX.SNP2BIN[bins] = bins
+
+        else:
+            # create bins
+            bins = np.arange(chrom_start, chrom_end, bin_size)
+            log_.debug("binning chrom %s: %d bins", chrom, len(bins))
+
+            IX.bin_sizes.append(len(bins))
+            bin_ids = range(bin0, bin0 + len(bins))
+            _bin = np.empty_like(bins, dtype_bin)
+            _bin["chrom"] = chrom
+            _bin["pos"] = np.interp(bins, map_, pos)
+            _bin["id"] = bin_ids
+            _bin["map"] = bins
+            _bin["haploid"] = chrom_is_hap
+            bin_loc.append(_bin)
 
 
 
-        # put SNPs in bins
-        snp_ids = snp.snp_id[snp.chrom == chrom]
-        dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
-        IX.SNP2BIN[snp_ids] = dig_snp + bin0
+            # put SNPs in bins
+            snp_ids = snp.snp_id[snp.chrom == chrom]
+            dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
+            IX.SNP2BIN[snp_ids] = dig_snp + bin0
 
 
         if chrom_is_hap:
@@ -280,6 +315,7 @@ def bins_from_bed(df, bin_size, sex=None):
 
 
     bins = np.hstack(bin_loc)
+
 
     # for now, assume data is ordered such that diploid chroms come before haploid ones
     assert (
@@ -313,6 +349,135 @@ def bins_from_bed(df, bin_size, sex=None):
     log_.debug("done creating bins")
     return bins, IX
 
+def sfs_from_bed(df, states, ancestral=None, sex=None):
+    """create a bunch of auxillary data frames for SFS-inference, based on bins_from_bed
+    - sfs: sfs columns are allele counts for ref and anc, e.g. AFR_ref, AFR_alt, NEA_ref, NEA_alt
+    - IX: container staroing all indices
+        - IX.SNP2BIN [n_snps]: array giving SFS for each SNP
+        - IX.OBS2SNP [n_obs]: array giving snp for each obs
+        - IX.OBS2BIN [n_obs]: array giving bin for each obs
+        - IX.RG2OBS [n_libs] : [list] dict giving obs for each readgroup
+        - IX.states
+        - IX.libs : names of all libraries
+    """
+    IX = _IX()
+    IX.states = [f"{s}_ref" for s in states] + [f"{s}_alt" for s in states] 
+    IX.libs = np.unique(df.lib)
+
+    if ancestral is not None:
+        IX.states = IX.states + ['anc']
+        df['anc'] = df.loc[:, f'{ancestral}_ref'] > 0
+        df.anc = df.anc.astype(int)
+
+        #df = df.loc[df[f'{ancestral}_ref'] + df[f'{ancestral}_alt'] !=0]
+        df.loc[df[f'{ancestral}_ref'] + df[f'{ancestral}_alt'] ==0, 'anc'] = - 1
+
+        to_switch = df.anc == 0 #switch all where anc is alternative allele
+
+        for state in states:
+            tmp = df.loc[to_switch, f'{state}_ref']
+            df.loc[to_switch, f'{state}_ref'] = df.loc[to_switch, f'{state}_alt']
+            df.loc[to_switch, f'{state}_alt'] = tmp
+
+        df.loc[to_switch, 'anc'] = 1 - df.loc[to_switch, 'anc']
+
+    snp = df[IX.states].reset_index().drop_duplicates()
+
+
+    chroms = pd.unique(snp.chrom)
+    n_snps = len(snp.snp_id.unique())
+
+    haplo_chroms, diplo_chroms = [], []
+    if sex is None:
+        diplo_chroms = chroms
+    else:
+        for c in chroms:
+            if c[0] in "YyWw":
+                haplo_chroms.append(c)
+            elif c[0] in "Xx" and sex == "m":
+                haplo_chroms.append(c)
+            elif c[0] in "Zz" and sex == "f":
+                haplo_chroms.append(c)
+            elif c.startswith("hap"):
+                haplo_chroms.append(c)
+            else:
+                diplo_chroms.append(c)
+
+
+    IX.OBS2SNP = np.array(df.index.get_level_values('snp_id'))
+
+    #create dict [sfs] - > column
+    sfs = df[IX.states].reset_index(drop=True).drop_duplicates().reset_index(drop=True)
+    sfs = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
+
+    snp_ = np.array(snp[IX.states])
+
+    IX.SNP2BIN = np.array([sfs[tuple(i)] for i in snp_])
+
+    IX.diploid_snps = snp.snp_id[snp.chrom.isin(diplo_chroms)]
+    IX.haploid_snps = snp.snp_id[snp.chrom.isin(haplo_chroms)]
+
+
+    if len(IX.haploid_snps) > 0:
+        IX.haploid_snps = slice(min(IX.haploid_snps), max(IX.haploid_snps) + 1)
+    else:
+        IX.haploid_snps = slice(0, 0)
+    if len(IX.diploid_snps) > 0:
+        IX.diploid_snps = slice(min(IX.diploid_snps), max(IX.diploid_snps) + 1)
+    else:
+        IX.diploid_snps = slice(0, 0)
+
+    IX.RG2OBS = dict((l, np.where(df.lib == l)[0]) for l in IX.libs)
+    IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
+
+    IX.n_chroms = len(chroms)
+    IX.n_bins = len(sfs)
+    IX.n_sfs = IX.n_bins
+    IX.n_snps = len(IX.SNP2BIN)
+    IX.n_obs = len(IX.OBS2SNP)
+    IX.n_reads = np.sum(df.tref + df.talt)
+
+    IX.chroms = chroms
+    IX.haplo_chroms = haplo_chroms
+    IX.diplo_chroms = diplo_chroms
+
+
+    log_.debug("done creating sfs")
+    return sfs, IX
+
+def init_ftau(n_states, F0=0.5, tau0=0):
+    """initializes F and tau, which exist for each homozygous state
+    """
+    try:
+        if len(F0) == n_states:
+            F = F0
+        elif len(F0) == 1:
+            F = F0 * n_states
+        else:
+            F = [F0]
+    except TypeError:
+        F = [F0] * n_states
+    try:
+        if len(tau0) == n_states:
+            tau = tau0
+        elif len(F0) == 1:
+            tau = tau0 * n_states
+        else:
+            tau = [tau0]
+    except TypeError:
+        tau = [tau0] * n_states
+
+    return np.array(F), np.array(tau)
+
+def init_ce(c0=0.01, e0=0.001):
+    cont = defaultdict(lambda: c0)
+    error = defaultdict(lambda: e0)
+    return cont, error
+
+def init_pars_sfs(n_sfs, F0, tau0, e0, c0, sex=None, **kwargs):
+    cont, error = init_ce(c0, e0)
+    F, tau = init_ftau(n_sfs, F0, tau0)
+    return ParsSFS(F=F, tau=tau, cont=cont, error=error, sex=sex)
 
 def init_pars(
     state_ids,
@@ -330,6 +495,7 @@ def init_pars(
 
     returns a pars object
     """
+
     homo = [s for s in state_ids]
     het = []
     hap = ["h%s" % s for s in homo]
@@ -354,8 +520,6 @@ def init_pars(
 
     np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
     np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
-    cont = defaultdict(lambda: c0)
-    error = defaultdict(lambda: e0)
 
     if init_guess is not None:
         # guess = [i for i, n in enumerate(gamma_names) if init_guess in n]
@@ -364,24 +528,9 @@ def init_pars(
         trans_mat[:, guess] = trans_mat[:, guess] + 1
         trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
 
-    try:
-        if len(F0) == n_homo:
-            F = F0
-        elif len(F0) == 1:
-            F = F0 * n_homo
-        else:
-            F = [F0]
-    except TypeError:
-        F = [F0] * n_homo
-    try:
-        if len(tau0) == n_homo:
-            tau = tau0
-        elif len(F0) == 1:
-            tau = tau0 * n_homo
-        else:
-            tau = [tau0]
-    except TypeError:
-        tau = [tau0] * n_homo
+    cont, error = init_ce(c0, e0)
+    F, tau = init_ftau(n_homo, F0, tau0)
+
     if do_hap:
         return ParsHD(
             alpha0,
@@ -403,9 +552,10 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
     freq = np.array([0, 1, 2, 0, 1]) if est_inbreeding else np.arange(3)
     PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
     mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
+    random = np.random.binomial(1, mu)
     PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
-    return pd.DataFrame(np.hstack((PG, mu)), columns=["G0", "G1", "G2", "p"])
+    return pd.DataFrame(np.hstack((PG, mu, random)), columns=["G0", "G1", "G2", "p", "random_read"])
 
 
 def empirical_bayes_prior(der, anc, known_anc=False):

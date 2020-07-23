@@ -51,6 +51,8 @@ def update_contamination(cont, error, P, PG, IX,
     update emissions by maximizing contamination parameter
 
     cont: dict of contamination rates (by library)
+    error: dict of contamination rates (by library)
+    P: data structure with reference data
     PG: Pr(G, Z | O)
 
     """

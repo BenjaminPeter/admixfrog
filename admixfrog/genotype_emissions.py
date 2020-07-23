@@ -53,7 +53,7 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
 
 def update_post_geno(PG, SNP, Z, IX):
     """
-    calculate P(G ,Z| O), the probability of genotype given 
+    calculate P(G, Z | O), the probability of genotype given 
     observations and hidden states Z. 
 
     P(G, Z| O) = P(Z|O) P(G | Z, O)
