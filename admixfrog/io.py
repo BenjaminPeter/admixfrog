@@ -104,8 +104,14 @@ def load_ref(
     return ref
 
 
-def filter_ref(ref, states, filter_delta=None, filter_pos=None, filter_map=None):
+def filter_ref(ref, states, ancestral=None, filter_delta=None, filter_pos=None, filter_map=None,
+               filter_ancestral=False):
     n_states = len(states)
+
+    if filter_ancestral and ancestral is not None:
+        no_ancestral_call = ref[f'{ancestral}_ref'] + ref[f'{ancestral}_alt'] ==0
+        ref = ref.loc[~no_ancestral_call]
+        log_.info("filtering %s SNP due to missing ancestral call", np.sum(no_ancestral_call))
 
     if filter_delta is not None:
         kp = np.zeros(ref.shape[0], np.bool)
@@ -156,7 +162,7 @@ def load_read_data(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
         data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))
         data.talt = binom.rvs(data.talt, downsample, size=len(data.talt))
 
-    # rm sites with extremely high coverage
+    # rm sites with no or extremely high coverage
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 1 - high_cov_filter)
     data = data[data.tref + data.talt <= q]
@@ -179,6 +185,7 @@ def nfp(chrom, pos, n_snps, filter_pos):
     return kp
 
 
+#yaml writer with indent
 class IndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(IndentDumper, self).increase_indent(flow, False)
@@ -292,3 +299,26 @@ def write_est_runs(df, outname=None):
 def write_sim_runs(df, outname=None):
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+def write_sfs(sfs, Z, tau, F, cont, P, IX, outname=None):
+    df1  = pd.DataFrame(Z, columns=['G0', 'G1', 'G2'])
+    df2 = pd.DataFrame(sfs.keys(), columns=IX.states)
+    df2 = df2.reindex(sorted(df2.columns), axis=1)
+    n_snps = pd.DataFrame(pd.Series(dict(Counter(IX.SNP2BIN))), columns=['n_snps'])
+
+    n_reads, n_endo  = Counter(), Counter()
+
+    for (i, lib, n) in zip(IX.OBS2BIN, P.lib, P.N): 
+        n_reads[i] += n
+        n_endo[i] += n * (1-cont[lib])
+
+    n_reads = pd.DataFrame(pd.Series(n_reads), columns = ['n_reads'])
+    n_endo = pd.DataFrame(pd.Series(n_endo), columns = ['n_endo'])
+    F = pd.DataFrame(F, columns=['F'])
+    tau = pd.DataFrame(tau, columns=['tau'])
+
+    sfs_df = pd.concat((df2, df1, F, tau, n_snps, n_reads, n_endo),  axis=1)
+    sfs_df['p'] = sfs_df.G1/2 + sfs_df.G2
+
+    if outname is not None:
+        sfs_df.to_csv(outname, float_format="%5f", index=False, compression='xz')
