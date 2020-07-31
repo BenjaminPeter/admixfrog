@@ -39,18 +39,14 @@ def p_reads_given_gt(*args, gt_mode=False, **kwargs):
 
 @njit
 def p_reads_given_gt_gtmode(O, N, Pcont, c, error, n_obs):
-    """calculates P(O | G); probabilty of anc/derived reads given genotype
-    per read group
-
-    for debug/testing purposes
-
+    """calculates P(O | G); probabilty of anc/derived genotype given input genotype
     """
     n_gt = 3
     read_emissions = np.ones((n_obs, n_gt))
     for g in range(3):
         # = binom.pmf(P.O, P.N, p)
-        read_emissions[O == g, g] = 1 - 2 * error[O==g]
-        read_emissions[O != g, g] = error[O!=g]
+        read_emissions[O/N == g/2, g] = 1 - 2 * error[O==g]
+        read_emissions[O/N != g/2, g] = error[O!=g]
 
     return read_emissions
 
