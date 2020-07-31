@@ -552,7 +552,10 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
     freq = np.array([0, 1, 2, 0, 1]) if est_inbreeding else np.arange(3)
     PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
     mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
-    random = np.random.binomial(1, mu)
+    try:
+        random = np.random.binomial(1, np.minimum(np.maximum(1, mu), 0))
+    except ValueError:
+        breakpoint()
     PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(np.hstack((PG, mu, random)), columns=["G0", "G1", "G2", "p", "random_read"])

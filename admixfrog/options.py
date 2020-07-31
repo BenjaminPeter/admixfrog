@@ -391,7 +391,7 @@ def add_estimation_options(P):
         "--tau0",
         nargs="*",
         type=float,
-        default=0.3,
+        default=0.8,
         # help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
         help="initial log-tau (default 0), at most 1 per source",
     )
