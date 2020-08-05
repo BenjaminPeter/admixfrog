@@ -19,7 +19,7 @@ except (ImportError, ModuleNotFoundError):
 
 def load_ref(
     ref_files, state_dict, cont_id, ancestral=None, autosomes_only=False,
-    map_col = 'map'
+    map_col = 'map', large_ref = True
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files
@@ -46,6 +46,10 @@ def load_ref(
     alt_cols = [f"{s}_alt" for s in label_states]
     data_cols = ref_cols + alt_cols
     
+    dtype_ = dict(chrom="category", bla=np.uint8)
+    for col in data_cols:
+        dtype_[col] = np.uint16 if large_ref else np.uint8
+
     #which file a column is in
     file_ix = [None for i in data_cols]
     map_ix = None
@@ -54,7 +58,6 @@ def load_ref(
     headers = list(list(pd.read_csv(r, nrows=0).columns) for r in ref_files)
     map_file = [i for i, h in enumerate(headers) if map_col in h]
     map_file = map_file[0] if len(map_file) > 0 else None
-
 
     for i, col in enumerate(data_cols):
         for j, h in enumerate(headers):
@@ -68,7 +71,6 @@ def load_ref(
         raise ValueError("columns not found in reference: " + ", ".join(s))
 
     #read correct cols from each file
-    dtype_ = dict(chrom="category")
     for i, ref_file in enumerate(ref_files):
 
         cols0 = basic_cols + [col for ix, col in zip(file_ix, data_cols) if ix == i]
@@ -79,9 +81,10 @@ def load_ref(
             ix_cols = basic_cols
 
         ref0 = pd.read_csv(ref_file, dtype=dtype_, 
-                           usecols=cols0,
-                           index_col=ix_cols)
+                           usecols=cols0)
+        ref0.set_index(ix_cols, inplace=True)
         ref0.index.rename('map', level=map_col, inplace=True)
+
         #ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
         ref0 = ref0.loc[~ref0.index.duplicated()]
         ref0 = ref0[~np.isnan(ref0.reset_index('map').map.values)]
@@ -104,14 +107,20 @@ def load_ref(
     return ref
 
 
-def filter_ref(ref, states, ancestral=None, filter_delta=None, filter_pos=None, filter_map=None,
-               filter_ancestral=False):
+def filter_ref(ref, states, ancestral=None, cont=None,
+               filter_delta=None, filter_pos=None, filter_map=None,
+               filter_ancestral=False, filter_cont=True):
     n_states = len(states)
 
     if filter_ancestral and ancestral is not None:
         no_ancestral_call = ref[f'{ancestral}_ref'] + ref[f'{ancestral}_alt'] ==0
         ref = ref.loc[~no_ancestral_call]
         log_.info("filtering %s SNP due to missing ancestral call", np.sum(no_ancestral_call))
+
+    if filter_cont and cont is not None:
+        no_cont_data = ref[f'{cont}_ref'] + ref[f'{cont}_alt'] ==0
+        ref = ref.loc[~no_cont_data]
+        log_.info("filtering %s SNP due to missing contaminant call", np.sum(no_cont_data))
 
     if filter_delta is not None:
         kp = np.zeros(ref.shape[0], np.bool)
@@ -149,9 +158,15 @@ def filter_ref(ref, states, ancestral=None, filter_delta=None, filter_pos=None, 
 
 
 def load_read_data(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
-    dtype_ = dict(chrom="category")
-    data = pd.read_csv(infile, dtype=dtype_, index_col=['chrom', 'pos']).dropna()
-    #data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
+    dtype_ = dict(chrom="category", tref=np.uint8, 
+                  talt=np.uint8, 
+                  lib=str, 
+                  pos=np.uint32)
+
+    #this is more concise, but gives numpy future warning for no reason
+    #data = pd.read_csv(infile, dtype=dtype_, index_col=['chrom', 'pos']).dropna()
+    data = pd.read_csv(infile, dtype=dtype_, usecols=dtype_.keys()).dropna()
+    data.set_index(['chrom', 'pos'], inplace=True)
 
     if "lib" not in data:
         data["lib"] = "lib0"
@@ -192,7 +207,7 @@ class IndentDumper(yaml.Dumper):
 
 
 def write_pars_table(pars, outname=None):
-    P = dict(pars._asdict())
+    P = pars.__dict__
     for k, v in P.items():
         try:
             P[k] = v.tolist()

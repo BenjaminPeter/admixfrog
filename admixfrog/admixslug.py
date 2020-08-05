@@ -7,7 +7,7 @@ from .read_emissions2 import p_snps_given_gt
 from .io import load_read_data, load_ref, filter_ref
 from .io import write_bin_table, write_pars_table, write_cont_table
 from .io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
-from .utils import bins_from_bed, sfs_from_bed, data2probs, init_pars_sfs, ParsSFS
+from .utils import bins_from_bed, sfs_from_bed, data2probs, init_pars_sfs
 from .utils import guess_sex, parse_state_string
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno,  update_snp_prob
@@ -17,7 +17,9 @@ from .rle import get_rle
 from .decode import pred_sims, resampling_pars
 from .log import log_, setup_log
 from .geno_io import read_geno_ref, read_geno
-from .admixfrog import load_admixfrog_data
+from .slug_classes import SlugPars, SlugData, SlugController
+from .utils import make_slug_data
+from .slug_emissions import em
 
 COORDS = ["chrom", "map", "pos"]
 
@@ -109,7 +111,7 @@ def em_sfs(P, IX, pars, est_options, max_iter=1000,
         update_snp(E, G, P, IX, cont, error, gt_mode)
 
 
-    pars = ParsSFS(
+    pars = SlugPars(
         cont, error, F, tau, sex
     )
 
@@ -124,7 +126,6 @@ def run_admixslug(
     target_file,
     ref_files,
     geno_file=None,
-    target=None,
     states=("AFR", "VIN", "DEN"),
     state_file = None,
     cont_id="AFR",
@@ -166,39 +167,39 @@ def run_admixslug(
     states = list(dict(((x, None) for x in state_dict2.values())))
 
 
-    df, sex, tot_n_snps = load_admixfrog_data(target_file = target_file,
+    df, sex, n_sites = load_admixslug_data_native(target_file = target_file,
                              ref_files=ref_files,
-                             geno_file=geno_file,
-                             target=target,
                              gt_mode = gt_mode,
                              states=states,
-                             sex=sex,
                              state_dict = state_dict,
                              ancestral=ancestral,
+                             sex = sex,
                              cont_id=cont_id,
                              split_lib=split_lib,
                              map_col=map_col,
                              pos_mode=pos_mode,
                              downsample=downsample,
-                             guess_ploidy=guess_ploidy,
                              fake_contamination=fake_contamination,
                              filter=filter,
                              autosomes_only=autosomes_only)
     log_.info("done loading data")
 
-    sfs, IX = sfs_from_bed(df, states=states, ancestral=ancestral, sex=sex)
-    log_.info("done creating sfs")
 
-    P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral,
-                   ancestral_prior=ancestral_prior,
-                   doalphabeta=False)
-    log_.info("done creating prior")
 
-    pars = init_pars_sfs(IX.n_sfs, sex=sex, **init)
+    data, sfs = make_slug_data(df, states=states, ancestral=ancestral, sex=sex,
+                          cont_id=cont_id)
+    pars = init_pars_sfs(data.n_sfs, data.n_rgs, **init)
 
-    Z, G, pars, ll = em_sfs( P, IX, pars, gt_mode=gt_mode, 
-        est_options=est, **kwargs
-    )
+    controller = SlugController(do_update_eb = False,
+                                do_update_ftau = True,
+                                do_update_cont = False,
+                                n_iter = 100,
+                                ll_tol = 1e-2)
+
+
+    em(pars, data, controller)
+    print(pars)
+    breakpoint()
 
     # output formating from here
     if output["output_pars"]:
@@ -208,9 +209,99 @@ def run_admixslug(
         df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode, outname=f'{outname}.snp.xz')
 
     if output["output_cont"]:
-        df_cont = write_cont_table(df, pars.cont, pars.error, tot_n_snps, outname=f'{outname}.cont.xz')
+        df_cont = write_cont_table(df, pars.cont, pars.error, 
+                                   np.max(df.snp_id) + 1, outname=f'{outname}.cont.xz')
 
     if output["output_sfs"]:
         write_sfs(sfs, Z, pars.tau, pars.F, pars.cont, P, IX, outname=f'{outname}.sfs.xz')
 
     return 
+
+def load_admixslug_data_native(states,
+                        state_dict=None,
+                        target_file=None, 
+                        gt_mode=False,
+                        filter=defaultdict(lambda: None),
+                        ref_files=None,
+                        sex=None,
+                        ancestral=None,
+                        cont_id=None,
+                        split_lib=True,
+                        pos_mode=False,
+                        downsample=1,
+                        map_col='map',
+                        fake_contamination=0,
+                        autosomes_only=False):
+    
+    if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
+        data = load_read_data(target_file, high_cov_filter=filter.pop('filter_high_cov'))
+    else:
+        data = load_read_data(target_file, split_lib, downsample, high_cov_filter=filter.pop('filter_high_cov'))
+
+    ref = load_ref(ref_files, state_dict, cont_id, ancestral,
+                   autosomes_only, map_col=map_col, large_ref=False)
+    ref = filter_ref(ref, states, ancestral=ancestral, cont=cont_id, **filter)
+
+    if pos_mode:
+        ref.reset_index('map', inplace=True)
+        ref.map = ref.index.get_level_values('pos')
+        ref.set_index('map', append=True, inplace=True)
+
+
+
+    df = ref.join(data, how='inner')
+    df = make_snp_ids(df)
+
+    # sexing stuff
+    if sex is None:
+        sex = guess_sex(ref, data)
+
+    if fake_contamination and cont_id:
+        add_fake_contamination(df, cont_id, prop_cont=fake_contamination)
+
+    n_sites = df.shape[0]
+
+    return df, sex, n_sites
+
+def make_snp_ids(df):
+    """integer id for each SNP with available data"""
+    snp_ids = df[~df.index.duplicated()].groupby(df.index.names).ngroup()
+    snp_ids = snp_ids.rename('snp_id')
+    snp_ids = pd.DataFrame(snp_ids)                              
+    snp_ids.set_index('snp_id', append=True, inplace=True)       
+    df = snp_ids.join(df)
+
+    df.sort_index(inplace=True)
+    return df
+
+def add_fake_contamination(df, cont_id, prop_cont):
+        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+        mean_endo_cov = np.mean(df.tref + df.talt)
+        """
+            C = x / (e+x);
+            Ce + Cx = x
+            Ce = x - Cx
+            Ce = x(1-C)
+            Ce / ( 1- C) = x
+        """
+
+        target_cont_cov = prop_cont * mean_endo_cov / (1 - prop_cont)
+        f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt])
+
+        log_.debug(f"endogenous cov: {mean_endo_cov}")
+        log_.debug(f"fake contamination cov: {target_cont_cov}")
+
+
+        try:
+            c_ref = np.random.poisson( (1 - f_cont) * target_cont_cov)
+            c_alt = np.random.poisson( f_cont * target_cont_cov)
+        except ValueError:
+            breakpoint()
+            raise ValueError()
+        log_.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
+        log_.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
+        df.tref += c_ref
+        df.talt += c_alt
+        
+
+

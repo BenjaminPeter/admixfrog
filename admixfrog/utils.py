@@ -2,6 +2,7 @@ from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
 import yaml
+from .slug_classes import SlugData, SlugPars
 
 try:
     from .log import log_
@@ -31,17 +32,6 @@ ParsHD = namedtuple(
         "sex",
     ),
 )  # for returning from varios functions
-
-ParsSFS = namedtuple(
-    "ParsSFS",
-    (
-        "cont",
-        "error",
-        "F",
-        "tau",
-        "sex"
-    ),
-) 
 
 
 class _IX:
@@ -349,6 +339,112 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     log_.debug("done creating bins")
     return bins, IX
 
+
+def get_haploid_stuff(snp, chroms, sex):
+    haplo_chroms, diplo_chroms = [], []
+
+    if sex is None:
+        diplo_chroms = chroms
+    else:
+        for c in chroms:
+            if c[0] in "YyWw":
+                haplo_chroms.append(c)
+            elif c[0] in "Xx" and sex == "m":
+                haplo_chroms.append(c)
+            elif c[0] in "Zz" and sex == "f":
+                haplo_chroms.append(c)
+            elif c.startswith("hap"):
+                haplo_chroms.append(c)
+            else:
+                diplo_chroms.append(c)
+
+    haploid_snps = snp.snp_id[snp.chrom.isin(haplo_chroms)]
+    if len(haploid_snps) > 0:
+        haploid_snps = slice(min(haploid_snps), max(haploid_snps) + 1)
+    else:
+        haploid_snps = slice(0, 0)
+
+
+    return haplo_chroms, haploid_snps
+
+
+def make_obs2rg(v_lib):
+    libs = np.unique(v_lib)
+    libs = dict((l, i) for i, l in enumerate(libs))
+    OBS2RG = np.array([libs[i] for i in v_lib], dtype = np.uint16)
+    return libs, OBS2RG
+
+def make_obs2sfs(snp_states):
+    #create dict [sfs] - > column
+    sfs = snp_states.reset_index(drop=True).drop_duplicates().reset_index(drop=True)
+    sfs = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
+
+    snp_states = np.array(snp_states)
+    SNP2SFS = np.array([sfs[tuple(i)] for i in snp_states], dtype=np.uint16)
+
+    return sfs, SNP2SFS
+
+
+def make_slug_data(df, states, ancestral=None, cont_id = None, sex=None):
+    """ create a SlugData object with the following attributes:
+    N: np.ndarray  # number of reads [O x 1]
+    O: np.ndarray  # number of obs [O x 1]
+    psi: np.ndarray  # freq of contaminant [L x 1]
+
+    OBS2RG: np.ndarray  # which obs is in which rg [O x 1]
+    OBS2SNP: np.ndarray  # which obs belongs to which locus [O x 1]
+    SNP2SFS: np.ndarray  # which snp belongs to which sfs entry [L x 1]
+
+    haploid_snps : Any = None
+
+    states : Any = None
+    libs : Any = None
+    chroms : Any = None
+    """
+    ref_ix, alt_ix = [f"{s}_ref" for s in states] , [f"{s}_alt" for s in states] 
+    sfs_state_ix = alt_ix + ref_ix #states used in sfs
+    all_state_ix = set(alt_ix + ref_ix) #states in sfs + contamination + ancestral
+
+
+    if cont_id is not None:
+        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+        all_state_ix.update([cont_ref, cont_alt])
+    if ancestral is not None:
+        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        all_state_ix.update([anc_ref, anc_alt])
+    
+
+    libs, OBS2RG = make_obs2rg(df.lib)
+
+    snp = df[all_state_ix].reset_index().drop_duplicates()
+    sfs, SNP2SFS = make_obs2sfs(snp[sfs_state_ix])
+
+
+    chroms = pd.unique(snp.chrom)
+    haplo_chroms, haplo_snps = get_haploid_stuff(snp, chroms, sex)
+
+    if cont_id is None:
+        psi = np.zeros_like(SNP2SFS)
+    else:
+        psi = snp[cont_alt] / (snp[cont_alt] + snp[cont_ref] + 1e-100)
+
+    data = SlugData(ALT = df.talt.to_numpy(),
+                    REF = df.tref.to_numpy(),
+                    psi = psi,
+                    OBS2RG = OBS2RG,
+                    OBS2SNP = df.index.get_level_values('snp_id').to_numpy(),
+                    SNP2SFS = SNP2SFS,
+                    haploid_snps = haplo_snps,
+                    states = sfs_state_ix,
+                    libs = libs,
+                    sex = sex,
+                    chroms = chroms,
+                    haplo_chroms = haplo_chroms)
+
+    log_.debug("done creating data")
+    return data, sfs
+
+
 def sfs_from_bed(df, states, ancestral=None, sex=None):
     """create a bunch of auxillary data frames for SFS-inference, based on bins_from_bed
     - sfs: sfs columns are allele counts for ref and anc, e.g. AFR_ref, AFR_alt, NEA_ref, NEA_alt
@@ -474,10 +570,15 @@ def init_ce(c0=0.01, e0=0.001):
     error = defaultdict(lambda: e0)
     return cont, error
 
-def init_pars_sfs(n_sfs, F0, tau0, e0, c0, sex=None, **kwargs):
+def init_pars_sfs(n_sfs, n_rgs, F0, tau0, e0, c0, **kwargs):
     cont, error = init_ce(c0, e0)
     F, tau = init_ftau(n_sfs, F0, tau0)
-    return ParsSFS(F=F, tau=tau, cont=cont, error=error, sex=sex)
+    pars = SlugPars(cont = np.zeros(n_rgs) + c0,
+                    tau = np.zeros(n_sfs) + tau0,
+                    F = np.zeros(n_sfs) + F0,
+                    e = e0,
+                    b = e0)
+    return pars
 
 def init_pars(
     state_ids,
@@ -586,22 +687,20 @@ def guess_sex(ref, data, sex_ratio_threshold=0.75):
     """
         guessing the sex of individuals by comparing heterogametic chromosomes.
         By convention, all chromosomes are assumed to be diploid unless they start
-        with an `X` or `Z`
+        with an `X` or `Z` or `h`
     """
-    ref["heterogametic"] = [v[0] in "XZxz" for v in ref.index.get_level_values('chrom')]
-    data["heterogametic"] = [v[0] in "XZxz" for v in data.index.get_level_values('chrom')]
+    ref["heterogametic"] = [v[0] in "XZxzh" for v in ref.index.get_level_values('chrom')]
+    data["heterogametic"] = [v[0] in "XZxzh" for v in data.index.get_level_values('chrom')]
 
     n_sites = ref.groupby(ref.heterogametic).apply(lambda df: len(df))
     n_reads = data.groupby(data.heterogametic).apply(lambda df: np.sum(df.tref + df.talt))
     cov = n_reads / n_sites
-
     del data["heterogametic"]
     del ref['heterogametic']
 
     #no heteogametic data
     if True not in cov:
         return 'f'
-
 
     if cov[True] / cov[False] < sex_ratio_threshold:
         sex = "m"

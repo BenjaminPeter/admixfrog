@@ -168,6 +168,7 @@ def update_emission_stuff(
     cond_cont = O["est_contamination"] and (it % O["freq_contamination"] == 0 or it < 3)
     cond_Ftau = O["est_F"] or O["est_tau"] and (it % O["freq_F"] == 0 or it < 3)
 
+
     if cond_Ftau or cond_cont:  # and gll_mode:
         update_post_geno(PG, SNP, Z, IX)
 
