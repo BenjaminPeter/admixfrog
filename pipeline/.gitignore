@@ -8,4 +8,5 @@ benchmarks/
 bams/
 *rdebug
 .*
-
+tmp*
+test_*

@@ -3,17 +3,17 @@ library(reshape2)
 
 infile = snakemake@input$cont
 
-save.image("bla.rdebug")
+#save.image("bla.rdebug")
 
 a = read_csv(infile) 
 
 
-MIN = 100
+MIN = 000
 a = a %>% filter(n_reads > MIN) %>% select(-lib)
 a = a %>% arrange(-n_reads) %>% mutate(rg=factor(rg, unique(rg)))
 b = a %>% mutate(contam.=n_reads*cont, endogenous =n_reads-contam.)  %>% 
-    select(-n_reads, -cont)                      
-P = b %>% melt(id.vars=c("rg", "len_bin", "deam")) %>% 
+    select(-n_reads, -cont, -error)                      
+P = b %>% select(-tot_n_snps) %>% melt(id.vars=c("rg", "len_bin", "deam")) %>% 
     ggplot(aes(x=len_bin, y=value, fill=variable)) + 
     geom_col() + 
     #facet_wrap(~rg * len_bin, ncol=1, strip.position="left") +

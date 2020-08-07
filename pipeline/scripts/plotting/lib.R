@@ -71,11 +71,14 @@ make_chrom_limits <- function(){
 
 
 }
-bg_chrom_wrap <- function(ref=NULL, map="AA_Map"){
+bg_chrom_wrap <- function(ref=NULL, map="AA_Map", hasX=T){
     x = read_csv("annotation/chrom_limits.csv", col_types=cols(chrom=readr::col_factor())) %>% 
         select('chrom', min=sprintf('%s_min', map), max=sprintf("%s_max", map))
+    if(!hasX){
+        x = x %>% filter(chrom!='X')
+    }
 
-    x_wrap = x %>% mutate(c_wrap=high_chrom(chrom),
+    x_wrap = x %>% mutate(c_wrap=high_chrom(chrom, hasX),
                           min2 = ifelse(as.character(chrom)==as.character(c_wrap), min, 360 - max),
                           max = ifelse(as.character(chrom)==as.character(c_wrap), max, 360 - min)) %>%
             select(-min) %>%
@@ -86,7 +89,7 @@ bg_chrom_wrap <- function(ref=NULL, map="AA_Map"){
 }
 
 bg_chrom <- function(ref=NULL, map="AA_Map", flip=F){
-    x = read_csv("ref/chrom_limits.csv", col_types=cols(chrom=col_factor())) %>% 
+    x = read_csv("ref/chrom_limits.csv", col_types=cols(chrom=readr::col_factor())) %>% 
         select('chrom', min=sprintf('%s_min', map), max=sprintf("%s_max", map))
     if(!is.null(ref)) x = filter(x, chrom %in% unique(ref$chrom))
     if(flip){
@@ -156,15 +159,22 @@ bin_to_long <- function(data){
         gather(variable, value, -sample:-n_snps, -pwidth, -bwidth)
 }
 
-bin_colplot_wrap <- function(d2, add_chrom=T, base_size=8){
+bin_colplot_wrap <- function(d2, add_chrom=T, base_size=8, hasX=T){
     print(nrow(d2))
-    d_wrap = d2 %>% mutate(c_wrap=high_chrom(chrom), 
+    d_wrap = d2 %>% mutate(c_wrap=high_chrom(chrom, hasX), 
                            m_wrap = ifelse(as.character(chrom)==as.character(c_wrap), map, 360 - map))
+
+    if(hasX){
     d_label = data.frame(c_wrap=levels(d_wrap$c_wrap), 
                          lab=c(paste0(23-c(as.integer(levels(d_wrap$c_wrap)[1:11])), " "), NA))
     d_label$xintercept=c(rep(360, 11), 0)
+    } else{
+        d_label = data.frame(c_wrap=levels(d_wrap$c_wrap), 
+                             lab=c(paste0(23-c(as.integer(levels(d_wrap$c_wrap)[1:11])))))
+        d_label$xintercept=c(rep(360, 11))
+    }
     P = d_wrap %>% ggplot() 
-    if(add_chrom) P = P + bg_chrom_wrap(d_wrap)
+    if(add_chrom) P = P + bg_chrom_wrap(d_wrap, hasX=hasX)
     P +
         geom_col(mapping=aes(x=m_wrap, 
                        y=value, 
@@ -267,7 +277,8 @@ plot_m_gamma <- function(R, generation_time){
 
 
 
-high_chrom = function(chrom){
+high_chrom = function(chrom, hasX=T){
+    if(hasX){
     chrom = as.character(chrom)
     chrom[chrom == 'X'] = 0
     chrom = as.integer(chrom)
@@ -276,5 +287,14 @@ high_chrom = function(chrom){
     chrom = as.factor(chrom)
     levels(chrom)[1] = 'X'
     chrom = factor(chrom, levels=c(1:11, 'X'))
+    return(chrom)
+    } else {
+    chrom = as.character(chrom)
+    chrom = as.integer(chrom)
+    chrom[chrom>11] = 23 - chrom[chrom>11]
+    chrom = as.factor(chrom)
+    return(chrom)
+        
+    }
 }
 

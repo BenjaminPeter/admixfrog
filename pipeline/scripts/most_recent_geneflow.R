@@ -1,6 +1,6 @@
 library(dplyr)
 
-n=1:100
+n=1:10
 G=37.04
 p = 0.03
 
@@ -25,4 +25,4 @@ df = v %>% t %>% as_tibble %>% mutate(G=n) %>%
     select(-name) %>% 
     mutate(vbin=round(value, 1))
 
-df %>% write_csv("most_recentdf.csv.xz")
+df %>% write_csv("most_recentdf2.csv.xz")

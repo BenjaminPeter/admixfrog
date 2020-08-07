@@ -8,7 +8,6 @@ XSCALE = scale_x_continuous(NULL, breaks=seq(0, 283, 40), expand=expand_scale(0,
 THEME2 = theme(strip.text.y = element_text(size = 7, angle=180),
                panel.spacing.y = unit(0.05, 'lines'))
 
-#' DOWNSAMPLE Altai
 fname = snakemake@input$bins
 ds_names = snakemake@params$names
 CHROM = snakemake@params$chrom
@@ -42,6 +41,3 @@ if(!is.null(lower+upper)){
 } 
 ggsave(snakemake@output$png, P, width=3.5, height=1.1, dpi=snakemake@params$dpi)
 saveRDS(P, snakemake@output$rds)
-
-
-

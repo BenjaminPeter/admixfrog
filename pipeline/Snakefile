@@ -25,7 +25,7 @@ rule admixfrog_sample_input:
 #        bai = "bams3/{sample}.bam.bai",
     params:
         cutoff = 3,
-        length_bin = 15
+        length_bin = 5
     output:
         csv = "samples/{sample}_{snpset}.in.xz"
     shell:
@@ -34,6 +34,26 @@ rule admixfrog_sample_input:
         " --out {output.csv} " 
         " --length-bin-size {params.length_bin} "
 
+rule admixfrog_sample_input_ct:
+    input :
+        ref = "ref/ref_{snpset}.csv.xz",
+        bam = "bams/{snpset}/{sample}.bam",
+        bai = "bams/{snpset}/{sample}.bam.bai",
+#        bam = "bams2/{sample}.bam",
+#        bai = "bams2/{sample}.bam.bai"
+#        bam = "bams3/{sample}.bam",
+#        bai = "bams3/{sample}.bam.bai",
+    params:
+        cutoff = 3,
+        length_bin = 15
+    output:
+        csv = "samples/{sample}_{snpset}.ct.in.xz"
+    shell:
+        "admixfrog_bam --ref {input.ref} --bamfile {input.bam} --force-bam"
+        " --deam-cutoff {params.cutoff} "
+        " --out {output.csv} " 
+        " --report-alleles "
+        " --length-bin-size {params.length_bin} "
 
 rule run_admixfrog:
     input:
@@ -79,6 +99,54 @@ rule run_admixfrog:
         s += " --n-post-replicates {params.n_post_rep}"
         s += " --filter-pos 50 --filter-map 0"
         s += " --female"
+        shell(s)
+
+rule run_admixfrog_nohmm:
+    input:
+        infile = "samples/{sample}_{snpset}.ct.in.xz",
+        ref = "ref/ref_{snpset}.csv.xz",
+    params:
+        cont_id = "AFR",
+        ll_tol = 1e-3,
+        freq_f = 1,
+        freq_c = 1,
+        error = 1e-2,
+        ancestral = "PAN",
+        run_penalty = 0.1,
+        max_iter = 1250,
+        n_post_rep = 200,
+    benchmark:
+        "benchmarks/admixfrog/{sample}_{bin_size}_{states}_{snpset}.log",
+    version: ".3"
+    log : 
+        log="admixfrog/{bin_size}/{states}/{sample}_{snpset}.log"
+    output:
+        res_bin = "admixfrog/nohmm/{bin_size}/{states}/{sample}_{snpset}.bin.xz",
+        res_snp = "admixfrog/nohmm/{bin_size}/{states}/{sample}_{snpset}.snp.xz",
+        res_cont= "admixfrog/nohmm/{bin_size}/{states}/{sample}_{snpset}.cont.xz",
+        res_par = "admixfrog/nohmm/{bin_size}/{states}/{sample}_{snpset}.pars.yaml",
+        res_rle = "admixfrog/nohmm/{bin_size}/{states}/{sample}_{snpset}.rle.xz",
+        #res_res = "admixfrog/nohmm/{bin_size}/{states}/{sample}_{snpset}.res.xz",
+        #res2_res = "admixfrog/nohmm/{bin_size}/{states}/{sample}_{snpset}.res2.xz",
+    run:
+        outname = path.splitext(path.splitext(output.res_bin)[0])[0]
+        states = wildcards.states.split("_")
+        s = "admixfrog --infile {input.infile} --ref {input.ref} -o {outname} "
+        s += " --states {states} "
+        s += " --cont-id {params.cont_id} "
+        s += " --ll-tol {params.ll_tol} "
+        s += " --bin-size {wildcards.bin_size} "
+        #s += " --snp-mode "
+        s += " --est-error "
+        s += " --est-F --est-tau "
+        s += " --e0 {params.error} --F0 0 "
+        s += " --ancestral {params.ancestral} "
+        s += " --run-penalty {params.run_penalty}"
+        s += " --max-iter {params.max_iter}"
+        s += " --n-post-replicates {params.n_post_rep}"
+        s += " --filter-pos 50 --filter-map 0"
+        s += " --no-hmm "
+        s += " --no-rsim "
         shell(s)
 
 rule run_admixfrog_ultralow:
@@ -210,7 +278,6 @@ rule run_admixfrog_prior:
         s += " --max-iter {params.max_iter}"
         s += " --n-post-replicates {params.n_post_rep}"
         s += " --filter-pos 50 --filter-map 0.000"
-        s += " --init-guess AFR"
         shell(s)
 
 rule run_admixfrog_nohyper:
@@ -968,8 +1035,8 @@ rule plot_sample_overview:
         snp = "samples/{sample}_{snpset}.in.xz",
         script_ = "scripts/plotting/hmm_overview.R"
     params:
-        pmax = 0.7, #state with avg posterior larger than this is omitted
-        pmin = 1e-4 #states with avg posterior lower than this are omitted
+        pmax = 1.0, #state with avg posterior larger than this is omitted
+        pmin = 1e-2 #states with avg posterior lower than this are omitted
     output:
         posplot = "figures/{type}/{states}/{sample}_overview_pos_{bin_size, \d+}_{snpset}.png",
         mapplot = "figures/{type}/{states}/{sample}_overview_map_{bin_size, \d+}_{snpset}.png",
@@ -1533,3 +1600,12 @@ rule plot_paper_all_overviews:
         'stats/frags/{type}/homo_NEA_0.2/{states}/{bin_size}/{panel}_{snpset}.frags',
         'stats/frags/{type}/homo_DEN_0.2/{states}/{bin_size}/{panel}_{snpset}.frags',
     output: touch('controller/overview/{type}/{states}/{panel}_{bin_size}_{snpset}.png')
+
+def _inputfiles_panel(wc):
+    l = expand("samples/{sample}_{{snpset}}.in.xz",
+        sample = config['panels'][wc.panel])
+    return l
+rule inputfiles_panel:
+    input: 
+        _inputfiles_panel
+    output: touch('controller/input/{panel}_{snpset}')

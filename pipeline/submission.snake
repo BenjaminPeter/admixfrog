@@ -348,7 +348,7 @@ rule figS5_altai:
 
 rule figS4_ustishim:
     input:
-        ui_ds2='figures/paper/ui_ds2.png',
+        ui_ds='figures/paper/ui_ds.png',
         ui_href='figures/paper/ui_href.png',
         ui_mode='figures/paper/ui_mode.png',
         ui_panel='figures/paper/ui_panel.png',
@@ -360,6 +360,33 @@ rule figS4_ustishim:
         template='figures/svg_templates/figS4_ustishim.svg'
     output:
         'figures/rawsvg/figS4_ustishim.svg',
+    run:
+        with open(input.template) as f:
+            svg = f.read()
+            svg = svg.format(**dict(input))
+        with open(output[0], 'w') as f:
+            f.write(svg)
+
+rule figS4_tests:
+    input:
+        ui_ds='figures/paper/experiments/ui_ds.png',
+        ui_asc='figures/paper/experiments/ui_ascertainment.png',
+        ui_cont='figures/paper/experiments/ui_cont.png',
+        ui_skov="figures/paper/ui_skov.png",
+        d8_src='figures/paper/experiments/d8_src.png',
+        d8_rec='figures/paper/experiments/d8_rec.png',
+        d8_binsize='figures/paper/experiments/d8_binsize.png',
+        d8_cont="figures/paper/experiments/d8_cont.png",
+        altai_ds='figures/paper/experiments/altai_ds.png',
+        altai_cont='figures/paper/experiments/altai_cont.png',
+        altai_mode='figures/paper/experiments/altai_mode.png',
+        altai_src="figures/paper/experiments/altai_src.png",
+        altai_binsize='figures/paper/experiments/altai_binsize.png',
+        altai_prior='figures/paper/experiments/altai_prior.png',
+        altai_rec='figures/paper/experiments/altai_rec.png',
+        template='figures/svg_templates/figS4_test.svg'
+    output:
+        'figures/rawsvg/figS4_test.svg',
     run:
         with open(input.template) as f:
             svg = f.read()
@@ -390,6 +417,7 @@ rule bvals:
         bin = 'admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden.bin.xz',
     output:
         bvals='tables/paper/bvals.csv.xz',
+    script: 'scripts/paper/annotate_bval.R'
 
 rule functional_tests:
     input:
@@ -410,7 +438,7 @@ rule paper:
         'figures/paper/clean/fig2_d28.png',
         'figures/paper/clean/fig3_d35.png',
         'figures/paper/clean/figS4_ustishim.png',
-        'figures/paper/clean/figS5_altai.png',
+        'figures/paper/clean/figS4_test.png',
         'figures/paper/clean/figS6_contamination.png',
         'figures/paper/clean/figS7_validation.png',
         'figures/paper/clean/figS8_othersamples.png',
