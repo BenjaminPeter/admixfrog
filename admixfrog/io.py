@@ -68,7 +68,7 @@ def load_ref(
         raise ValueError("columns not found in reference: " + ", ".join(s))
 
     #read correct cols from each file
-    dtype_ = dict(chrom="category")
+    dtype_ = dict(chrom=str)
     for i, ref_file in enumerate(ref_files):
 
         cols0 = basic_cols + [col for ix, col in zip(file_ix, data_cols) if ix == i]
@@ -79,8 +79,9 @@ def load_ref(
             ix_cols = basic_cols
 
         ref0 = pd.read_csv(ref_file, dtype=dtype_, 
-                           usecols=cols0,
-                           index_col=ix_cols)
+                           usecols=cols0
+                           )
+        ref0.set_index(ix_cols, inplace=True)
         ref0.index.rename('map', level=map_col, inplace=True)
         #ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
         ref0 = ref0.loc[~ref0.index.duplicated()]
@@ -143,8 +144,9 @@ def filter_ref(ref, states, filter_delta=None, filter_pos=None, filter_map=None)
 
 
 def load_read_data(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
-    dtype_ = dict(chrom="category")
-    data = pd.read_csv(infile, dtype=dtype_, index_col=['chrom', 'pos']).dropna()
+    dtype_ = dict(chrom=str)
+    data = pd.read_csv(infile, dtype=dtype_).dropna()
+    data.set_index(['chrom', 'pos'], inplace=True)
     #data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
 
     if "lib" not in data:
@@ -201,7 +203,7 @@ def write_pars_table(pars, outname=None):
     return s
 
 
-def write_cont_table(data, cont, error, outname=None):
+def write_cont_table(data, cont, error, tot_n_snps, outname=None):
 
     df_libs = pd.DataFrame(cont.items(), columns=["lib", "cont"])
     df_error = pd.DataFrame(error.items(), columns=["lib", "error"])
@@ -221,12 +223,13 @@ def write_cont_table(data, cont, error, outname=None):
     df_libs["deam"] = deams
 
     CC = data.groupby(["lib"]).agg(({"tref": sum, "talt": sum})).reset_index()
-    CC["n_snps"] = CC.tref + CC.talt
+    CC["n_reads"] = CC.tref + CC.talt
     del CC["tref"]
     del CC["talt"]
 
     df_libs = df_libs.merge(CC)
-    df_libs.sort_values("n_snps", ascending=False)
+    df_libs.sort_values("n_reads", ascending=False)
+    df_libs['tot_n_snps'] = tot_n_snps
 
     if outname is not None:
         df_libs.to_csv(outname, float_format="%.6f", index=False, compression="xz")

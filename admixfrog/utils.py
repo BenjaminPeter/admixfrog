@@ -46,6 +46,7 @@ def data2probs(
     prior=None,
     cont_prior=(1e-8, 1e-8),
     ancestral=None,
+    ancestral_prior = 0,
 ):
     """create data structure that holds the genetic data
 
@@ -58,16 +59,18 @@ def data2probs(
     beta[n_snps, n_states] : the alt allele beta-prior
     """
 
-    alpha_ix = ["%s_alt" % s for s in state_ids]
-    beta_ix = ["%s_ref" % s for s in state_ids]
-    snp_ix_states = set(alpha_ix + beta_ix)
+
+    alt_ix = ["%s_alt" % s for s in state_ids]
+    ref_ix = ["%s_ref" % s for s in state_ids]
+    snp_ix_states = set(alt_ix + ref_ix)
+    ca, cb = cont_prior
 
     if cont_id is not None:
-        cont = "%s_alt" % cont_id, "%s_ref" % cont_id
-        snp_ix_states.update(cont)
+        cont_ref, cont_alt = "%s_alt" % cont_id, "%s_ref" % cont_id
+        snp_ix_states.update([cont_ref, cont_alt])
     if ancestral is not None:
-        anc = "%s_alt" % ancestral, "%s_ref" % ancestral
-        snp_ix_states.update(anc)
+        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        snp_ix_states.update([anc_ref, anc_alt])
 
     snp_df = df[list(snp_ix_states)]
     snp_df = snp_df[~snp_df.index.get_level_values('snp_id').duplicated()]
@@ -77,87 +80,86 @@ def data2probs(
 
 
     if prior is None:  # empirical bayes
-        alpha = np.empty((n_snps, n_states))
-        beta = np.empty((n_snps, n_states))
+        alt_prior = np.empty((n_snps, n_states))
+        ref_prior = np.empty((n_snps, n_states))
         if cont_id is not None:
-            ca, cb = empirical_bayes_prior(snp_df[cont[0]], snp_df[cont[1]])
+            ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
 
         if ancestral is None:
-            for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
+            for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, state_ids)):
                 pa, pb = empirical_bayes_prior(snp_df[a], snp_df[b])
                 log_.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
-                alpha[:, i] = snp_df[a] + pa
-                beta[:, i] = snp_df[b] + pb
+                alt_prior[:, i] = snp_df[a] + pa
+                ref_prior[:, i] = snp_df[b] + pb
         else:
-            anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
+            anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+
+            #set up vectors stating which allele is ancestral
             ref_is_anc = (snp_df[anc_ref] > 0) & (snp_df[anc_alt] == 0)
             alt_is_anc = (snp_df[anc_alt] > 0) & (snp_df[anc_ref] == 0)
             ref_is_der, alt_is_der = alt_is_anc, ref_is_anc
             anc_is_unknown = (1 - alt_is_anc) * (1 - ref_is_anc) == 1
-            for i, (a, b, s) in enumerate(zip(alpha_ix, beta_ix, state_ids)):
-                pa, pb = empirical_bayes_prior(snp_df[a], snp_df[b])
+
+            for i, (alt_col, ref_col, s) in enumerate(zip(alt_ix, ref_ix, state_ids)):
+
+                #1. set up base entries based on observed counts
+                alt_prior[:, i] = snp_df[alt_col]
+                ref_prior[:, i] = snp_df[ref_col]
+
+                #2. where anc is unknown, add symmetric prior estimated from data
+                pa, pb = empirical_bayes_prior(snp_df[alt_col], snp_df[ref_col])
                 log_.info("[%s]EB prior0 [anc=%.4f, der=%.4f]: " % (s, pa, pb))
-                alpha[:, i], beta[:, i] = snp_df[a], snp_df[b]
-                alpha[anc_is_unknown, i] += pa
-                beta[anc_is_unknown, i] += pb
+                alt_prior[anc_is_unknown, i] += pa
+                ref_prior[anc_is_unknown, i] += pb
 
-                m_anc = pd.concat((ref_is_anc, alt_is_anc), 1)
-                m_der = pd.concat((ref_is_der, alt_is_der), 1)
-                ANC = np.array(snp_df[[b, a]])[m_anc]
-                DER = np.array(snp_df[[b, a]])[m_der]
+                #3. where anc is known, create indices
+                m_anc = np.array(pd.concat((ref_is_anc, alt_is_anc), 1))
+                m_der = np.array(pd.concat((ref_is_der, alt_is_der), 1))
+                ANC = np.array(snp_df[[ref_col, alt_col]])[m_anc]
+                DER = np.array(snp_df[[ref_col, alt_col]])[m_der]
 
-                pder, panc = empirical_bayes_prior(DER, ANC, True)
+                pder, panc = empirical_bayes_prior(DER, ANC, known_anc=True)
+                panc += ancestral_prior
                 log_.info("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
-                alpha[alt_is_anc, i] += panc
-                alpha[alt_is_der, i] += pder
-                beta[ref_is_anc, i] += panc
-                beta[ref_is_der, i] += pder
+                alt_prior[alt_is_anc, i] += panc 
+                alt_prior[alt_is_der, i] += pder
+                ref_prior[ref_is_anc, i] += panc
+                ref_prior[ref_is_der, i] += pder
 
-        P = Probs2(
-            O=np.array(df.talt.values, np.int8),
-            N=np.array(df.tref.values + df.talt.values, np.int8),
-            P_cont=np.zeros_like(df.talt.values)
-            if cont_id is None
-            else np.array(
-                (df[cont[0]].values + ca) / (df[cont[0]].values + df[cont[1]].values + ca + cb)
-            ),
-            alpha=alpha[IX.diploid_snps],
-            beta=beta[IX.diploid_snps],
-            alpha_hap=alpha[IX.haploid_snps],
-            beta_hap=beta[IX.haploid_snps],
-            lib=np.array(df.lib),
-        )
-        return P
+        assert np.all(df.tref.values + df.talt.values < 256)
 
     else:
+        """ancestral allele contribution to prior
+        the ancestral allele adds one pseudocount to the data
+        """
         if ancestral is None:
-            pass
+            prior_anc_alt, prior_anc_ref = np.zeros(1), np.zeros(1)
         else:
-            # anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
-            anc_ref, anc_alt = ancestral + "_ref", ancestral + "_alt"
-            pa = df[anc_alt] + prior * (1 - 2 * np.sign(df[anc_alt]))
-            pb = df[anc_ref] + prior * (1 - 2 * np.sign(df[anc_ref]))
-        cont = "%s_alt" % cont_id, "%s_ref" % cont_id
-        ca, cb = cont_prior
+            anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+            prior_anc_alt = snp_df[anc_alt] * ancestral_prior
+            prior_anc_ref = snp_df[anc_ref] * ancestral_prior
 
-        print(alpha_ix)
-        alpha = np.array(snp_df[alpha_ix]) + prior
-        beta = np.array(snp_df[beta_ix]) + prior
-        P = Probs2(
-            O=np.array(df.talt.values, np.int8),
-            N=np.array(df.tref.values + df.talt.values, np.int8),
-            P_cont=None
-            if cont_id is None
-            else np.array(
-                (df[cont[0]] + ca) / (df[cont[0]] + df[cont[1]] + ca + cb)
-            ),
-            alpha=alpha[IX.diploid_snps],
-            beta=beta[IX.diploid_snps],
-            alpha_hap=alpha[IX.haploid_snps],
-            beta_hap=beta[IX.haploid_snps],
-            lib=np.array(df.lib),
-        )
-        return P
+
+        alt_prior = snp_df[alt_ix].to_numpy() + prior_anc_alt[:, np.newaxis] + prior
+        ref_prior = snp_df[ref_ix].to_numpy() + prior_anc_ref[:, np.newaxis] + prior
+        assert np.all(df.tref.values + df.talt.values < 256)
+
+    #create named tuple for return
+    P = Probs2(
+        O=np.array(df.talt.values, np.uint8),
+        N=np.array(df.tref.values + df.talt.values, np.uint8),
+        P_cont=0.
+        if cont_id is None
+        else np.array(
+            (df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)
+        ),
+        alpha=alt_prior[IX.diploid_snps],
+        beta=ref_prior[IX.diploid_snps] ,
+        alpha_hap=alt_prior[IX.haploid_snps],
+        beta_hap=ref_prior[IX.haploid_snps],
+        lib=np.array(df.lib),
+    )
+    return P
 
 
 def bins_from_bed(df, bin_size, sex=None):
@@ -211,6 +213,7 @@ def bins_from_bed(df, bin_size, sex=None):
 
     IX.bin_sizes = []
     IX.diploid_snps, IX.haploid_snps = [], []
+
 
     for i, chrom in enumerate(chroms):
         map_ = snp.map[snp.chrom == chrom]

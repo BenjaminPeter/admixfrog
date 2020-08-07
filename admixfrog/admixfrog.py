@@ -216,6 +216,7 @@ def load_admixfrog_data(states,
         2. ref (standalone csv)
         3. geno (target and/or ref)
     """
+    tot_n_snps = 0
 
 
     "1. only geno file"
@@ -237,6 +238,7 @@ def load_admixfrog_data(states,
         ref = load_ref(ref_files, state_dict, cont_id, ancestral,
                        autosomes_only, map_col=map_col)
         ref = filter_ref(ref, states, **filter)
+        tot_n_snps = ref.shape[0]
         if pos_mode:
             ref.reset_index('map', inplace=True)
             ref.map = ref.index.get_level_values('pos')
@@ -246,6 +248,7 @@ def load_admixfrog_data(states,
         # sexing stuff
         if sex is None:
             sex = guess_sex(ref, data)
+
 
         df = ref.join(data, how='inner')
 
@@ -277,11 +280,10 @@ def load_admixfrog_data(states,
         """
         prop_cont = fake_contamination
         target_cont_cov = prop_cont * mean_endo_cov / (1 - prop_cont)
-        f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt])
+        f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt] + 1e-100)
 
         log_.debug(f"endogenous cov: {mean_endo_cov}")
         log_.debug(f"fake contamination cov: {target_cont_cov}")
-
 
         c_ref = np.random.poisson( (1 - f_cont) * target_cont_cov)
         c_alt = np.random.poisson( f_cont * target_cont_cov)
@@ -289,10 +291,8 @@ def load_admixfrog_data(states,
         log_.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
         df.tref += c_ref
         df.talt += c_alt
-        
 
-
-    return df, sex
+    return df, sex, tot_n_snps
 
 
 
@@ -310,6 +310,7 @@ def run_admixfrog(
     bin_size=1e4,
     prior=None,
     ancestral=None,
+    ancestral_prior = 0,
     sex=None,
     pos_mode=False,
     autosomes_only=False,
@@ -352,7 +353,7 @@ def run_admixfrog(
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
-    df, sex = load_admixfrog_data(target_file = target_file,
+    df, sex, tot_n_snps = load_admixfrog_data(target_file = target_file,
                              ref_files=ref_files,
                              geno_file=geno_file,
                              target=target,
@@ -380,7 +381,7 @@ def run_admixfrog(
     #breakpoint()
 
     
-    P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral)
+    P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral, ancestral_prior=ancestral_prior)
     log_.info("done creating prior")
 
     pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], **init)
@@ -442,7 +443,7 @@ def run_admixfrog(
         df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode, outname=f'{outname}.snp.xz')
 
     if output["output_cont"]:
-        df_cont = write_cont_table(df, pars.cont, pars.error, outname=f'{outname}.cont.xz')
+        df_cont = write_cont_table(df, pars.cont, pars.error, tot_n_snps, outname=f'{outname}.cont.xz')
 
     if output["output_rle"]:
         df_rle = get_rle(df_bin, states, init["run_penalty"])
