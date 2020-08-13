@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from .io import load_read_data, load_ref, filter_ref
 from .io import write_bin_table, write_pars_table, write_cont_table
 from .io import write_snp_table, write_est_runs, write_sim_runs
-from .utils import bins_from_bed, sfs_from_bed, data2probs, init_pars, Pars, ParsHD
+from .utils import bins_from_bed,  data2probs, init_pars, Pars, ParsHD
 from .utils import guess_sex, parse_state_string
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno, update_Ftau, update_snp_prob

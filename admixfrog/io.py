@@ -8,10 +8,10 @@ import itertools
 
 
 try:
-    from .utils import posterior_table, parse_state_string
+    from .utils import posterior_table, parse_state_string, posterior_table_slug
     from .log import log_
 except (ImportError, ModuleNotFoundError):
-    from utils import posterior_table, parse_state_string
+    from utils import posterior_table, parse_state_string, posterior_table_slug
     from log import log_
 
 """reading and writing files"""
@@ -157,19 +157,80 @@ def filter_ref(ref, states, ancestral=None, cont=None,
     return ref
 
 
-def load_read_data(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
-    dtype_ = dict(chrom="category", tref=np.uint8, 
-                  talt=np.uint8, 
-                  lib=str, 
-                  pos=np.uint32)
+def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
+    if neg_is_nan:
+        y_short = x.loc[(x>=0) & (x <= short_threshold) ]
+        y_long = x.loc[(x > short_threshold) ]
 
-    #this is more concise, but gives numpy future warning for no reason
-    #data = pd.read_csv(infile, dtype=dtype_, index_col=['chrom', 'pos']).dropna()
-    data = pd.read_csv(infile, dtype=dtype_, usecols=dtype_.keys()).dropna()
+        n_short_bins = min((254, max((1, int(y_short.shape[0] // bin_size)))))
+        short_cuts =  pd.qcut(y_short, q=n_short_bins, precision=0, labels=False, duplicates='drop')
+        ymax = max(short_cuts)
+
+        n_long_bins = min((254 - ymax, max((1, int(y_long.shape[0] // bin_size)))))
+        print(n_short_bins, n_long_bins, x.shape)
+        long_cuts =  pd.qcut(y_long, q=n_long_bins, precision=0, labels=False, duplicates='drop')
+
+        res = pd.Series(x, dtype=np.uint8)
+        res.loc[(x>=0) & (x <= short_threshold)] = short_cuts
+        res.loc[x > short_threshold] = long_cuts + ymax + 1
+        res.loc[x < 0] = 255
+        return res
+    else:
+        n_bins = min((254, max((1, int(x.shape[0] // bin_size)))))
+        cuts =  pd.qcut(x, q=n_bins, precision=0, labels=False, duplicates='drop')#.astype(np.uint8)
+        print(n_bins, 'x', x.shape, min(Counter(cuts).values()))
+        return cuts
+
+def bin_reads(data, deam_bin_size = 10000, len_bin_size=1000, short_threshold=2):
+    data.reset_index(inplace=True)
+    data['deam_bin'] = data.groupby(['lib']).deam.apply(qbin, bin_size=deam_bin_size, short_threshold=short_threshold)
+    data['len_bin'] = data.groupby(['lib', 'deam_bin']).len.apply(qbin, bin_size=len_bin_size, neg_is_nan=False)
+    data['rg'] = [f'{lib}_{d}_{l}' for lib, d, l in zip(data.lib, data.deam_bin, data.len_bin)]
     data.set_index(['chrom', 'pos'], inplace=True)
 
-    if "lib" not in data:
-        data["lib"] = "lib0"
+    ix = data[['rg', 'lib', 'deam_bin', 'deam', 'len_bin', 'len']].drop_duplicates().reset_index(drop=True)
+    ix = data.groupby('rg').agg(({'tref' : sum, 'talt' : sum})).reset_index().merge(ix)
+    ix['n_bin'] = ix.tref + ix.talt
+    del ix['tref'], ix['talt']
+
+    ix = data.groupby(['rg', 'deam', 'len']).agg(({'tref' : sum, 'talt' : sum})).reset_index().merge(ix)
+    ix['n_exact'] = ix.tref + ix.talt
+    ix.n_exact = ix.n_exact.astype(int)
+    ix.n_bin = ix.n_bin.astype(int)
+    return ix
+
+
+def load_read_data(infile, split_lib=True, downsample=1, 
+                   make_bins = True,
+                   deam_bin_size=10000, len_bin_size=1000, high_cov_filter=0.001):
+    dtype_mandatory = dict(chrom="category", 
+                  pos=np.uint32,
+                  talt=np.uint8, 
+                  tref=np.uint8
+                  )
+
+    dtype_optional = dict(
+                  lib=str, 
+                  rg=str,
+                  score=int,
+                  deam=np.int16,
+                  len=np.uint8,
+                  dmgpos=bool
+    )
+
+    data0 = pd.read_csv(infile, dtype=dtype_mandatory, nrows=1)
+    for c in data0.columns:
+        if c in dtype_optional:
+            dtype_mandatory[c] = dtype_optional[c]
+
+    data = pd.read_csv(infile, dtype=dtype_mandatory, usecols=dtype_mandatory.keys()).dropna()
+    data.set_index(['chrom', 'pos'], inplace=True)
+
+    if "rg" not in data:
+        if 'lib' in data:
+            data["rg"] = data['lib']
+        else:
+            data["rg"] = "lib0"
     elif not split_lib:
             data = data.groupby(data.index.names).agg(sum)
 
@@ -181,7 +242,12 @@ def load_read_data(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 1 - high_cov_filter)
     data = data[data.tref + data.talt <= q]
-    return data
+
+    if make_bins:
+        ix = bin_reads(data, deam_bin_size, len_bin_size)
+        return data, ix
+
+    return data, None
 
 
 @njit
@@ -207,7 +273,7 @@ class IndentDumper(yaml.Dumper):
 
 
 def write_pars_table(pars, outname=None):
-    P = pars.__dict__
+    P = pars.__dict__.copy()
     for k, v in P.items():
         try:
             P[k] = v.tolist()
@@ -223,7 +289,7 @@ def write_pars_table(pars, outname=None):
     return s
 
 
-def write_cont_table(data, cont, error, tot_n_snps, outname=None):
+def write_cont_table(df, cont, error, tot_n_snps, outname=None):
     df_libs = pd.DataFrame(cont.items(), columns=["lib", "cont"])
     df_error = pd.DataFrame(error.items(), columns=["lib", "error"])
     df_libs = df_libs.merge(df_error)
@@ -242,7 +308,7 @@ def write_cont_table(data, cont, error, tot_n_snps, outname=None):
     df_libs["deam"] = deams
 
     #breakpoint()
-    CC = data.groupby(["lib"]).agg(({"tref": sum, "talt": sum})).reset_index()
+    CC = df.groupby(["lib"]).agg(({"tref": sum, "talt": sum})).reset_index()
     CC["n_reads"] = CC.tref + CC.talt
     del CC["tref"]
     del CC["talt"]
@@ -255,6 +321,20 @@ def write_cont_table(data, cont, error, tot_n_snps, outname=None):
         df_libs.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
     return df_libs
+
+def write_cont_table_slug(ix, rgs, cont, tot_n_snps, outname=None):
+    df_rg = pd.DataFrame([k for k in rgs], columns=['rg'])
+    df_cont = pd.DataFrame(cont, columns = ['cont'])
+    df_libs = pd.concat((df_rg, df_cont), 1)
+    df = ix.merge(df_libs, how='left')
+
+    df.sort_values(['len', 'deam', 'lib'], inplace=True)
+    df['n_sites'] = tot_n_snps
+
+    if outname is not None:
+        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+    return df
 
 
 def write_bin_table(Z, bins, viterbi_df, gamma_names, IX, outname=None):
@@ -288,6 +368,34 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
 
     return snp_df
 
+def write_snp_table_slug(df, posterior_gt, data, outname=None):
+    D = (
+        df.groupby(["chrom", "pos", "map", 'ref', 'alt'])
+        .agg({"tref": sum, "talt": sum})
+        .reset_index()
+    )
+
+    T = posterior_table_slug(pg=posterior_gt, data=data)
+    snp_df = pd.concat((D, T, pd.DataFrame(data.SNP2SFS, columns=["sfs"])), axis=1)
+    if outname is not None:
+        snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+    return snp_df
+
+def write_snp_table_slug2(df, posterior_gt, data, outname=None):
+    D = (
+        df.groupby(["chrom", "pos", "map", 'ref', 'alt'])
+        .agg({"tref": sum, "talt": sum})
+        .reset_index()
+    )
+
+    T = posterior_table_slug(pg=posterior_gt, data=data)
+    snp_df = pd.concat((D, T, pd.DataFrame(data.SNP2SFS, columns=["sfs"])), axis=1)
+    if outname is not None:
+        snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+
+    return snp_df
+
 
 def write_out_ref(data, G, Z, IX, gt_mode=False, outname=None):
     D = (
@@ -315,25 +423,47 @@ def write_sim_runs(df, outname=None):
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
-def write_sfs(sfs, Z, tau, F, cont, P, IX, outname=None):
-    df1  = pd.DataFrame(Z, columns=['G0', 'G1', 'G2'])
-    df2 = pd.DataFrame(sfs.keys(), columns=IX.states)
+def write_sfs(sfs, pars, data, outname=None):
+    df2 = pd.DataFrame(sfs.keys(), columns=data.states)
+    index = pd.Series(list(sfs.values()), name='sfs')
     df2 = df2.reindex(sorted(df2.columns), axis=1)
-    n_snps = pd.DataFrame(pd.Series(dict(Counter(IX.SNP2BIN))), columns=['n_snps'])
+    df2 = pd.concat((index, df2), 1)
+    n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=['n_snps'])
 
     n_reads, n_endo  = Counter(), Counter()
 
-    for (i, lib, n) in zip(IX.OBS2BIN, P.lib, P.N): 
-        n_reads[i] += n
-        n_endo[i] += n * (1-cont[lib])
+    for (sfs_, rg, n) in zip(data.OBS2SFS, data.OBS2RG, data.N): 
+        n_reads[sfs_] += n
+        n_endo[sfs_] += n * (1-pars.cont[rg])
 
-    n_reads = pd.DataFrame(pd.Series(n_reads), columns = ['n_reads'])
-    n_endo = pd.DataFrame(pd.Series(n_endo), columns = ['n_endo'])
-    F = pd.DataFrame(F, columns=['F'])
-    tau = pd.DataFrame(tau, columns=['tau'])
 
-    sfs_df = pd.concat((df2, df1, F, tau, n_snps, n_reads, n_endo),  axis=1)
-    sfs_df['p'] = sfs_df.G1/2 + sfs_df.G2
+    n_reads = pd.Series((n_reads[i] for i in index), dtype = int, name = 'n_reads')
+    n_endo = pd.Series((n_endo[i] for i in index), dtype = float, name = 'n_endo')
+    F = pd.DataFrame(pars.F, columns=['F'])
+    tau = pd.DataFrame(pars.tau, columns=['tau'])
+
+    sfs_df = pd.concat((df2, F, tau, n_snps, n_reads, n_endo),  axis=1)
+
+    if outname is not None:
+        sfs_df.to_csv(outname, float_format="%5f", index=False, compression='xz')
+
+def write_sfs2(sfs, pars, data, outname=None):
+    df2 = sfs
+    n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=['n_snps'])
+
+    n_reads, n_endo  = Counter(), Counter()
+
+    for (sfs_, rg) in zip(data.READ2SFS, data.READ2RG): 
+        n_reads[sfs_] += 1
+        n_endo[sfs_] += 1 * (1-pars.cont[rg])
+
+
+    n_reads = pd.Series((n_reads[i] for i in df2.index), dtype = int, name = 'n_reads')
+    n_endo = pd.Series((n_endo[i] for i in df2.index), dtype = float, name = 'n_endo')
+    F = pd.DataFrame(pars.F, columns=['F'])
+    tau = pd.DataFrame(pars.tau, columns=['tau'])
+
+    sfs_df = pd.concat((df2, F, tau, n_snps, n_reads, n_endo),  axis=1)
 
     if outname is not None:
         sfs_df.to_csv(outname, float_format="%5f", index=False, compression='xz')

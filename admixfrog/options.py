@@ -58,6 +58,15 @@ ALGORITHM_OPTIONS = [
     "do_hmm"
 ]
 
+ALGORITHM_OPTIONS_SLUG = [
+    "autosomes_only",
+    "downsample",
+    "fake_contamination",
+    "ll_tol",
+    "max_iter",
+    "split_lib",
+]
+
 #geno format options
 GENO_OPTIONS=[
     'geno_file',

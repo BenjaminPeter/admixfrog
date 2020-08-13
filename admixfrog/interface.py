@@ -7,15 +7,76 @@ import admixfrog
 
 from .admixfrog import run_admixfrog
 from .admixslug import run_admixslug
-from .bam import process_bam
+from .bam import process_bam, process_bam2
 from .rle import get_rle
 from .vcf import load_pop_file, vcf_to_ref, load_random_read_samples, vcf_to_sample
 from os.path import isfile
 from .log import log_, setup_log
-from .options import POP_OPTIONS, INFILE_OPTIONS, REFFILE_OPTIONS, ALGORITHM_OPTIONS, GENO_OPTIONS
+from .options import POP_OPTIONS, INFILE_OPTIONS, REFFILE_OPTIONS, GENO_OPTIONS
+from .options import ALGORITHM_OPTIONS_SLUG, ALGORITHM_OPTIONS
 from .options import add_output_options, add_target_file_options, add_rle_options
 from .options import add_geno_options, add_ref_options, add_estimation_options
 from .options import add_base_options, add_pop_options
+
+def bam2():
+    """create input file from bam/vcf"""
+    logger = setup_log()
+    parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
+    parser.add_argument(
+        "--outfile", "--out", required=True, help="output file name (xz-zipped)"
+    )
+    parser.add_argument(
+        "--ref",
+        "--ref-file",
+        help="""reference input file (csv). 
+                    - Fields are chrom, pos, ref, alt, map, X_alt, X_ref
+                        - chrom: chromosome
+                        - pos : physical position (int)
+                        - ref : refrence allele
+                        - alt : alternative allele
+                        - map : rec position (float)
+                        - X_alt, X_ref : alt/ref alleles from any number of sources / contaminant populations.
+                        these are used later in --cont-id and --states flags
+                        """,
+        required=True,
+    )
+    parser.add_argument(
+        "--random-read-sample",
+        default=False,
+        action="store_true",
+        help="""At each position, just use a single read (bam-mode), or assume
+        that the genotype reflects a single randomly sampled read
+        """,
+    )
+    parser.add_argument(
+        "--chroms",
+        "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
+        """,
+    )
+    add_target_file_options(parser)
+    args = vars(parser.parse_args())
+
+    logger.info(pformat(args))
+    force_target_file = args.pop("force_target_file")
+    if isfile(args["outfile"]) and not force_target_file:
+        raise ValueError("""target file exists. set --force-target-file to regenerate""")
+
+    if "vcfgt" in args and args["vcfgt"] is not None:
+        vcf_to_sample(
+            outfile=args["outfile"],
+            vcf_file=args["vcfgt"],
+            ref_file=args["ref"],
+            chroms=args["chroms"],
+            random_read=args["random_read_sample"],
+            sample_id=args["target"],
+        )
+    else:
+        del args["vcfgt"]
+        del args["target"]
+        del args["chroms"]
+        process_bam2(**args)
 
 
 def bam():
@@ -530,7 +591,7 @@ def run_sfs():
             target_pars[k] = V.pop(k)
         elif k in REFFILE_OPTIONS:
             reffile_pars[k] = V.pop(k)
-        elif k in ALGORITHM_OPTIONS:
+        elif k in ALGORITHM_OPTIONS_SLUG:
             algo_pars[k] = V.pop(k)
         elif k in GENO_OPTIONS:
             geno_pars[k] = V.pop(k)
@@ -639,7 +700,7 @@ def run_sfs():
 
     from . import __version__
 
-    log_.info("admixfrog %s", __version__)
+    log_.info(f"admixslug {__version__}")
     
     #run stuff
     run_admixslug(**V, **algo_pars, **geno_pars, 

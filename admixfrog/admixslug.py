@@ -7,7 +7,9 @@ from .read_emissions2 import p_snps_given_gt
 from .io import load_read_data, load_ref, filter_ref
 from .io import write_bin_table, write_pars_table, write_cont_table
 from .io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
-from .utils import bins_from_bed, sfs_from_bed, data2probs, init_pars_sfs
+from .io import write_snp_table_slug, write_cont_table_slug
+from .io import write_snp_table_slug2, write_sfs2
+from .utils import bins_from_bed,  data2probs, init_pars_sfs
 from .utils import guess_sex, parse_state_string
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno,  update_snp_prob
@@ -17,11 +19,9 @@ from .rle import get_rle
 from .decode import pred_sims, resampling_pars
 from .log import log_, setup_log
 from .geno_io import read_geno_ref, read_geno
-from .slug_classes import SlugPars, SlugData, SlugController
-from .utils import make_slug_data
-from .slug_emissions import em
-
-COORDS = ["chrom", "map", "pos"]
+from .slug_classes import SlugController
+from .utils import make_slug_data, make_slug_reads_data
+from .slug_em_reads import em, squarem
 
 EST_DEFAULT = dict(
     [
@@ -34,92 +34,6 @@ EST_DEFAULT = dict(
         ("freq_F", 1),
     ]
 )
-
-def update_sfs_genotypes(G, P, IX, F, tau):
-    G[:, 0] = F * (1-tau) + (1-F) * (1-tau) * (1-tau)
-    G[:, 1] = (1-F) * 2 * (1-tau) * tau
-    G[:, 2] = F * tau + (1-F) * tau * tau
-    return 0
-
-def update_snp(E, G, P, IX, cont, error, gt_mode):
-    cflat = np.array([cont[lib] for lib in P.lib])
-    eflat = np.array([error[lib] for lib in P.lib])
-
-    E[:] = p_snps_given_gt(P, cflat, eflat, IX, gt_mode)
-    E[:] = G[IX.SNP2BIN] * E
-    return 0
-
-def update_ftau(PG, IX, F, tau):
-    for i in range(IX.n_sfs):
-        g0, g1, g2 = np.mean(PG[IX.SNP2BIN==i],0)
-        F[i] = 2 * g0 / (2 * g0 + g1 + 1e-8) - g1 / (2 * g2 + g1 + 1e-8)
-        if np.isnan(F[i]):
-            breakpoint()
-        F[:] = np.minimum(1, np.maximum(0, F))
-        tau[i] = g1/2 + g2
-
-    
-
-
-def em_sfs(P, IX, pars, est_options, max_iter=1000, 
-               ll_tol=1e-1, gt_mode=False,
-               do_hmm=True, **kwargs):
-    O = est_options
-    cont, error, F, tau, sex = pars
-    ll = -np.inf
-    n_gt = 3
-
-    # create arrays for posterior, emissions
-    G = np.zeros((IX.n_sfs, n_gt)) # Pr(G | F, tau)
-    E = np.zeros((IX.n_snps, n_gt)) # P(O, G | tau, F)
-
-    #update G: given F, tau, calculate Pr(G | F, tau) for each SFS class
-    update_sfs_genotypes(G, P, IX, F, tau) 
-
-    #update E: Pr(O, G | F, tau)
-    update_snp(E, G, P, IX, cont, error, gt_mode)
-
-    for it in range(max_iter):
-        ll, old_ll = np.sum(np.log(np.sum(E,1))), ll
-        if np.isnan(ll):
-            breakpoint()
-        assert not np.isnan(ll)
-
-        tpl = (
-            IX.n_reads / 1000,
-            IX.n_obs / 1000,
-            IX.n_snps / 1000,
-            IX.n_bins / 1000,
-            it,
-            np.mean(tau),
-            ll,
-            ll - old_ll,
-        )
-        log_.info("[%dk|%dk|%dk|%dk]: iter:%d |tavg:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
-        if ll - old_ll < ll_tol:
-            break
-
-        if np.any(np.isnan(E)):
-            raise ValueError("nan observed in emissions")
-
-        E[:] = E / np.sum(E, 1)[:, np.newaxis]
-        update_ftau(E, IX, F, tau)
-        PG = E.reshape(E.shape[0], 1, E.shape[1])
-        delta = update_contamination(cont, error, P, PG, IX, est_options)
-
-        update_sfs_genotypes(G, P, IX, F, tau) 
-        update_snp(E, G, P, IX, cont, error, gt_mode)
-
-
-    pars = SlugPars(
-        cont, error, F, tau, sex
-    )
-
-    return G, PG, pars, ll
-
-
-
-
 
 
 def run_admixslug(
@@ -145,7 +59,12 @@ def run_admixslug(
     guess_ploidy=False,
     est=EST_DEFAULT,
     fake_contamination=0.,
+    bin_reads= True,
+    deam_bin_size = 100000,
+    len_bin_size =2000,
     filter=defaultdict(lambda: None),
+    ll_tol = 0.001,
+    max_iter = 100,
     **kwargs
 ):
     """contamination estimation using sfs 
@@ -153,6 +72,15 @@ def run_admixslug(
 
     from pprint import pprint
     pprint(kwargs)
+
+
+    controller = SlugController(do_update_eb = True,
+                                do_update_ftau = True,
+                                do_update_cont = True,
+                                n_iter=max_iter,
+                                ll_tol = ll_tol
+                                )
+
 
 
     # numpy config
@@ -167,7 +95,7 @@ def run_admixslug(
     states = list(dict(((x, None) for x in state_dict2.values())))
 
 
-    df, sex, n_sites = load_admixslug_data_native(target_file = target_file,
+    df, sex, n_sites, ix = load_admixslug_data_native(target_file = target_file,
                              ref_files=ref_files,
                              gt_mode = gt_mode,
                              states=states,
@@ -181,39 +109,36 @@ def run_admixslug(
                              downsample=downsample,
                              fake_contamination=fake_contamination,
                              filter=filter,
+                             make_bins=bin_reads,
+                             deam_bin_size = deam_bin_size,
+                             len_bin_size = len_bin_size,
                              autosomes_only=autosomes_only)
     log_.info("done loading data")
 
 
 
-    data, sfs = make_slug_data(df, states=states, ancestral=ancestral, sex=sex,
-                          cont_id=cont_id)
+    data, sfs = make_slug_reads_data(df, states=states, ancestral=ancestral, sex=sex,
+                          cont_id=cont_id, flip=False)
     pars = init_pars_sfs(data.n_sfs, data.n_rgs, **init)
 
-    controller = SlugController(do_update_eb = False,
-                                do_update_ftau = True,
-                                do_update_cont = False,
-                                n_iter = 100,
-                                ll_tol = 1e-2)
 
-
-    em(pars, data, controller)
-    print(pars)
-    breakpoint()
+    #posterior_gt = em(pars, data, controller)
+    pars, posterior_gt = squarem(pars, data, controller)
 
     # output formating from here
     if output["output_pars"]:
         df_pars = write_pars_table(pars, outname=f'{outname}.pars.yaml')
 
-    if output["output_snp"]:
-        df_snp = write_snp_table(data=df, G=G, Z=Z, IX=IX, gt_mode=gt_mode, outname=f'{outname}.snp.xz')
 
     if output["output_cont"]:
-        df_cont = write_cont_table(df, pars.cont, pars.error, 
-                                   np.max(df.snp_id) + 1, outname=f'{outname}.cont.xz')
+        df_cont = write_cont_table_slug(ix, data.rgs, pars.cont, 
+                                   n_sites, outname=f'{outname}.cont.xz')
 
     if output["output_sfs"]:
-        write_sfs(sfs, Z, pars.tau, pars.F, pars.cont, P, IX, outname=f'{outname}.sfs.xz')
+        write_sfs2(sfs, pars, data, outname=f'{outname}.sfs.xz')
+
+    if output["output_snp"]:
+        df_snp = write_snp_table_slug2(df=df, data=data, posterior_gt = posterior_gt, outname=f'{outname}.snp.xz')
 
     return 
 
@@ -231,12 +156,21 @@ def load_admixslug_data_native(states,
                         downsample=1,
                         map_col='map',
                         fake_contamination=0,
+                        make_bins=True,
+                        deam_bin_size = 20_000,
+                        len_bin_size = 5000,
                         autosomes_only=False):
     
     if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-        data = load_read_data(target_file, high_cov_filter=filter.pop('filter_high_cov'))
+        data, ix = load_read_data(target_file, high_cov_filter=filter.pop('filter_high_cov'))
     else:
-        data = load_read_data(target_file, split_lib, downsample, high_cov_filter=filter.pop('filter_high_cov'))
+        data, ix = load_read_data(target_file, split_lib, downsample, 
+                              make_bins=make_bins,
+                              deam_bin_size = deam_bin_size,
+                              len_bin_size = len_bin_size,
+                              high_cov_filter=filter.pop('filter_high_cov'))
+
+    data = data[['tref', 'talt', 'rg']]
 
     ref = load_ref(ref_files, state_dict, cont_id, ancestral,
                    autosomes_only, map_col=map_col, large_ref=False)
@@ -261,7 +195,7 @@ def load_admixslug_data_native(states,
 
     n_sites = df.shape[0]
 
-    return df, sex, n_sites
+    return df, sex, n_sites, ix
 
 def make_snp_ids(df):
     """integer id for each SNP with available data"""

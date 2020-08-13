@@ -2,7 +2,9 @@ from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
 import yaml
-from .slug_classes import SlugData, SlugPars
+from .slug_classes import SlugData, SlugPars, SlugParsSquare, SlugParsLogit, SlugReads
+from numba import njit
+
 
 try:
     from .log import log_
@@ -374,15 +376,54 @@ def make_obs2rg(v_lib):
     OBS2RG = np.array([libs[i] for i in v_lib], dtype = np.uint16)
     return libs, OBS2RG
 
+def make_reads2rg(v_lib):
+    libs = np.unique(v_lib)
+    libs = dict((l, i) for i, l in enumerate(libs))
+    READS2RG = np.array([libs[i] for i in v_lib], dtype = np.uint16)
+    return libs, READS2RG
+
 def make_obs2sfs(snp_states):
     #create dict [sfs] - > column
     sfs = snp_states.reset_index(drop=True).drop_duplicates().reset_index(drop=True)
-    sfs = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
+    sfs_dict = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
 
     snp_states = np.array(snp_states)
-    SNP2SFS = np.array([sfs[tuple(i)] for i in snp_states], dtype=np.uint16)
+    SNP2SFS = np.array([sfs_dict[tuple(i)] for i in snp_states], dtype=np.uint16)
 
     return sfs, SNP2SFS
+
+def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt):
+    """create sfs data structure taking ancestral allele into account
+
+    basic strat
+    1. create FLIPPED, which is true for SNP that need to be flipped
+    2. make dict[state] : index for all possible indices
+    4. use dict to create SNP2SFS
+
+    
+    """
+
+    """1. create FLIPPED, which is true for SNP that need to be flipped"""
+    FLIPPED = (snp.PAN_ref == 0) & (snp.PAN_alt == 1)
+    FLIPPED.reset_index(drop=True, inplace=True)
+    snp.reset_index(drop=True, inplace=True)
+
+    ix_flipped = [v.replace('alt', 'ref') if 'alt' in v else v.replace('ref', 'alt') for v in ix_normal]
+    ix_renamed = [v.replace('alt', 'der') if 'alt' in v else v.replace('ref', 'anc') for v in ix_normal]
+
+    """2. make dict[state] : index for all possible indices"""
+    sfs1 = snp.loc[~FLIPPED, ix_normal].reset_index(drop=True).drop_duplicates().reset_index(drop=True)
+    sfs2 = snp.loc[FLIPPED, ix_flipped].reset_index(drop=True).drop_duplicates().reset_index(drop=True)
+    sfs = pd.DataFrame(np.vstack((sfs1.to_numpy(), sfs2.to_numpy())), columns=ix_renamed).drop_duplicates(ignore_index=True)
+    sfs_dict = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
+
+
+    """4. use dicts to create SNP2SFS"""
+    SNP2SFS = np.empty(snp.shape[0], np.int32)
+    SNP2SFS[~FLIPPED] = [sfs_dict[tuple(i)] for i in snp.loc[~FLIPPED, ix_normal].to_numpy()]
+    SNP2SFS[FLIPPED] = [sfs_dict[tuple(i)] for i in snp.loc[FLIPPED, ix_flipped].to_numpy()]
+
+    return sfs, SNP2SFS, FLIPPED
 
 
 def make_slug_data(df, states, ancestral=None, cont_id = None, sex=None):
@@ -398,12 +439,13 @@ def make_slug_data(df, states, ancestral=None, cont_id = None, sex=None):
     haploid_snps : Any = None
 
     states : Any = None
-    libs : Any = None
+    rgs : Any = None
     chroms : Any = None
     """
     ref_ix, alt_ix = [f"{s}_ref" for s in states] , [f"{s}_alt" for s in states] 
     sfs_state_ix = alt_ix + ref_ix #states used in sfs
     all_state_ix = set(alt_ix + ref_ix) #states in sfs + contamination + ancestral
+    sfs_state_flipped = [v.replace('alt', 'ref') if 'alt' in v else v.replace('ref', 'alt') for v in sfs_state_ix]
 
 
     if cont_id is not None:
@@ -414,10 +456,11 @@ def make_slug_data(df, states, ancestral=None, cont_id = None, sex=None):
         all_state_ix.update([anc_ref, anc_alt])
     
 
-    libs, OBS2RG = make_obs2rg(df.lib)
+    rgs, OBS2RG = make_obs2rg(df.rg)
 
     snp = df[all_state_ix].reset_index().drop_duplicates()
-    sfs, SNP2SFS = make_obs2sfs(snp[sfs_state_ix])
+
+
 
 
     chroms = pd.unique(snp.chrom)
@@ -436,7 +479,7 @@ def make_slug_data(df, states, ancestral=None, cont_id = None, sex=None):
                     SNP2SFS = SNP2SFS,
                     haploid_snps = haplo_snps,
                     states = sfs_state_ix,
-                    libs = libs,
+                    rgs = rgs,
                     sex = sex,
                     chroms = chroms,
                     haplo_chroms = haplo_chroms)
@@ -445,101 +488,87 @@ def make_slug_data(df, states, ancestral=None, cont_id = None, sex=None):
     return data, sfs
 
 
-def sfs_from_bed(df, states, ancestral=None, sex=None):
-    """create a bunch of auxillary data frames for SFS-inference, based on bins_from_bed
-    - sfs: sfs columns are allele counts for ref and anc, e.g. AFR_ref, AFR_alt, NEA_ref, NEA_alt
-    - IX: container staroing all indices
-        - IX.SNP2BIN [n_snps]: array giving SFS for each SNP
-        - IX.OBS2SNP [n_obs]: array giving snp for each obs
-        - IX.OBS2BIN [n_obs]: array giving bin for each obs
-        - IX.RG2OBS [n_libs] : [list] dict giving obs for each readgroup
-        - IX.states
-        - IX.libs : names of all libraries
+@njit
+def make_full_df(df, n_reads):
+    READS= np.empty(n_reads, np.uint8)
+    READ2RG= np.empty(n_reads, np.uint32)
+    READ2SNP= np.empty(n_reads, np.uint32)
+
+
+    i = 0
+    for snp_id, ref, alt, rg in df:
+        for _ in range(ref):
+            READS[i] = 0
+            READ2RG[i] = rg
+            READ2SNP[i] = snp_id
+            i+= 1
+        for _ in range(alt):
+            READS[i] = 1
+            READ2RG[i] = rg
+            READ2SNP[i] = snp_id
+            i+= 1
+
+    return READS, READ2RG, READ2SNP
+
+
+def make_slug_reads_data(df, states, ancestral=None, cont_id = None, sex=None, 
+                         flip=True):
+    """ create a SlugReads object with the following attributes:
     """
-    IX = _IX()
-    IX.states = [f"{s}_ref" for s in states] + [f"{s}_alt" for s in states] 
-    IX.libs = np.unique(df.lib)
+    ref_ix, alt_ix = [f"{s}_ref" for s in states] , [f"{s}_alt" for s in states] 
+    sfs_state_ix = alt_ix + ref_ix #states used in sfs
+    all_state_ix = set(alt_ix + ref_ix) #states in sfs + contamination + ancestral
 
+
+    if cont_id is not None:
+        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+        all_state_ix.update([cont_ref, cont_alt])
     if ancestral is not None:
-        IX.states = IX.states + ['anc']
-        df['anc'] = df.loc[:, f'{ancestral}_ref'] > 0
-        df.anc = df.anc.astype(int)
+        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+        all_state_ix.update([anc_ref, anc_alt])
+    
+    df2 = df.reset_index()[['snp_id', 'tref', 'talt', 'rg']]
+    rgs = np.unique(df2.rg)
+    rg_dict = dict((l, i) for i, l in enumerate(rgs))
+    df2['rg'] = [rg_dict[rg] for rg in df2.rg]
+    n_reads = np.sum(df2.tref + df2.talt)
+    READS, READ2RG, READ2SNP = make_full_df(df2.to_numpy(), n_reads)
 
-        #df = df.loc[df[f'{ancestral}_ref'] + df[f'{ancestral}_alt'] !=0]
-        df.loc[df[f'{ancestral}_ref'] + df[f'{ancestral}_alt'] ==0, 'anc'] = - 1
+    assert np.sum(df.talt) == np.sum(READS==1)
+    assert np.sum(df.tref) == np.sum(READS==0)
 
-        to_switch = df.anc == 0 #switch all where anc is alternative allele
+    snp = df[all_state_ix].reset_index().drop_duplicates()
 
-        for state in states:
-            tmp = df.loc[to_switch, f'{state}_ref']
-            df.loc[to_switch, f'{state}_ref'] = df.loc[to_switch, f'{state}_alt']
-            df.loc[to_switch, f'{state}_alt'] = tmp
-
-        df.loc[to_switch, 'anc'] = 1 - df.loc[to_switch, 'anc']
-
-    snp = df[IX.states].reset_index().drop_duplicates()
-
+    if flip:
+        sfs, SNP2SFS, FLIPPED  = make_obs2sfs_folded(snp, sfs_state_ix, anc_ref, anc_alt)
+    else:
+        sfs, SNP2SFS = make_obs2sfs(snp[sfs_state_ix])
+        FLIPPED = np.zeros_like(SNP2SFS, bool)
 
     chroms = pd.unique(snp.chrom)
-    n_snps = len(snp.snp_id.unique())
+    haplo_chroms, haplo_snps = get_haploid_stuff(snp, chroms, sex)
 
-    haplo_chroms, diplo_chroms = [], []
-    if sex is None:
-        diplo_chroms = chroms
+    if cont_id is None:
+        psi = np.zeros_like(SNP2SFS)
     else:
-        for c in chroms:
-            if c[0] in "YyWw":
-                haplo_chroms.append(c)
-            elif c[0] in "Xx" and sex == "m":
-                haplo_chroms.append(c)
-            elif c[0] in "Zz" and sex == "f":
-                haplo_chroms.append(c)
-            elif c.startswith("hap"):
-                haplo_chroms.append(c)
-            else:
-                diplo_chroms.append(c)
+        psi = snp[cont_alt] / (snp[cont_alt] + snp[cont_ref] + 1e-100)
 
+    data = SlugReads(READS = READS,
+                    READ2RG = READ2RG,
+                    READ2SNP = READ2SNP,
+                    SNP2SFS = SNP2SFS,
+                    FLIPPED = FLIPPED,
+                    psi=psi,
+                    haploid_snps = haplo_snps,
+                    states = sfs_state_ix,
+                    rgs = rg_dict,
+                    sex = sex,
+                    chroms = chroms,
+                    haplo_chroms = haplo_chroms)
 
-    IX.OBS2SNP = np.array(df.index.get_level_values('snp_id'))
+    log_.debug("done creating data")
+    return data, sfs
 
-    #create dict [sfs] - > column
-    sfs = df[IX.states].reset_index(drop=True).drop_duplicates().reset_index(drop=True)
-    sfs = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
-
-    snp_ = np.array(snp[IX.states])
-
-    IX.SNP2BIN = np.array([sfs[tuple(i)] for i in snp_])
-
-    IX.diploid_snps = snp.snp_id[snp.chrom.isin(diplo_chroms)]
-    IX.haploid_snps = snp.snp_id[snp.chrom.isin(haplo_chroms)]
-
-
-    if len(IX.haploid_snps) > 0:
-        IX.haploid_snps = slice(min(IX.haploid_snps), max(IX.haploid_snps) + 1)
-    else:
-        IX.haploid_snps = slice(0, 0)
-    if len(IX.diploid_snps) > 0:
-        IX.diploid_snps = slice(min(IX.diploid_snps), max(IX.diploid_snps) + 1)
-    else:
-        IX.diploid_snps = slice(0, 0)
-
-    IX.RG2OBS = dict((l, np.where(df.lib == l)[0]) for l in IX.libs)
-    IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
-
-    IX.n_chroms = len(chroms)
-    IX.n_bins = len(sfs)
-    IX.n_sfs = IX.n_bins
-    IX.n_snps = len(IX.SNP2BIN)
-    IX.n_obs = len(IX.OBS2SNP)
-    IX.n_reads = np.sum(df.tref + df.talt)
-
-    IX.chroms = chroms
-    IX.haplo_chroms = haplo_chroms
-    IX.diplo_chroms = diplo_chroms
-
-
-    log_.debug("done creating sfs")
-    return sfs, IX
 
 def init_ftau(n_states, F0=0.5, tau0=0):
     """initializes F and tau, which exist for each homozygous state
@@ -573,7 +602,7 @@ def init_ce(c0=0.01, e0=0.001):
 def init_pars_sfs(n_sfs, n_rgs, F0, tau0, e0, c0, **kwargs):
     cont, error = init_ce(c0, e0)
     F, tau = init_ftau(n_sfs, F0, tau0)
-    pars = SlugPars(cont = np.zeros(n_rgs) + c0,
+    pars = SlugParsSquare(cont = np.zeros(n_rgs) + c0,
                     tau = np.zeros(n_sfs) + tau0,
                     F = np.zeros(n_sfs) + F0,
                     e = e0,
@@ -654,13 +683,22 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
     PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
     mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
     try:
-        random = np.random.binomial(1, np.minimum(np.maximum(1, mu), 0))
+        random = np.random.binomial(1, np.clip(mu, 0, 1))
     except ValueError:
         breakpoint()
     PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(np.hstack((PG, mu, random)), columns=["G0", "G1", "G2", "p", "random_read"])
 
+def posterior_table_slug(pg, data):
+    mu = np.sum(pg * np.arange(3) / 2., 1)
+    random = np.random.binomial(1, np.clip(mu, 0, 1))
+    log_g = np.log10(pg + 1e-40)
+    log_g = np.minimum(0.0, log_g)
+    df = np.hstack((log_g, mu[:, np.newaxis], random[:, np.newaxis]))
+    df = pd.DataFrame(df, columns=["G0", "G1", "G2", "p", "random_read"])
+    df.random_read = df.random_read.astype(np.uint8)
+    return df
 
 def empirical_bayes_prior(der, anc, known_anc=False):
     """using beta-binomial plug-in estimator
