@@ -10,6 +10,7 @@ lmin = snakemake@params$lmin
 lmax = snakemake@params$lmax
 outfile = snakemake@output$mapplot
 
+save.image("rdebug")
 
 
 R = read_rle(infile) %>% filter(type=='state')

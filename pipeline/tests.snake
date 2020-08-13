@@ -1,0 +1,439 @@
+
+rule test_altai_downsample:
+    input:
+        bins=["admixfrog/ds0.0001/20000/VIN_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/ds0.0002/20000/VIN_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/ds0.0006/20000/VIN_DEN/altai_hcneaden.bin.xz",
+        "admixfrog/ds0.02/5000/NEA_DEN/altai_hcneaden.bin.xz"],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '9',
+        names = ['0.005x', '0.01x', '0.03x', '1x']
+    output:
+        png = 'figures/paper/experiments/altai_ds.png',
+        rds = 'figures/paper/experiments/altai_ds.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_altai_binsize:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/2000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/10000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/50000/NEA_DEN/altai_hcneaden.bin.xz",
+            ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 2000,
+        chrom = '9',
+        names = ['0.002', '0.005', '0.01', '0.05']
+    output:
+        png = 'figures/paper/experiments/altai_binsize.png',
+        rds = 'figures/paper/experiments/altai_binsize.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_altai_ascertainment:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/5000/NEA_DEN/altai_archaicadmixture.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/altai_A3700k.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/altai_A1240k.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden.bin.xz",
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '9',
+        names = ['AAdm', '3.7M', '1240k', 'pARC']
+    output:
+        png = 'figures/paper/experiments/altai_ascertainment.png',
+        rds = 'figures/paper/experiments/altai_ascertainment.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_altai_mode:
+    input:
+        bins=[
+            "admixfrog/noanc/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/nohyper/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/inbreeding/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/gtmode/5000/NEA_DEN/Altai_hcneaden.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 1000,
+        chrom = '9',
+        names = ['noanc', 'fixed', 'inbr.', 'GTs']
+    output:
+        png = 'figures/paper/experiments/altai_mode.png',
+        rds = 'figures/paper/experiments/altai_mode.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_altai_src:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/VIN_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/CHA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/AFR_NEA_DEN/altai_hcneaden.bin.xz",
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 1000,
+        chrom = '9',
+        names = ['NEA', 'VIN', 'CHA', 'AFR']
+    output:
+        png = 'figures/paper/experiments/altai_src.png',
+        rds = 'figures/paper/experiments/altai_src.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_altai_cont:
+    input:
+        bins=[
+            "admixfrog/cont0.05_ds0.1/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/cont0.2_ds0.1/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/cont0.5_ds0.1/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/cont0.8_ds0.1/5000/NEA_DEN/altai_hcneaden.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 800,
+        chrom = '9',
+        names = ['0.05', '0.20', '0.50', '0.8']
+    output:
+        png = 'figures/paper/experiments/altai_cont.png',
+        rds = 'figures/paper/experiments/altai_cont.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_altai_prior:
+    input:
+        bins=[
+            "admixfrog/basic/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/prior0.1/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/prior0.5/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/prior1/5000/NEA_DEN/altai_hcneaden.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 1000,
+        chrom = '9',
+        names = ['EB', '0.10', '0.50', '1.00']
+    output:
+        png = 'figures/paper/experiments/altai_prior.png',
+        rds = 'figures/paper/experiments/altai_prior.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_altai_rec:
+    input:
+        bins=[
+            "admixfrog/recAA_Map/5000/NEA_DEN/altai_hcneaden.bin.xz",         
+            "admixfrog/recdeCODE/5000/NEA_DEN/altai_hcneaden.bin.xz",            
+            "admixfrog/recYRI_LD/5000/NEA_DEN/altai_hcneaden.bin.xz",            
+            "admixfrog/posmode/5000/NEA_DEN/altai_hcneaden.bin.xz"              
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '9',
+        plottype = 'pos',
+        names = ['AA', 'deCODE', 'YRI', 'none']
+    output:
+        png = 'figures/paper/experiments/altai_rec.png',
+        rds = 'figures/paper/experiments/altai_rec.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+
+rule test_ui_downsample:
+    input:
+        bins=[
+            "admixfrog/ds0.00025/20000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/ds0.0025/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/ds0.01/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/ds1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz"],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['0.01x', '0.1x', '0.4x', '40x']
+    output:
+        png = 'figures/paper/experiments/ui_ds.png',
+        rds = 'figures/paper/experiments/ui_ds.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_ui_binsize:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/2000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/error2CAFR/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/error2CAFR/10000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/error2CAFR/50000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['2000', '5000', '10000', '50000']
+    output:
+        png = 'figures/paper/experiments/ui_binsize.png',
+        rds = 'figures/paper/experiments/ui_binsize.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_ui_mode:
+    input:
+        bins=[
+            "admixfrog/noanc/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",  #MAYBE NO ANCESTRAL
+            "admixfrog/error/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/nohyper/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/gtmode/5000/AFR_NEA_DEN/Ust_Ishim_archaicadmixture.bin.xz"],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['noanc', 'error', 'fixed', 'GTs']
+    output:
+        png = 'figures/paper/experiments/ui_mode.png',
+        rds = 'figures/paper/experiments/ui_mode.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_ui_ascertainment:
+    input:
+        bins=[
+            "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_A3700k.bin.xz",
+            "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_A1240k.bin.xz",
+            "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_hcneaden.bin.xz"],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['AAdm', '3.7M', '1240k', 'pARC']
+    output:
+        png = 'figures/paper/experiments/ui_ascertainment.png',
+        rds = 'figures/paper/experiments/ui_ascertainment.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_ui_ref:
+    input:
+        bins=[
+            "admixfrog/nohyper/5000/AFR_NEA/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/nohyper/5000/AFK_NEA/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/nohyper/5000/EUR_NEA/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/nohyper/5000/EAS_NEA/UstIshim_archaicadmixture.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['AFR', 'AFK', 'EUR', 'EAS']
+    output:
+        png = 'figures/paper/experiments/ui_ref.png',
+        rds = 'figures/paper/experiments/ui_ref.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_ui_cont:
+    input:
+        bins=[
+            "admixfrog/cont0.05_ds0.1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/cont0.2_ds0.1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/cont0.5_ds0.1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/cont0.8_ds0.1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['0.05', '0.20', '0.50', '0.8']
+    output:
+        png = 'figures/paper/experiments/ui_cont.png',
+        rds = 'figures/paper/experiments/ui_cont.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_ui_prior:
+    input:
+        bins=[
+            "admixfrog/basic/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/prior0.1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/prior0.5/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",
+            "admixfrog/prior1/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['EB', '0.10', '0.50', '1.00']
+    output:
+        png = 'figures/paper/experiments/ui_prior.png',
+        rds = 'figures/paper/experiments/ui_prior.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_ui_rec:
+    input:
+        bins=[
+            "admixfrog/recAA_Map/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",         
+            "admixfrog/recdeCODE/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",            
+            "admixfrog/recYRI_LD/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz",            
+            "admixfrog/posmode/5000/AFR_NEA_DEN/UstIshim_archaicadmixture.bin.xz"              
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        plottype = 'pos',
+        names = ['AA', 'deCODE', 'YRI', 'none']
+    output:
+        png = 'figures/paper/experiments/ui_rec.png',
+        rds = 'figures/paper/experiments/ui_rec.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_d8_rec:
+    input:
+        bins=[
+            "admixfrog/recAA_Map/5000/NEA_DEN/denisova8_hcneaden.bin.xz",         
+            "admixfrog/recdeCODE/5000/NEA_DEN/denisova8_hcneaden.bin.xz",            
+            "admixfrog/recYRI_LD/5000/NEA_DEN/denisova8_hcneaden.bin.xz",            
+            "admixfrog/posmode/5000/NEA_DEN/denisova8_hcneaden.bin.xz"              
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        plottype = 'pos',
+        names = ['AA', 'deCODE', 'YRI', 'none']
+    output:
+        png = 'figures/paper/experiments/d8_rec.png',
+        rds = 'figures/paper/experiments/d8_rec.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_d8_cont:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/5000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CAFK/5000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CEUR/5000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CEAS/5000/NEA_DEN/denisova8_hcneaden.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['AFR', 'AFK', 'EUR', 'EAS']
+    output:
+        png = 'figures/paper/experiments/d8_cont.png',
+        rds = 'figures/paper/experiments/d8_cont.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_d8_src:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/5000/ALT_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/VIN_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/CHA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/AFR_NEA_DEN/denisova8_hcneaden.bin.xz",
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '1',
+        names = ['ALT', 'VIN', 'CHA', 'AFR']
+    output:
+        png = 'figures/paper/experiments/d8_src.png',
+        rds = 'figures/paper/experiments/d8_src.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_d8_binsize:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/2000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/10000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/50000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 2000,
+        chrom = '1',
+        names = ['0.002', '0.005', '0.01', '0.05']
+    output:
+        png = 'figures/paper/experiments/d8_binsize.png',
+        rds = 'figures/paper/experiments/d8_binsize.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_d8_mode:
+    input:
+        bins=[
+            "admixfrog/delta0.5/5000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/nohyper/5000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/inbreeding/5000/NEA_DEN/denisova8_hcneaden.bin.xz",
+            "admixfrog/gtmode/5000/AFR_NEA_DEN/denisova8_hcneaden.bin.xz"
+        ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 1000,
+        chrom = '1',
+        names = ['delta0.5', 'fixed', 'inbreeding', 'AFR']
+    output:
+        png = 'figures/paper/experiments/d8_mode.png',
+        rds = 'figures/paper/experiments/d8_mode.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+rule test_c6:
+    input:
+        bins=[
+            "admixfrog/error2CAFR/5000/NEA_DEN/mez1_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/mez2_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/chagyrskaya08_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/denisova11_hcneaden.bin.xz",
+            "admixfrog/prior0.1/5000/NEA_DEN/denisova3_hcneaden.bin.xz",
+            "admixfrog/error2CAFR/5000/NEA_DEN/denisova2_hcneaden.bin.xz",
+            ],
+        _script='scripts/paper/downsample_plot.R'
+    params:
+        dpi = 500,
+        chrom = '6',
+        lower=28_000_000,
+        upper=40_000_000,
+        plottype='pos',
+        names = ["M1", "M2", 'D5', "c8", "D11", 'D3', 'D2']
+    output:
+        png = 'figures/paper/experiments/c6.png',
+        rds = 'figures/paper/experiments/c6.rds'
+    script: 'scripts/paper/downsample_plot.R'
+
+
+rule s4_experiments:
+    input:
+        prev='figures/paper/ui_skov.rds',
+        ui_cov='figures/paper/ui_cov.rds',
+        ui_='figures/paper/ui_cov.rds',
+    script:
+        'scripts/paper/experiments.R'
+
+rule ui_tests2:
+    input:
+        rules.test_ui_downsample.output,
+        rules.test_ui_mode.output,
+        rules.test_ui_ascertainment.output,
+        rules.test_ui_ref.output,
+        rules.test_ui_cont.output,
+        rules.test_ui_prior.output,
+
+rule altai_tests2:
+    input:
+        rules.test_altai_downsample.output,
+        rules.test_altai_binsize.output,
+        rules.test_altai_ascertainment.output,
+        rules.test_altai_mode.output,
+        rules.test_altai_src.output,
+        rules.test_altai_prior.output,
+        rules.test_altai_cont.output,
+        rules.test_altai_rec.output,
+
+rule d8_tests:
+    input:
+        rules.test_d8_cont.output,
+        rules.test_d8_src.output,
+        rules.test_d8_binsize.output,
+        rules.test_d8_mode.output,
+
+    

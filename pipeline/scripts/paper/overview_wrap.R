@@ -9,6 +9,8 @@ p_max = snakemake@params$pmax
 p_min = snakemake@params$pmin
 base_sizex = ifelse(snakemake@params$type == 'paper', 9, 12)
 
+save.image("wrap.rds")
+
 #print(c(p_min, p_max))
 
 data = load_bin_data(infile, names)
@@ -19,7 +21,9 @@ d2 = bin_to_long(data) %>%
    #filter(value > .2)  %>% #' debug track'
     filter( variable %in% TRACK) 
 
-P2 = bin_colplot_wrap(d2, base_size=base_sizex) 
+hasX = 'X' %in% d2$chrom
+print(c("hasX", hasX))
+P2 = bin_colplot_wrap(d2, base_size=base_sizex, hasX=hasX)
 if(snakemake@params$type == 'paper'){
     P2 =  P2 + 
         theme(

@@ -20,6 +20,7 @@ plot_snp_run <- function(snp, ref, run, ext=c(4e5, 5e4),
                      min_freq = 0,
                      one_snp_per_bin = F,
                      pops = c("AFR", "VIN", "DEN"),
+                     dont_plot_pop=c(),
                      base_pop= 'DEN', #for fixed,
                      p_read_name = 'p_read'
                      ){ 
@@ -57,7 +58,7 @@ plot_snp_run <- function(snp, ref, run, ext=c(4e5, 5e4),
     x= lsr0 %>% 
         mutate(depth=tref+talt) %>% 
         filter(depth >= min_cov) %>%
-        select(snp_id, bin, fixed, strict_fixed, depth, pos, p_est=p, one_of(pops), p_read) %>% 
+        select(snp_id, bin, fixed, strict_fixed, depth, pos, p_est=p, all_of(pops), p_read) %>% 
         gather('k', 'v', c('p_read', pops), factor_key=T) 
 
     x$target=apply(run[,c('pos', 'pos_end')], 1, 
@@ -99,14 +100,13 @@ plot_snp_run <- function(snp, ref, run, ext=c(4e5, 5e4),
     levels(x$k)[levels(x$k)=='p_read'] = p_read_name
 
     P = x %>% 
+        filter(! k %in% dont_plot_pop) %>%
         ggplot() + 
-        #geom_col(aes(x=pos, y=-.05, fill=target)) + 
         geom_hline(yintercept=0, color="lightgrey") + 
         geom_hline(yintercept=1, color='white') + 
-
         geom_col(aes(x=pos, y=v, alpha=target, fill=fixed))  + 
         theme_classic() + 
-        theme(axis.text.x=element_text(angle=90, vjust=.5, size=6), #strip.text.x=element_text(size=0),
+        theme(axis.text.x=element_text(angle=90, vjust=.5, size=6), 
               legend.position='none', panel.spacing.x=unit(0.05, 'lines'),
               strip.text.x=element_blank()) +
         scale_alpha_discrete(range=c(0.3, 1)) +
@@ -135,313 +135,9 @@ plot_snp_run <- function(snp, ref, run, ext=c(4e5, 5e4),
     return(P)
 }
 
-test1 <- function(){
-    ref = read_csv("ref/ref_archaicadmixture.csv.xz")
-    base="admixfrog/error/5000/AFR_NEA_DEN/Salkhit_archaicadmixture"
-    base_ty="admixfrog/error/5000/AFR_NEA_DEN/Tianyuan_archaicadmixture"
-
-    TARGET = 'AFRDEN'
 
 
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base))
-    
-    run = runs %>% filter(target==TARGET) %>% arrange(-len) %>% head(1) %>% tail(1)
-    P = plot_snp_run(snp, ref, run, ext=c(1e4, 1e4), filter_ambiguous=T, pops=c("AFR", "VIN", "DEN"))
-}
 
-test2 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz")
-    base="admixfrog/error2CAFR/5000/NEA_DEN/denisova8_hcneaden"
-
-    TARGET = 'NEADEN'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base))
-    
-    run = runs %>% filter(target==TARGET) %>% arrange(-len) %>% head(1) %>% tail(1)
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     min_cov = 2,
-                     ext=c(4e4, 4e4), filter_ambiguous=T, pops=c("AFR", "VIN", "DEN"), base_pop='DEN')
-}
-
-test3 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden"
-
-    TARGET = 'NEADEN'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    
-    run = runs %>% filter(target==TARGET) %>% arrange(-len) %>% head(1) %>% tail(1)
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     min_cov = 50,
-                     ext=c(4e4, 4e4), filter_ambiguous=T, pops=c("AFR", "VIN", "DEN"), base_pop='VIN')
-}
-
-test4 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CEUR/5000/A=ALT+D12_D=DEN+D11/denisova3_hcneaden"
-
-    TARGET = 'AD'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, chrom != '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=F,
-                     plot_coverage=F,
-                     plot_est = F,
-                     min_cov = 20,
-                     ext=c(1e5, 1e5), filter_ambiguous=F, 
-                     #pops=c("CHA", "VIN", "ALT", "D11", "DEN"), base_pop='ALT')
-                     pops=c("ALT", "DEN"), base_pop='DEN')
-}
-
-paper_d11 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CAFR/5000/NEA_DEN/denisova11_hcneaden"
-
-    TARGET = 'NEA'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='homo' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     plot_coverage=T,
-                     plot_est = T,
-                     min_cov = 2,
-                     large_top = 2,
-                     one_snp_per_bin=F,
-                     ext=c(4e5, 4e5), filter_ambiguous=T, 
-                     pops=c("NEA", "DEN"), base_pop='NEA')
-    ggsave("figures/paper/longest/d11_run.png", P, width=7.2, height=2)
-}
-
-paper_d3 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CEUR/5000/A=ALT+D12_D=DEN+D11/denisova3_hcneaden"
-
-    TARGET = 'A'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state', chrom == '1' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-    run = data.frame(chrom=6, pos=32798795, pos_end =36534853)
-    run = data.frame(chrom=6, pos=32798795, pos_end =51823616)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     plot_coverage=F,
-                     plot_est = F,
-                     min_cov = 3,
-                     ignore_bins=T,
-                     large_top = 2,
-                     one_snp_per_bin=F,
-                     ext=c(1e6, 1e6), filter_ambiguous=F, 
-                     pops=c("ALT", "DEN"), base_pop='DEN',
-                     p_read_name='Denisova3') +
-        theme(axis.text.x = element_blank())
-    ggsave("figures/paper/longest/d3_run6.png", P, width=7.2, height=2)
-}
-
-
-paper_d2 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="error2CAFR/20000/NEA_DEN/denisova2_hcneaden"
-
-
-    TARGET = 'NEA'
-
-    runs = read_csv(sprintf("rle/%s.rle0.4.xz", base))
-    snp = read_csv(sprintf("admixfrog/%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     filter_fixed_strict=T,
-                     plot_coverage=T,
-                     plot_est = T,
-                     ignore_bins=T,
-                     min_cov = 1,
-                     large_top = 2.5,
-                     min_freq = 0.1,
-                     one_snp_per_bin=F,
-                     p_read_name='Denisova 2',
-                     ext=c(2e6, 2e6), 
-                     filter_ambiguous=T, 
-                     pops=c("NEA", "DEN", "AFR"), base_pop='AFR')
-    ggsave("figures/paper/longest/d2_run.png", P, width=7.2, height=2.5)
-}
-
-paper_d2_chr11 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="error2CAFR/5000/NEA_DEN/denisova2_hcneaden"
-
-
-    TARGET = 'NEA'
-
-    snp = read_csv(sprintf("admixfrog/%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    runs = read_csv(sprintf("rle/%s.rle0.5.xz", base))
-    run = runs %>% filter(target==TARGET, type=='state' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     filter_fixed_strict=T,
-                     plot_coverage=T,
-                     plot_est = T,
-                     ignore_bins=T,
-                     min_cov = 1,
-                     large_top = 2.5,
-                     min_freq = 0.1,
-                     one_snp_per_bin=F,
-                     p_read_name='Denisova 2',
-                     ext=c(2e6, 2e6), 
-                     filter_ambiguous=T, 
-                     pops=c("NEA", "DEN", "AFR"), base_pop='AFR')
-    ggsave("figures/paper/longest/d2_run11.png", P, width=7.2, height=2.5)
-}
-paper_d8 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CAFR/5000/NEA_DEN/denisova8_hcneaden"
-
-    TARGET = 'NEA'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state', chrom == 'X') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=F,
-                     filter_fixed_strict=F,
-                     filter_ambiguous=F, 
-                     plot_coverage=T,
-                     plot_est = F,
-                     ignore_bins=T,
-                     min_cov = 1,
-                     large_top = 2.5,
-                     min_freq = 0.1,
-                     one_snp_per_bin=F,
-                     p_read_name='Denisova 8',
-                     ext=c(2e6, 2e6), 
-                     pops=c("NEA", "DEN", "AFR"), base_pop='AFR') 
-    ggsave("figures/paper/longest/d8_run.png", P, width=7.2, height=2.5)
-}
-
-paper_vindija <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CAFR/5000/NEA_DEN/vindija3319_hcneaden"
-
-    TARGET = 'NEA'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state', chrom=='X' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     filter_ambiguous=T, 
-                     plot_coverage=T,
-                     plot_est = T,
-                     min_cov = 1,
-                     large_top = 3,
-                     min_freq = 0.1,
-                     one_snp_per_bin=T,
-                     ext=c(4e6, 3e6), 
-                     pops=c("NEA", "DEN", "AFR"), base_pop='AFR')
-    ggsave("figures/paper/longest/vindija_run.png", P, width=7.2, height=2.0)
-}
-
-paper_altai <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CAFR/5000/NEA_DEN/altai_hcneaden"
-
-    TARGET = 'DEN'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state', chrom!='X' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=T,
-                     filter_ambiguous=T, 
-                     plot_coverage=F,
-                     plot_est = F,
-                     min_cov = 1,
-                     ignore_bins=T,
-                     large_top = 2,
-                     min_freq = 0.0,
-                     one_snp_per_bin=F,
-                     ext=c(5e5, 3e5), 
-                     p_read_name = 'Denisova 5',
-                     pops=c("VIN", "DEN"), base_pop='VIN') +
-        theme(axis.text.x = element_blank())
-    ggsave("figures/paper/longest/d5_run.png", P, width=7, height=1.75)
-}
-
-paper_spy <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CAFR/5000/NEA_DEN/spy1_hcneaden"
-
-    TARGET = 'DEN'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state', chrom!='X' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=F,
-                     filter_ambiguous=T, 
-                     plot_coverage=T,
-                     plot_est = T,
-                     min_cov = 1,
-                     ignore_bins=F,
-                     large_top = 2,
-                     min_freq = 0.0,
-                     one_snp_per_bin=F,
-                     ext=c(1e5, 1e5), 
-                     pops=c("NEA", "DEN"), base_pop='NEA')
-    ggsave("figures/paper/longest/spy_run.png", P, width=7.2, height=2)
-}
-
-paper_mez1 <- function(){
-    ref = read_csv("ref/ref_hcneaden.csv.xz", col_types=cols(chrom=col_character()))
-    base="admixfrog/error2CAFR/5000/NEA_DEN/spy1_hcneaden"
-
-    TARGET = 'DEN'
-
-    runs = read_csv(sprintf("%s.rle.xz", base))
-    snp = read_csv(sprintf("%s.snp.xz", base), col_types=cols(chrom=col_character()))
-    run = runs %>% filter(target==TARGET, type=='state', chrom!='6' ) %>% arrange(-len) %>% head(1) %>% tail(1)
-    #run = runs %>% filter(target==TARGET, chrom == '6') %>% arrange(-len) %>% head(1) %>% tail(1)
-
-    P = plot_snp_run(snp, ref, run, 
-                     filter_multi=F,
-                     filter_ambiguous=T, 
-                     plot_coverage=T,
-                     plot_est = T,
-                     min_cov = 1,
-                     ignore_bins=F,
-                     large_top = 2,
-                     min_freq = 0.0,
-                     one_snp_per_bin=F,
-                     ext=c(1e5, 1e5), 
-                     pops=c("VIN", "ALT", "CHA", "DEN"), base_pop='VIN')
-    ggsave("figures/paper/longest/mez_run.png", P, width=7.2, height=2)
-}
 
 run_string <- function(run){
     require(scales)
