@@ -10,7 +10,7 @@ We fit a hidden Markov Model across the genome, with the hidden states being all
 combinations of ancestry between one or two sources.
 
 ## Installation
-Requires `python3.6+`
+Requires `python3.7+`
 Install dependencies:
 ```
 pip install cython scipy  --upgrade
@@ -584,3 +584,247 @@ output name and files to be generated:
                         .pars.yaml
 ```
 
+#Admixslug
+
+Admixslug is a genotype likelihood method for contaminated low-coverage data. It
+works by computing a conditional site-frequency spectrum. It uses mostly the same file
+formats as admixfrog and is therefore for now in the same repository.
+
+Documentation is still under construction, but a typical command would be
+
+
+##Input files
+Like admixfrog, admixslug requires two input files;
+
+  - a reference file with information from high-quality samples
+  - a sample file that stores read information for a sample in compact format
+
+```
+admixfrog-bam2 --ref ref/ref_bigsteffi.csv.xz --bamfile bams/bigsteffi/Broion.bam  --out samples2/Broion_bigsteffi.in.xz  --length-bin-size 1 
+```
+The reference file is created exactly the same way as in admixfrog. The bamfile
+contains the reads to be analyzed, and the `--out` flag designates where the
+input file will be stored. see `admixfrog-bam2 --help` for details.
+
+
+##Quickstart
+```bash
+The following command runs admixslug on a single sample stored in
+`samples2/Brion_bigsteffi.in.xz` using the sites from `ref/ref_bigsteffi.csv.xz` 
+and saving the output files in `admixslug/jk10/ALT_VIN_CHA_DEN/Broion_bigsteffi` 
+```
+admixslug --infile samples2/Broion_bigsteffi.in.xz \
+        --ref ref/ref_bigsteffi.csv.xz \
+        -o admixslug/jk10/ALT_VIN_CHA_DEN/Broion_bigsteffi  
+        --states ALT VIN CHA DEN  
+        --cont-id EUR  
+        --ancestral PAN  
+        --ll-tol 0.01  
+        --ptol 0.001   
+        --max-iter 100 
+        --filter-pos 50 
+        --filter-ancestral  
+        --len-bin 2000 
+        --jk-resamples 10
+```
+
+The remaining arguments are
+
+  - `--states` : The reference samples or populations to condition the SFS on
+  - `--cont-id` : The putative contaminant panel
+  - `--ancestral` The ancestral state (these three need to be defined in the
+    reference file)
+  - `--ll-tol, -ptol`: Convergence criteria in terms of log-likelihood and
+    changes in parameter values, respectively
+  - `--max-iter` : The maximum number of iterations
+  - `--filter-pos` : filter position to be at least x bases apart
+  - `--filter-ancestral` : only retain sites with ancestral allele info
+  - `--len-bin k `: attempt to bin reads into bins with around k sites. Higher
+    numbers of k will result in fewer length-bins for contamination estimation,
+    and lower numbers will result in many uncertain estimates
+  - `--jk-resamples` : the nubmer of jackknife resamples for standard error
+    estimation
+
+
+##Output
+The main outputs are 
+
+#### Contamination file
+This file, named {out}.cont.xz contains contamination info.
+
+#### SFS file
+This file, named {out}.sfs.xz contains info on the estimated SFS
+
+#### vcf-file
+This file, named {out}.vcf contains a vcf file with i) random read samples, ii)
+genotype likelihoods and iii) genotype probabilities for all sites with coverage
+
+#### snp-file
+This file, named {out}.snp.xz contains similar info as the VCF file, but more
+easily readable in R
+
+
+Full command here:
+```
+    usage: admixslug [-h] [-v] [--target-file TARGET_FILE] [--ref REF_FILES]
+                     [--filter-delta FILTER_DELTA] [--filter-pos FILTER_POS]
+                     [--filter-map FILTER_MAP] [--filter-high-cov FILTER_HIGH_COV]
+                     [--filter-ancestral] [--male] [--female] [--chroms CHROMS]
+                     [--vcf-sample-name VCF_SAMPLE_NAME] [--force-ref]
+                     [--seed SEED] [--bamfile BAMFILE] [--force-target-file]
+                     [--deam-cutoff DEAM_CUTOFF] [--minmapq MINMAPQ]
+                     [--min-length MIN_LENGTH] [--length-bin-size LENGTH_BIN_SIZE]
+                     [--report-alleles] [--vcfgt VCFGT] [--target TARGET]
+                     [--dont-est-contamination] [--dont-est-error]
+                     [--dont-est-bias] [--dont-est-F] [--est-tau]
+                     [--F0 [F0 [F0 ...]]] [--tau0 [TAU0 [TAU0 ...]]] [--e0 E0]
+                     [--b0 B0] [--c0 C0] [--max-iter MAX_ITER] [--ll-tol LL_TOL]
+                     [--ptol PTOL] [--dont-split-lib] [--autosomes-only]
+                     [--downsample DOWNSAMPLE]
+                     [--fake-contamination FAKE_CONTAMINATION]
+                     [--deam-bin-size DEAM_BIN_SIZE] [--len-bin-size LEN_BIN_SIZE]
+                     [--jk-resamples JK_RESAMPLES] [--outname OUTNAME] [--no-snp]
+                     [--no-cont] [--no-pars] [--no-sfs] [--no-vcf]
+                     [--states [STATES [STATES ...]]] [--state-file STATE_FILE]
+                     [--cont-id CONT_ID] [--ancestral ANCESTRAL]
+                     [--random-read-samples [RANDOM_READ_SAMPLES [RANDOM_READ_SAMPLES ...]]]
+
+    Infer sfs and contamination from low-coverage and contaminated genomes
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -v, --version         show program's version number and exit
+      --target-file TARGET_FILE, --infile TARGET_FILE, --in TARGET_FILE
+                            Sample input file (csv). Contains individual specific
+                            data, obtained from a bam file. - Fields are chrom,
+                            pos, map, lib, tref, talt" - chrom: chromosome - pos :
+                            physical position (int) - map : rec position (float) -
+                            lib : read group. Any string, same string assumes same
+                            contamination - tref : number of reference reads
+                            observed - talt: number of alt reads observed
+      --ref REF_FILES, --ref-file REF_FILES
+                            refernce input file (csv). - Fields are chrom, pos,
+                            ref, alt, map, X_alt, X_ref - chrom: chromosome - pos
+                            : physical position (int) - ref : refrence allele -
+                            alt : alternative allele - map : rec position (float)
+                            - X_alt, X_ref : alt/ref alleles from any number of
+                            sources / contaminant populations. these are used
+                            later in --cont-id and --state-id flags
+      --filter-delta FILTER_DELTA
+                            only use sites with allele frequency difference bigger
+                            than DELTA (default off)
+      --filter-pos FILTER_POS
+                            greedily prune sites to be at least POS positions
+                            apart
+      --filter-map FILTER_MAP
+                            greedily prune sites to be at least MAP recombination
+                            distance apart
+      --filter-high-cov FILTER_HIGH_COV, --filter-highcov FILTER_HIGH_COV
+                            remove SNP with highest coverage (default 0.001, i.e.
+                            0.1% of SNP are removed)
+      --filter-ancestral    remove sites with no ancestral allele information
+      --male                Assumes haploid X chromosome. Default is guess from
+                            coverage. currently broken
+      --female              Assumes diploid X chromosome. Default is guess from
+                            coverage
+      --chroms CHROMS, --chromosome-files CHROMS
+                            The chromosomes to be used in vcf-mode.
+      --vcf-sample-name VCF_SAMPLE_NAME
+                            sample name to be used in admixslug
+      --force-ref, --force-vcf
+      --seed SEED           random number generator seed for resampling
+      --vcfgt VCFGT, --vcf-gt VCFGT, --vcf-target_file VCFGT
+                            VCF input file. To generate input format for admixfrog
+                            in genotype mode, use this.
+      --target TARGET, --sample-id TARGET
+                            sample id if target is read from vcf or geno file. No
+                            effect for bam-file
+      --no-sfs              Disable output of sfs
+      --no-vcf              Disable output of vcf
+      --states [STATES [STATES ...]], --state-ids [STATES [STATES ...]]
+                            the allowed sources. The target will be made of a mix
+                            of all homozygous and heterozygous combinations of
+                            states. More than 4 or 5 sources have not been tested
+                            and are not recommended. Must be present in the ref
+                            file
+      --state-file STATE_FILE, --pop-file STATE_FILE
+                            Population assignments (yaml format)
+      --cont-id CONT_ID, --cont CONT_ID
+                            the source of contamination. Must be specified in ref
+                            file
+      --ancestral ANCESTRAL, -a ANCESTRAL
+                            Outgroup population with the ancestral allele. By
+                            default, assume ancestral allele is unknown
+      --random-read-samples [RANDOM_READ_SAMPLES [RANDOM_READ_SAMPLES ...]], --pseudo-haploid [RANDOM_READ_SAMPLES [RANDOM_READ_SAMPLES ...]]
+                            Set a sample as a pseudo-haploid random-read sample
+                            for the reference. This means when creating a
+                            reference, only one allele is taken.
+
+    bam parsing:
+      --bamfile BAMFILE, --bam BAMFILE
+                            Bam File to process. Choose this or target_file. The
+                            resulting input file will be writen in {out}.in.xz, so
+                            it doesn't need to be regenerated. If the input file
+                            exists, an error is generated unless --force-target-
+                            file is set
+      --force-target-file, --force-bam, --force-infile
+      --deam-cutoff DEAM_CUTOFF
+                            reads with deamination in positions < deam-cutoff are
+                            considered separately
+      --minmapq MINMAPQ     reads with mapq < MINMAPQ are removed
+      --min-length MIN_LENGTH
+                            reads with length < MIN_LENGTH are removed
+      --length-bin-size LENGTH_BIN_SIZE
+                            if set, reads are binned by length for contamination
+                            estimation
+      --report-alleles      whether contamination/error rates should be
+                            conditioned on alleles present at locus
+
+    options that control estimation of model
+                                      parameters:
+      --dont-est-contamination
+                            Don't estimate contamination (default do)
+      --dont-est-error      estimate sequencing error per rg
+      --dont-est-bias       merge error rates ref -> alt and alt -> ref
+      --dont-est-F          Estimate F (distance from ref, default False)
+      --est-tau, -tau       Estimate tau (population structure in references)
+      --F0 [F0 [F0 ...]]    initial F (should be in [0;1]) (default 0)
+      --tau0 [TAU0 [TAU0 ...]]
+                            initial log-tau (default 0), at most 1 per source
+      --e0 E0, -e E0        initial error rate
+      --b0 B0, -b B0        initial ref bias rate
+      --c0 C0, -c C0        initial contamination rate
+
+    options that control the algorithm behavior:
+      --max-iter MAX_ITER, -m MAX_ITER
+                            maximum number of iterations
+      --ll-tol LL_TOL       stop EM when DeltaLL < ll-tol
+      --ptol PTOL           stop EM when parameters change by less than ptol
+      --dont-split-lib      estimate one global contamination parameter (default:
+                            one per read group)
+      --autosomes-only      Only run autosomes
+      --downsample DOWNSAMPLE
+                            downsample coverage to a proportion of reads
+      --fake-contamination FAKE_CONTAMINATION
+                            Adds fake-contamination from the contamination panel
+      --deam-bin-size DEAM_BIN_SIZE, --deam-bin DEAM_BIN_SIZE
+                            bin size for deamination
+      --len-bin-size LEN_BIN_SIZE, --len-bin LEN_BIN_SIZE
+                            bin size for deamination
+      --jk-resamples JK_RESAMPLES, --n-resamples JK_RESAMPLES
+                            number of resamples for Jackknife standard error
+                            estimation
+
+    output name and files to be generated:
+      By default, all files are generated. However, if any of the --no-* options
+      are used to disable specific files
+
+      --outname OUTNAME, --out OUTNAME, -o OUTNAME
+                            Output file path (without extensions)
+      --no-snp              Disable writing posterior genotype likelihood to file
+                            with extension .snp.xz
+      --no-cont             Disable writing contamination estimates to file with
+                            extension .bin.xz
+      --no-pars             Disable writing parameters to file with extension
+                            .pars.yaml
+```
