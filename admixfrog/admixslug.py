@@ -1,14 +1,15 @@
 import numpy as np
 import pandas as pd
-import itertools
 import yaml
+from pprint import pprint
 from collections import Counter, defaultdict
+from copy import deepcopy
 from .read_emissions2 import p_snps_given_gt
 from .io import load_read_data, load_ref, filter_ref
 from .io import write_bin_table, write_pars_table, write_cont_table
 from .io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
 from .io import write_snp_table_slug, write_cont_table_slug
-from .io import write_snp_table_slug2, write_sfs2
+from .io import write_snp_table_slug2, write_sfs2, write_vcf
 from .utils import bins_from_bed,  data2probs, init_pars_sfs
 from .utils import guess_sex, parse_state_string
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
@@ -22,16 +23,15 @@ from .geno_io import read_geno_ref, read_geno
 from .slug_classes import SlugController
 from .utils import make_slug_data, make_slug_reads_data
 from .slug_em_reads import em, squarem
+from .slug_emissions_reads import full_posterior_genotypes
 
 EST_DEFAULT = dict(
     [
-        ("est_inbreeding", False),
         ("est_contamination", True),
-        ("est_F", False),
-        ("est_tau", False),
-        ("est_error", False),
-        ("freq_contamination", 1),
-        ("freq_F", 1),
+        ("est_F", True),
+        ("est_tau", True),
+        ("est_error", True),
+        ("est_bias", True),
     ]
 )
 
@@ -45,49 +45,50 @@ def run_admixslug(
     cont_id="AFR",
     split_lib=True,
     prior=None,
-    map_col='map',
     ancestral=None,
-    ancestral_prior = 0,
     sex=None,
-    pos_mode=False,
     autosomes_only=False,
     downsample=1,
-    gt_mode=False,
     output=defaultdict(lambda: True),
     outname='admixfrog',
     init=defaultdict(lambda: 1e-2),
-    guess_ploidy=False,
     est=EST_DEFAULT,
     fake_contamination=0.,
     bin_reads= True,
-    deam_bin_size = 100000,
-    len_bin_size =2000,
+    deam_bin_size = 50000,
+    len_bin_size = 1000,
     filter=defaultdict(lambda: None),
     ll_tol = 0.001,
+    ptol = 1e-4,
     max_iter = 100,
+    jk_resamples = 0,
+    vcf_sample_name = "admixslug",
     **kwargs
 ):
     """contamination estimation using sfs 
     """
 
-    from pprint import pprint
     pprint(kwargs)
-
-
-    controller = SlugController(do_update_eb = True,
-                                do_update_ftau = True,
-                                do_update_cont = True,
-                                n_iter=max_iter,
-                                ll_tol = ll_tol
-                                )
-
-
-
     # numpy config
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
 
-    if (not est["est_contamination"] and init["c0"] == 0) or gt_mode:
+
+    controller = SlugController(update_eb = est['est_error'] ,
+                                update_ftau = est['est_tau'],
+                                update_F = est['est_F'],
+                                update_cont = est['est_contamination'],
+                                update_bias = est['est_bias'],
+                                n_iter=max_iter,
+                                ll_tol = ll_tol,
+                                param_tol = ptol,
+                                n_resamples = jk_resamples
+                                )
+
+
+
+
+    if (not est["est_contamination"] and init["c0"] == 0):
         cont_id = None
 
     state_dict = parse_state_string(states + [ancestral, cont_id], state_file=state_file) 
@@ -97,15 +98,12 @@ def run_admixslug(
 
     df, sex, n_sites, ix = load_admixslug_data_native(target_file = target_file,
                              ref_files=ref_files,
-                             gt_mode = gt_mode,
                              states=states,
                              state_dict = state_dict,
                              ancestral=ancestral,
                              sex = sex,
                              cont_id=cont_id,
                              split_lib=split_lib,
-                             map_col=map_col,
-                             pos_mode=pos_mode,
                              downsample=downsample,
                              fake_contamination=fake_contamination,
                              filter=filter,
@@ -118,12 +116,35 @@ def run_admixslug(
 
 
     data, sfs = make_slug_reads_data(df, states=states, ancestral=ancestral, sex=sex,
-                          cont_id=cont_id, flip=False)
+                          cont_id=cont_id, flip=True)
     pars = init_pars_sfs(data.n_sfs, data.n_rgs, **init)
-
+    pars0 = deepcopy(pars)
 
     #posterior_gt = em(pars, data, controller)
-    pars, posterior_gt = squarem(pars, data, controller)
+    pars = squarem(pars, data, controller)
+    gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
+
+    if controller.n_resamples > 0:
+        jk_pars_list = []
+
+        for i in range(controller.n_resamples):
+            jk_data = data.jackknife_sample(i, controller.n_resamples)
+            jk_pars = squarem(pars0, jk_data, controller)
+            jk_pars_list.append(jk_pars)
+            print(f"done with jackknife sample {i+1} / {controller.n_resamples}")
+
+        jk_table = np.vstack(tuple(p.pars for p in jk_pars_list))
+
+        n = controller.n_resamples
+        se = np.sqrt(((n-1)/(n)*np.sum((jk_table - pars.pars) ** 2, 0)))
+        se_pars = deepcopy(pars)
+        se_pars._pars = se
+    else:
+        se_pars = deepcopy(pars)
+        se_pars._pars[:] = np.nan
+
+
+
 
     # output formating from here
     if output["output_pars"]:
@@ -132,20 +153,31 @@ def run_admixslug(
 
     if output["output_cont"]:
         df_cont = write_cont_table_slug(ix, data.rgs, pars.cont, 
-                                   n_sites, outname=f'{outname}.cont.xz')
+                                   n_sites, 
+                                        se= se_pars.cont,
+                                        outname=f'{outname}.cont.xz')
 
     if output["output_sfs"]:
-        write_sfs2(sfs, pars, data, outname=f'{outname}.sfs.xz')
+        write_sfs2(sfs, pars, data,
+                   se_tau=se_pars.tau, se_F = se_pars.F, 
+                   outname=f'{outname}.sfs.xz')
 
     if output["output_snp"]:
         df_snp = write_snp_table_slug2(df=df, data=data, posterior_gt = posterior_gt, outname=f'{outname}.snp.xz')
+
+    if output["output_vcf"]:
+        df_snp = write_vcf(df=df, 
+                           data=data, 
+                           posterior_gt = posterior_gt, 
+                           genotype_ll = gt_ll,
+                           sample_name = vcf_sample_name + ':' + ':'.join(states),
+                           outname=f'{outname}.vcf')
 
     return 
 
 def load_admixslug_data_native(states,
                         state_dict=None,
                         target_file=None, 
-                        gt_mode=False,
                         filter=defaultdict(lambda: None),
                         ref_files=None,
                         sex=None,
@@ -160,11 +192,8 @@ def load_admixslug_data_native(states,
                         deam_bin_size = 20_000,
                         len_bin_size = 5000,
                         autosomes_only=False):
-    
-    if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-        data, ix = load_read_data(target_file, high_cov_filter=filter.pop('filter_high_cov'))
-    else:
-        data, ix = load_read_data(target_file, split_lib, downsample, 
+     
+    data, ix = load_read_data(target_file, split_lib, downsample, 
                               make_bins=make_bins,
                               deam_bin_size = deam_bin_size,
                               len_bin_size = len_bin_size,

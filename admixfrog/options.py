@@ -55,7 +55,7 @@ ALGORITHM_OPTIONS = [
     "prior",
     "ancestral_prior",
     "split_lib",
-    "do_hmm"
+    "do_hmm",
 ]
 
 ALGORITHM_OPTIONS_SLUG = [
@@ -65,6 +65,9 @@ ALGORITHM_OPTIONS_SLUG = [
     "ll_tol",
     "max_iter",
     "split_lib",
+    "jk_resamples"
+    "deam_bin_size",
+    "len_bin_size"
 ]
 
 #geno format options
@@ -180,6 +183,61 @@ def add_output_options(parser):
         dest="output_sfs",
         help="""Disable output of sfs""",
     )
+
+def add_output_options_slug(parser):
+    g = parser.add_argument_group(
+        "output name and files to be generated",
+        """By default, all files are generated. However, if any of 
+                                  the --no-* options are used to disable specific files
+                                  """,
+    )
+    g.add_argument(
+        "--outname", 
+        "--out",
+        "-o",
+        default="admixfrog",
+        help="""Output file path (without extensions)""",
+    )
+    g.add_argument(
+        "--no-snp",
+        action="store_false",
+        default=True,
+        dest="output_snp",
+        help="""Disable writing posterior genotype likelihood to file with extension .snp.xz""",
+    )
+
+    g.add_argument(
+        "--no-cont",
+        action="store_false",
+        default=True,
+        dest="output_cont",
+        help="""Disable writing contamination estimates to file with extension .bin.xz""",
+    )
+    g.add_argument(
+        "--no-pars",
+        action="store_false",
+        default=True,
+        dest="output_pars",
+        help="""Disable writing parameters 
+            to file with extension .pars.yaml""",
+    )
+
+    parser.add_argument(
+        "--no-sfs",
+        action="store_false",
+        default=True,
+        dest="output_sfs",
+        help="""Disable output of sfs""",
+    )
+
+    parser.add_argument(
+        "--no-vcf",
+        action="store_false",
+        default=True,
+        dest="output_vcf",
+        help="""Disable output of vcf""",
+    )
+
 
 
 def add_target_file_options(parser):
@@ -349,9 +407,10 @@ def add_estimation_options(P):
         help="""Don't estimate contamination (default do)""",
     )
     parser.add_argument(
-        "--est-error",
-        action="store_true",
-        default=False,
+        "--dont-est-error",
+        action="store_false",
+        default=True,
+        dest="est_error",
         help="""estimate sequencing error per rg""",
     )
     parser.add_argument(
@@ -406,6 +465,70 @@ def add_estimation_options(P):
     )
     parser.add_argument(
         "--e0", "-e", type=float, default=1e-2, help="initial error rate"
+    )
+    parser.add_argument(
+        "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
+    )
+
+def add_estimation_options_slug(P):
+    parser = P.add_argument_group("""options that control estimation of model
+                                  parameters""")
+    parser.add_argument(
+        "--dont-est-contamination",
+        action="store_false",
+        dest="est_contamination",
+        default=True,
+        help="""Don't estimate contamination (default do)""",
+    )
+    parser.add_argument(
+        "--dont-est-error",
+        action="store_false",
+        default=True,
+        dest="est_error",
+        help="""estimate sequencing error per rg""",
+    )
+    parser.add_argument(
+        "--dont-est-bias",
+        action="store_false",
+        default=True,
+        dest="est_bias",
+        help="""merge error rates ref -> alt and alt -> ref""",
+    )
+    parser.add_argument(
+        "--dont-est-F",
+        action="store_false",
+        dest="est_F",
+        default=True,
+        help="""Estimate F (distance from ref, default False)""",
+    )
+    parser.add_argument(
+        "--est-tau",
+        "-tau",
+        action="store_false",
+        dest='est_tau',
+        default=True,
+        help="""Estimate tau (population structure in references)""",
+    )
+    parser.add_argument(
+        "--F0",
+        nargs="*",
+        type=float,
+        default=0.5,
+        help="initial F (should be in [0;1]) (default 0)",
+    )
+    parser.add_argument(
+        "--tau0",
+        nargs="*",
+        type=float,
+        default=0.8,
+        # help="initial tau (should be in [0;1]) (default 1), at most 1 per source",
+        help="initial log-tau (default 0), at most 1 per source",
+    )
+    parser.add_argument(
+        "--e0", "-e", type=float, default=1e-2, help="initial error rate"
+    )
+    parser.add_argument(
+        "--b0", "-b", type=float, default=1e-2, help="initial ref bias rate"
     )
     parser.add_argument(
         "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
@@ -519,5 +642,68 @@ def add_base_options(P):
         help="""no hmm, bins are independent"""
     )
 
+def add_base_options_slug(P):
+    parser = P.add_argument_group("options that control the algorithm behavior")
+    parser.add_argument(
+        "--max-iter",
+        "-m",
+        type=int,
+        default=1000,
+        help="""maximum number of iterations""",
+    )
+    parser.add_argument(
+        "--ll-tol", type=float, default=1e-2, help="""stop EM when DeltaLL < ll-tol"""
+    )
+    parser.add_argument(
+        "--ptol", type=float, default=1e-4, help="""stop EM when parameters change by less than ptol"""
+    )
+    parser.add_argument(
+        "--dont-split-lib",
+        action="store_false",
+        dest="split_lib",
+        default=True,
+        help="""estimate one global contamination parameter (default: one per read
+        group)""",
+    )
+    parser.add_argument(
+        "--autosomes-only",
+        action="store_true",
+        default=False,
+        help="Only run autosomes",
+    )
+    parser.add_argument(
+        "--downsample",
+        type=float,
+        default=1.0,
+        help="downsample coverage to a proportion of reads",
+    )
+    parser.add_argument(
+        "--fake-contamination",
+        type=float,
+        default=0.0,
+        help="Adds fake-contamination from the contamination panel",
+    )
 
+    parser.add_argument(
+        "--deam-bin-size",
+        "--deam-bin",
+        type=int,
+        default=-1,
+        help="bin size for deamination",
+    )
 
+    parser.add_argument(
+        "--len-bin-size",
+        "--len-bin",
+        type=int,
+        default=50000,
+        help="bin size for deamination",
+    )
+
+    parser.add_argument(
+        "--jk-resamples",
+        "--n-resamples",
+        type=int,
+        default=0,
+        help="number of resamples for Jackknife standard error estimation"
+    )

@@ -215,10 +215,7 @@ def slug_post_g(bwd_g, fwd_g):
 
     post_g = bwd_g * fwd_g
     post_g /= np.expand_dims(np.sum(post_g, 1), 1)
-    try:
-        assert np.allclose(np.sum(post_g, 1), 1)
-    except:
-        breakpoint()
+    assert np.allclose(np.sum(post_g, 1), 1)
 
     return post_g
 
@@ -235,7 +232,7 @@ def full_posterior_genotypes(data, pars):
                                        data.READ2SNP, data.READ2RG, data.n_reads)
     bwd_g = slug_bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
 
-    return slug_post_g(bwd_g, fwd_g)
+    return bwd_g, slug_post_g(bwd_g, fwd_g)
 
 
 
@@ -251,7 +248,7 @@ def slug_post_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
     
     post_c = x_cont / (x_cont +x_nocont)
     if np.any(np.isnan(post_c)):
-        breakpoint()
+        raise ValueError()
 
     return post_c
 

@@ -414,14 +414,35 @@ class SlugReads:
         super().__setattr__("SNP2SFS", np.array(self.SNP2SFS))
         super().__setattr__("n_sfs", np.max(self.SNP2SFS) + 1)
         super().__setattr__("n_rgs", np.max(self.READ2RG) + 1)
-        assert 1 + np.max(self.READ2SNP) == self.n_snps
-        assert 1 + np.max(self.READ2RG) == self.n_rgs
+        assert 1 + np.max(self.READ2SNP) <= self.n_snps
+        assert 1 + np.max(self.READ2RG) <= self.n_rgs
         self.READS.flags.writeable = False
         self.FLIPPED.flags.writeable = False
         self.psi.flags.writeable = False
         self.READ2RG.flags.writeable = False
         self.READ2SNP.flags.writeable = False
         self.SNP2SFS.flags.writeable = False
+
+    def jackknife_sample(self, i, n_samples=20):
+        """return a jackknife-subsample of the data
+        """
+        RSLICE = np.ones(self.n_reads, bool)
+        lsp = np.linspace(0, self.n_reads, n_samples+1, dtype=int)
+        RSLICE[lsp[i]:lsp[i+1]] = 0
+
+        return SlugReads(READS = self.READS[RSLICE],
+                         READ2SNP = self.READ2SNP[RSLICE],
+                         READ2RG = self.READ2RG[RSLICE],
+                         SNP2SFS = self.SNP2SFS, #[SSLICE],
+                         FLIPPED = self.FLIPPED, #[SSLICE],
+                         haploid_snps=self.haploid_snps,
+                         states = self.states,
+                         rgs = self.rgs,
+                         psi = self.psi,
+                         chroms = self.chroms,
+                         haplo_chroms = self.haplo_chroms,
+                         sex = self.sex)
+                         
 
     @property
     def n_snps(self):
@@ -442,10 +463,17 @@ class SlugController:
     """
 
     do_ll: bool = True
-    do_update_eb: bool = True
-    do_update_ftau: bool = True
-    do_update_cont: bool = True
-    do_update_delta: bool = False
+    update_eb: bool = True
+    update_ftau: bool = True
+    update_cont: bool = True
+    update_delta: bool = False
+    update_bias: bool = True
+    update_F : bool = True
     n_iter: int = 200
     ll_tol: float = 0.01
+    param_tol : float = 1e-4
     copy_pars : bool = False
+    squarem_min : float = 1.
+    squarem_max : float = 1.
+    squarem_mstep : float = 2.
+    n_resamples : int = 10

@@ -7,6 +7,7 @@ from .slug_emissions_reads import slug_bwd_p_one_o_given_g,slug_bwd_p_all_o_give
 from .slug_emissions_reads import slug_fwd_p_x, slug_fwd_p_x_cont, message_fwd_p_x_nocont
 from .slug_emissions_reads import slug_post_g, slug_post_x, slug_post_c
 from .slug_emissions_reads import full_posterior_genotypes, calc_ll, calc_full_ll_reads
+from .log import log_
 
 
 def norm(self):
@@ -42,9 +43,31 @@ def update_ftau(old_F, old_tau, data, post_g, update_F = True):
     tau[:], F[:] = old_tau, old_F
 
     for k in range(data.n_sfs):
-        g0, g1, g2 = np.mean(post_g[data.SNP2SFS == k], 0)
-        tau[k] = (g1 / 2.0 + g2) / (g0 + g1 + g2)
-    
+        g0, g1, g2 = np.sum(post_g[(data.SNP2SFS == k) & (~data.FLIPPED)], 0)
+        f2, f1, f0 = np.sum(post_g[(data.SNP2SFS == k) & ( data.FLIPPED)], 0)
+
+        G0, G1, G2 = g0 + f0, g1 + f1, g2 + f2
+
+        #update tau
+        tau[k] = (G1 / 2. + G2) / (G0 + G1 + G2)
+
+        #for F, exclude X-chromosome stuff
+        if update_F:
+            if data.haploid_snps is None:
+                pass
+            else:
+                ix1 = data.SNP2SFS == k
+                ix1[data.haploid_snps] = False
+                if np.all(~ix1):
+                    pass
+                else:
+                    g0, g1, g2 = np.sum(post_g[(ix1) & (~data.FLIPPED)], 0)
+                    f2, f1, f0 = np.sum(post_g[(ix1) & ( data.FLIPPED)], 0)
+                    G0, G1, G2 = g0 + f0, g1 + f1, g2 + f2
+
+            F[k] = 2 * G0 / (2 * G0 + G1 + 1e-300) - G1 / (2 * G2 + G1 + 1e-300)
+        np.clip(F, 0, 1, out=F)  # round to [0, 1]
+
     return F, tau
 
 @njit
@@ -111,58 +134,53 @@ def update_pars_reads(pars, data, controller):
     post_g = slug_post_g(bwd_g, fwd_g)
     #breakpoint()
 
-    if O.do_update_ftau:
+    if O.update_ftau:
         post_g = slug_post_g(bwd_g, fwd_g)
         pars.prev_F[:], pars.prev_tau[:] = pars.F, pars.tau
-        pars.F, pars.tau = update_ftau(pars.F, pars.tau, data, post_g)
+        pars.F, pars.tau = update_ftau(pars.F, pars.tau, data, post_g, 
+                                       update_F=controller.update_F)
 
-    if O.do_update_cont:
+    if O.update_cont:
         post_c = slug_post_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
         pars.prev_cont[:] = pars.cont
         pars.cont = update_c(post_c, data.READ2RG, data.n_rgs)
 
-    if O.do_update_eb:
+    if O.update_eb:
         post_x = slug_post_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG) 
         pars.prev_e, pars.prev_b = pars.e, pars.b
-        pars.e, pars.b = update_eb(post_x, data.READS, two_errors = True)
+        pars.e, pars.b = update_eb(post_x, data.READS, two_errors = O.update_bias)
 
 
     if O.do_ll:
         pars.ll, pars.prev_ll = calc_full_ll_reads(data, pars), pars.ll
-        if pars.ll < pars.prev_ll:
-            pass
 
 
     return pars
 
 def squarem(pars0, data, controller):
-    EPS = 1e-5
-    MIN_STEP_0, MAX_STEP_0 = 1., 1.
-    MSTEP = 4.
     """squarem port from R"""
 
+    EPS = controller.param_tol
     controller.copy_pars = True #required for squarem
-    controller.n_iter = 50
-    min_step, max_step = MIN_STEP_0, MAX_STEP_0
+    min_step = controller.squarem_min
+    max_step = controller.squarem_max
     pars = pars0
-    controller.do_update_ftau = True
-    controller.do_update_cont = True
-    controller.do_update_eb = True
+
 
     for i in range(controller.n_iter):
         pars1 = update_pars_reads(pars, data, controller)
         Δp1 = pars1 - pars
         if norm(Δp1) < EPS: #  or pars1.ll - pars1.prev_ll < EPS: 
-            if pars1.ll < pars1.prev_ll:
-                breakpoint()
+            #if pars1.ll < pars1.prev_ll:
+            #    breakpoint()
             pars = pars1
             break
 
         pars2 = update_pars_reads(pars1, data, controller)
         Δp2 = pars2 - pars1
-        if norm(Δp2) < EPS: #  or pars2.ll - pars2.prev_ll < EPS: 
-            if pars2.ll < pars2.prev_ll:
-                breakpoint()
+        if norm(Δp2) < EPS  or pars2.ll - pars1.ll < EPS: 
+            #if pars2.ll < pars2.prev_ll:
+            #    breakpoint()
             pars = pars2
             break
 
@@ -183,17 +201,17 @@ def squarem(pars0, data, controller):
 
         pars_sq = update_pars_reads(pars_sq, data, controller)
 
-        print(f"LLs p0 {pars.ll:.4f} | p1 {pars1.ll-pars.ll:.4f} | p2 {pars2.ll-pars1.ll:.4f} | psq {pars_sq.ll-pars2.ll:.4f}")
+        log_.info(f"LLs p0 {pars.ll:.4f} | p1 {pars1.ll-pars.ll:.4f} | p2 {pars2.ll-pars1.ll:.4f} | psq {pars_sq.ll-pars2.ll:.4f}")
 
         # ll did not improve
         if pars_sq.ll <= pars2.ll:
             pars = pars2
             if step_size >= max_step: 
-                max_step = np.maximum(MAX_STEP_0, max_step / MSTEP)
+                max_step = np.maximum(controller.squarem_max, max_step / controller.squarem_mstep)
         else:
             pars = pars_sq
             if step_size == max_step:
-                max_step *= MSTEP
+                max_step *= controller.squarem_mstep
 
         
 
@@ -201,10 +219,9 @@ def squarem(pars0, data, controller):
         s += f"Δll : {pars.delta_ll:.6f} | e={pars.e[0]:.4f} | b={pars.b[0]:.4f}"
         s += f" | Δc : {pars.delta_cont:.4f} | Δtau : {pars.delta_tau:.4f} | ΔF : {pars.delta_F:.4f}"
         s += f" | Δ1 : {norm(Δp1)}| Δ2:{norm(Δp2)} "
-        print(s)
+        log_.info(s)
 
-    posterior_gt = full_posterior_genotypes(data, pars)
-    return pars, posterior_gt
+    return pars
 
 
 def em(pars, data, controller):
@@ -212,8 +229,8 @@ def em(pars, data, controller):
         update_pars_reads(pars, data, controller)
         s = f"iter {i}: ll: {pars.ll:4f} | Δll : {pars.delta_ll:4f} | e={pars.e[0]:.4f} | b={pars.b[0]:.4f}"
         s += f" | Δc : {pars.delta_cont:.4f} | Δtau : {pars.delta_tau:.4f} | ΔF : {pars.delta_F:.4f}"
-        print(s)
-        if pars.ll - pars.prev_ll < controller.ll_tol:
+        log_._info(s)
+        if pars.delta_ll < controller.ll_tol:
             break
 
 

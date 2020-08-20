@@ -1,9 +1,9 @@
 """basic command line interfaces
 """
 import argparse
-import random
 from pprint import pprint, pformat
 import admixfrog
+import numpy
 
 from .admixfrog import run_admixfrog
 from .admixslug import run_admixslug
@@ -16,7 +16,8 @@ from .options import POP_OPTIONS, INFILE_OPTIONS, REFFILE_OPTIONS, GENO_OPTIONS
 from .options import ALGORITHM_OPTIONS_SLUG, ALGORITHM_OPTIONS
 from .options import add_output_options, add_target_file_options, add_rle_options
 from .options import add_geno_options, add_ref_options, add_estimation_options
-from .options import add_base_options, add_pop_options
+from .options import add_base_options, add_pop_options, add_base_options_slug
+from .options import add_output_options_slug, add_estimation_options_slug
 
 def bam2():
     """create input file from bam/vcf"""
@@ -310,7 +311,8 @@ def run():
     args = parser.parse_args()
     V = vars(args)
 
-    random.seed(V.pop("seed"))
+
+    np.random.seed(V.pop("seed"))
 
     #this reorganizes options into sensible groups
     output_options = dict()
@@ -496,14 +498,6 @@ def run_sfs():
                         """,
     )
     parser.add_argument(
-        "--map-col",
-        "--map-column",
-        default='map',
-        help="""Name of reference-file column that contains the 
-        recombination map. (default: 'map')
-                        """,
-    )
-    parser.add_argument(
         "--filter-delta",
         type=float,
         help="""only use sites with allele frequency difference bigger than DELTA (default off)""",
@@ -548,17 +542,28 @@ def run_sfs():
         help="Assumes diploid X chromosome. Default is guess from coverage",
     )
 
+    parser.add_argument(
+        "--chroms",
+        "--chromosome-files",
+        default='1-22,X',
+        help="""The chromosomes to be used in vcf-mode.
+        """,
+    )
+
+    parser.add_argument(
+        "--vcf-sample-name",
+        default='admixslug',
+        help="""sample name to be used in admixslug"""
+    )
+    parser.add_argument("--force-ref", "--force-vcf", default=False, action="store_true")
 
     parser.add_argument("--seed", help="random number generator seed for resampling",
                         default=None)
 
     add_target_file_options(parser)
-    add_geno_options(parser)
-    add_estimation_options(parser)
-    add_base_options(parser)
-    add_ref_options(parser)
-    add_rle_options(parser)
-    add_output_options(parser)
+    add_estimation_options_slug(parser)
+    add_base_options_slug(parser)
+    add_output_options_slug(parser)
     add_pop_options(parser)
 
     from . import __version__
@@ -566,7 +571,7 @@ def run_sfs():
     args = parser.parse_args()
     V = vars(args)
 
-    random.seed(V.pop("seed"))
+    numpy.random.seed(V.pop("seed"))
 
     #this reorganizes options into sensible groups
     output_options = dict()

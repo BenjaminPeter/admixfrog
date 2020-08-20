@@ -539,7 +539,7 @@ def make_slug_reads_data(df, states, ancestral=None, cont_id = None, sex=None,
 
     snp = df[all_state_ix].reset_index().drop_duplicates()
 
-    if flip:
+    if flip and ancestral is not None:
         sfs, SNP2SFS, FLIPPED  = make_obs2sfs_folded(snp, sfs_state_ix, anc_ref, anc_alt)
     else:
         sfs, SNP2SFS = make_obs2sfs(snp[sfs_state_ix])
@@ -690,7 +690,7 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(np.hstack((PG, mu, random)), columns=["G0", "G1", "G2", "p", "random_read"])
 
-def posterior_table_slug(pg, data):
+def posterior_table_slug(pg, data, gtll=None):
     mu = np.sum(pg * np.arange(3) / 2., 1)
     random = np.random.binomial(1, np.clip(mu, 0, 1))
     log_g = np.log10(pg + 1e-40)
@@ -698,6 +698,10 @@ def posterior_table_slug(pg, data):
     df = np.hstack((log_g, mu[:, np.newaxis], random[:, np.newaxis]))
     df = pd.DataFrame(df, columns=["G0", "G1", "G2", "p", "random_read"])
     df.random_read = df.random_read.astype(np.uint8)
+    if gtll is not None:
+        log_ll = np.log10(gtll + 1e-40)
+        df_ll = pd.DataFrame(log_ll, columns=['L0', 'L1', 'L2'])
+        df = pd.concat((df, df_ll), axis=1)
     return df
 
 def empirical_bayes_prior(der, anc, known_anc=False):
