@@ -583,9 +583,8 @@ output name and files to be generated:
   --no-pars             Disable writing parameters to file with extension
                         .pars.yaml
 ```
-```
 
-#Admixslug
+# Admixslug
 
 Admixslug is a genotype likelihood method for contaminated low-coverage data. It
 works by computing a conditional site-frequency spectrum. It uses mostly the same file
