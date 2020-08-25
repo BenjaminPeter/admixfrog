@@ -608,10 +608,10 @@ input file will be stored. see `admixfrog-bam2 --help` for details.
 
 
 ## Quickstart
-```bash
 The following command runs admixslug on a single sample stored in
 `samples2/Brion_bigsteffi.in.xz` using the sites from `ref/ref_bigsteffi.csv.xz` 
 and saving the output files in `admixslug/jk10/ALT_VIN_CHA_DEN/Broion_bigsteffi` 
+
 ```
 admixslug --infile samples2/Broion_bigsteffi.in.xz \
         --ref ref/ref_bigsteffi.csv.xz \
