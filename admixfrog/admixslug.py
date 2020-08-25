@@ -170,7 +170,7 @@ def run_admixslug(
                            data=data, 
                            posterior_gt = posterior_gt, 
                            genotype_ll = gt_ll,
-                           sample_name = vcf_sample_name + ':' + ':'.join(states),
+                           sample_name = vcf_sample_name,
                            outname=f'{outname}.vcf')
 
     return 

@@ -427,7 +427,7 @@ def write_vcf_line(l, flipped):
     CHROM, POS, REF, ALT, ANC = meta
     random_read, (l0, l1, l2), (g0, g1, g2), (depth) = gts
     s =  f'{CHROM}\t{POS}\t{CHROM}_{POS}\t{REF}\t{ALT}\t.\t.\tAA={ANC}\tGT:GL:GP:DP\t'
-    s += f'{random_read}:{l0:.4f},{l1:.4f},{l2:.4f}:{g0:.4f},{g1:.4f},{g2:.4f},{depth}'
+    s += f'{random_read}:{l0:.4f},{l1:.4f},{l2:.4f}:{g0:.4f},{g1:.4f},{g2:.4f}:{int(depth)}'
     s += '\n'
     return s
 
