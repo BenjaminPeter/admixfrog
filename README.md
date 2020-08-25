@@ -565,7 +565,7 @@ call introgressed fragments:
                         Useful for parameter estimation and bootstrapping
 
 output name and files to be generated:
-  By default, all files are generated. However, if any of the --no-* options
+  By default, all files are generated. However, if any of the --no-\* options
   are used to disable specific files
 
   --outname OUTNAME, --out OUTNAME, -o OUTNAME
