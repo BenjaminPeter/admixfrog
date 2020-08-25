@@ -593,7 +593,7 @@ formats as admixfrog and is therefore for now in the same repository.
 Documentation is still under construction, but a typical command would be
 
 
-##Input files
+## Input files
 Like admixfrog, admixslug requires two input files;
 
   - a reference file with information from high-quality samples
@@ -607,7 +607,7 @@ contains the reads to be analyzed, and the `--out` flag designates where the
 input file will be stored. see `admixfrog-bam2 --help` for details.
 
 
-##Quickstart
+## Quickstart
 ```bash
 The following command runs admixslug on a single sample stored in
 `samples2/Brion_bigsteffi.in.xz` using the sites from `ref/ref_bigsteffi.csv.xz` 
@@ -646,7 +646,7 @@ The remaining arguments are
     estimation
 
 
-##Output
+## Output
 The main outputs are 
 
 #### Contamination file
