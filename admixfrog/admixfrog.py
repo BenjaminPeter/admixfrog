@@ -233,6 +233,7 @@ def load_admixfrog_data(states,
     tot_n_snps = 0
 
 
+
     "1. only geno file"
     if ref_files is None and target_file is None and geno_file and target:
         df = read_geno_ref(fname=geno_file, pops=state_dict, 
@@ -244,10 +245,13 @@ def load_admixfrog_data(states,
         "3. standard input"
     elif ref_files and target_file and geno_file is None and target is None:
         if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-            data = load_read_data(target_file, high_cov_filter=filter.pop('filter_high_cov'))
+            data, _ = load_read_data(target_file,
+                                  high_cov_filter=filter.pop('filter_high_cov'),
+                                  make_bins=False)
         else:
-            #breakpoint()
-            data = load_read_data(target_file, split_lib, downsample, high_cov_filter=filter.pop('filter_high_cov'))
+            data, _ = load_read_data(target_file, split_lib, downsample, 
+                                  make_bins=False,
+                                  high_cov_filter=filter.pop('filter_high_cov'))
 
         ref = load_ref(ref_files, state_dict, cont_id, ancestral,
                        autosomes_only, map_col=map_col)
@@ -272,7 +276,14 @@ def load_admixfrog_data(states,
         if sex is None:
             sex = guess_sex(ref, data)
 
+        cats = ref.index.get_level_values(0).categories
+        chrom_type = pd.CategoricalDtype(cats, ordered=True)
+
+        ref.index = ref.index.set_levels(ref.index.levels[0].astype(str), level=0)
+        data.index = data.index.set_levels(data.index.levels[0].astype(str), level=0)
+
         df = ref.join(data, how='inner')
+        df.index = df.index.set_levels(df.index.levels[0].astype(chrom_type), level=0)
 
 
         "4. geno ref, standard target"
@@ -383,6 +394,7 @@ def run_admixfrog(
 
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
+
 
     df, sex, tot_n_snps = load_admixfrog_data(target_file = target_file,
                              ref_files=ref_files,

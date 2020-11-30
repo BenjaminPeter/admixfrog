@@ -158,7 +158,7 @@ def test_error_est():
         e = 0.01,
         b = 0.001
     )
-    controller = SlugController(do_update_eb=True,  do_update_ftau=False, do_update_cont=False)
+    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False)
     update_pars_reads(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
@@ -192,8 +192,8 @@ def test_cont_est():
         e = 0.,
         b = 0.
     )
-    controller = SlugController(do_update_eb=False,  do_update_ftau=False,
-                                do_update_cont=True)
+    controller = SlugController(update_eb=False,  update_ftau=False,
+                                update_cont=True)
     pars = update_pars_reads(pars, data, controller)
     assert pars.cont[0] == 0
     assert pars.cont[2] == 1
@@ -226,13 +226,13 @@ def test_ftau_est_hap():
         e = 0.00,
         b = 0.00
     )
-    controller = SlugController(do_update_eb=False,  do_update_ftau=True, do_update_cont=False)
+    controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
     update_pars_reads(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
     print(f'tau = {pars.tau}')
-    controller.do_update_ftau = False
+    controller.update_ftau = False
     update_pars_reads(pars, data, controller)
     print( f'll : {pars.prev_ll} -> {pars.ll}')
     assert pars.prev_ll  < pars.ll
@@ -262,7 +262,7 @@ def test_ftau_est():
         e = 0.00,
         b = 0.00
     )
-    controller = SlugController(do_update_eb=False,  do_update_ftau=True, do_update_cont=False)
+    controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
     update_pars_reads(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
@@ -299,7 +299,7 @@ def test_delta_est():
         e = 0.00,
         b = 0.00
     )
-    controller = SlugController(do_update_eb=False,  do_update_ftau=False, do_update_cont=False)
+    controller = SlugController(update_eb=False,  update_ftau=False, update_cont=False)
     update_pars_reads(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
@@ -376,9 +376,9 @@ def test_update_large():
     #update_pars_reads(pars, data, data, 
     #            True, True, True)
     #print( f'll : {pars.prev_ll} -> {pars.ll}')
-    controller = SlugController(do_update_eb=False, 
-                                do_update_ftau=True, 
-                                do_update_cont=True,
+    controller = SlugController(update_eb=False, 
+                                update_ftau=True, 
+                                update_cont=True,
                                 n_iter=1000,
                                 ll_tol = 1e-4)
     em(pars, data, controller)

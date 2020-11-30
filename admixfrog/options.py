@@ -407,12 +407,19 @@ def add_estimation_options(P):
         help="""Don't estimate contamination (default do)""",
     )
     parser.add_argument(
-        "--dont-est-error",
-        action="store_false",
-        default=True,
+        "--est-error",
+        action="store_true",
+        default=False,
         dest="est_error",
         help="""estimate sequencing error per rg""",
     )
+    #parser.add_argument(
+    #    "--dont-est-error",
+    #    action="store_false",
+    #    default=True,
+    #    dest="est_error",
+    #    help="""estimate sequencing error per rg""",
+    #)
     parser.add_argument(
         "--freq-contamination",
         "--fc",

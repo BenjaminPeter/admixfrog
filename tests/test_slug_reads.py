@@ -24,39 +24,7 @@ def test_error_est():
         e = 0.01,
         b = 0.001
     )
-    controller = SlugController(do_update_eb=True,  do_update_ftau=False, do_update_cont=False)
-    update_pars_reads(pars, data, controller)
-    print( f'e : {pars.prev_e} -> {pars.e}')
-    print( f'b : {pars.prev_b} -> {pars.b}')
-    print( f'll : {pars.prev_ll} -> {pars.ll}')
-    assert pars.e == 0.5
-    assert pars.b == 0.8
-
-    update_pars_reads(pars, data, controller)
-    assert pars.prev_ll == pars.ll
-    assert pars.e == pars.prev_e
-    assert pars.b == pars.prev_b
-
-def test_error_est2():
-    """simple test dataset for ensuring algorithm is correct
-
-    """
-    data = SlugReads(
-        READS = [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1],
-        psi = [.7],
-        READ2RG = [0] * 6 + [1] * 5,
-        READ2SNP = [0] * 11,
-        FLIPPED = [False],
-        SNP2SFS = [0])
-
-    pars = SlugParsSquare(
-        cont = [0, 1],
-        tau = [0],
-        F = [0],
-        e = 0.01,
-        b = 0.001
-    )
-    controller = SlugController(do_update_eb=True,  do_update_ftau=False, do_update_cont=False)
+    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False)
     update_pars_reads(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
@@ -91,8 +59,8 @@ def test_cont_est():
         e = 0.,
         b = 0.
     )
-    controller = SlugController(do_update_eb=False,  do_update_ftau=False,
-                                do_update_cont=True)
+    controller = SlugController(update_eb=False,  update_ftau=False,
+                                update_cont=True)
     pars = update_pars_reads(pars, data, controller)
     assert pars.cont[0] == 0
     assert pars.cont[2] == 1
@@ -128,7 +96,7 @@ def test_ftau_est_hap():
         b = 0.00
     )
     ll0 = calc_full_ll_reads(data, pars)
-    controller = SlugController(do_update_eb=False,  do_update_ftau=True, do_update_cont=False)
+    controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
     update_pars_reads(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
@@ -166,7 +134,7 @@ def test_ftau_est():
         b = 0.00
     )
     ll0 = calc_full_ll_reads(data, pars)
-    controller = SlugController(do_update_eb=False,  do_update_ftau=True, do_update_cont=False)
+    controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
     update_pars_reads(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
@@ -201,7 +169,7 @@ def test_delta_est():
         e = 0.00,
         b = 0.00
     )
-    controller = SlugController(do_update_eb=False,  do_update_ftau=False, do_update_cont=False)
+    controller = SlugController(update_eb=False,  update_ftau=False, update_cont=False)
     update_pars_reads(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
@@ -215,7 +183,7 @@ def test_delta_est():
     assert .3 < pars.F[1] < .4
     return pars
 
-#@pytest.mark.skip(reason="takes very long")
+@pytest.mark.skip(reason="takes very long")
 def test_update_large():
     """large random test dataset for perrrrformance testing
 
@@ -283,9 +251,9 @@ def test_update_large():
     #update_pars_reads(pars, data, data, 
     #            True, True, True)
     #print( f'll : {pars.prev_ll} -> {pars.ll}')
-    controller = SlugController(do_update_eb=True, 
-                                do_update_ftau=True, 
-                                do_update_cont=True,
+    controller = SlugController(update_eb=True, 
+                                update_ftau=True, 
+                                update_cont=True,
                                 n_iter=1000,
                                 ll_tol = 1e-4)
     #em(pars, data, controller)

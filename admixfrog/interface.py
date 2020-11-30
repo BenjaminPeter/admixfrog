@@ -3,7 +3,7 @@
 import argparse
 from pprint import pprint, pformat
 import admixfrog
-import numpy
+import numpy as np
 
 from .admixfrog import run_admixfrog
 from .admixslug import run_admixslug
@@ -310,9 +310,8 @@ def run():
 
     args = parser.parse_args()
     V = vars(args)
-
-
-    np.random.seed(V.pop("seed"))
+    seed = V.pop('seed')
+    if seed is not None: np.random.seed(int(seed))
 
     #this reorganizes options into sensible groups
     output_options = dict()
@@ -571,7 +570,12 @@ def run_sfs():
     args = parser.parse_args()
     V = vars(args)
 
-    numpy.random.seed(V.pop("seed"))
+    seed = V.pop('seed')
+    if seed is not None:
+        seed = int(seed)
+        print(seed)
+        print("ASDFASD")
+    np.random.seed(seed)
 
     #this reorganizes options into sensible groups
     output_options = dict()

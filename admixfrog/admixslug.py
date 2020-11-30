@@ -10,7 +10,7 @@ from .io import write_bin_table, write_pars_table, write_cont_table
 from .io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
 from .io import write_snp_table_slug, write_cont_table_slug
 from .io import write_snp_table_slug2, write_sfs2, write_vcf
-from .utils import bins_from_bed,  data2probs, init_pars_sfs
+from .utils import data2probs, init_pars_sfs
 from .utils import guess_sex, parse_state_string
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from .genotype_emissions import update_post_geno,  update_snp_prob
@@ -205,11 +205,18 @@ def load_admixslug_data_native(states,
                    autosomes_only, map_col=map_col, large_ref=False)
     ref = filter_ref(ref, states, ancestral=ancestral, cont=cont_id, **filter)
 
+
     if pos_mode:
         ref.reset_index('map', inplace=True)
         ref.map = ref.index.get_level_values('pos')
         ref.set_index('map', append=True, inplace=True)
 
+
+
+    #workaround a pandas join bug
+    cats = ref.index.get_level_values(0).categories
+    ref.index = ref.index.set_levels(ref.index.levels[0].astype(str), level=0)
+    data.index = data.index.set_levels(data.index.levels[0].astype(str), level=0)
 
 
     df = ref.join(data, how='inner')
