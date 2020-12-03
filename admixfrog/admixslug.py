@@ -135,8 +135,8 @@ def run_admixslug(
 
         jk_table = np.vstack(tuple(p.pars for p in jk_pars_list))
 
-        n = controller.n_resamples
-        se = np.sqrt(((n-1)/(n)*np.sum((jk_table - pars.pars) ** 2, 0)))
+        n = np.sum(~np.isnan(jk_table), 0)
+        se = np.sqrt(((n-1)/(n)*np.nansum((jk_table - pars.pars) ** 2, 0)))
         se_pars = deepcopy(pars)
         se_pars._pars = se
     else:

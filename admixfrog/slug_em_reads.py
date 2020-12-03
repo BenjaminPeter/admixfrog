@@ -12,7 +12,7 @@ from .log import log_
 
 def norm(self):
     """simple L2 - norm function to test parameter vector convergence and squarem steps"""
-    return np.sqrt(np.sum(np.power(self, 2)))
+    return np.sqrt(np.nansum(np.power(self, 2)))
 
 def update_ftau(old_F, old_tau, data, post_g, update_F = True):
     """updates the SFS parameters
@@ -70,7 +70,7 @@ def update_ftau(old_F, old_tau, data, post_g, update_F = True):
 
     return F, tau
 
-@njit
+#@njit
 def update_c(post_c, READ2RG, n_rgs):
     """update c
         parameters:
@@ -132,7 +132,6 @@ def update_pars_reads(pars, data, controller):
     from .slug_emissions_reads import slug_fwd_p_x
     fwd_x = slug_fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
     post_g = slug_post_g(bwd_g, fwd_g)
-    #breakpoint()
 
     if O.update_ftau:
         post_g = slug_post_g(bwd_g, fwd_g)
