@@ -379,8 +379,12 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
         df_libs['l_cont'] = np.clip(cont - 1.96 * se, 0, 1)
         df_libs['h_cont'] = np.clip(cont + 1.96 * se, 0, 1)
 
-    df = ix.merge(df_libs, how='left')
-    df.sort_values(['len', 'deam', 'lib'], inplace=True)
+
+    if ix is None:
+        df = df_libs
+    else:
+        df = ix.merge(df_libs, how='left')
+        df.sort_values(['len', 'deam', 'lib'], inplace=True)
 
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")

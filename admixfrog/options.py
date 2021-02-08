@@ -67,7 +67,8 @@ ALGORITHM_OPTIONS_SLUG = [
     "split_lib",
     "jk_resamples"
     "deam_bin_size",
-    "len_bin_size"
+    "len_bin_size",
+    "bin_reads"
 ]
 
 #geno format options

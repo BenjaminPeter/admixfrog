@@ -199,6 +199,7 @@ def load_admixslug_data_native(states,
                               len_bin_size = len_bin_size,
                               high_cov_filter=filter.pop('filter_high_cov'))
 
+
     data = data[['tref', 'talt', 'rg']]
 
     ref = load_ref(ref_files, state_dict, cont_id, ancestral,

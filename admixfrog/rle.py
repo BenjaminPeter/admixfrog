@@ -45,9 +45,17 @@ def get_rle(data, states, penalty=0.5):
     het_targets = []  # only heterozygous state
     homo_targets = []  # only homozygous state
     state_targets = []  # all homo and heterozygous states with one sample
+    inbred_targets = [] # all inbred states
+
 
     for i in range(n_states):
-        homo_targets.append([states[i]])
+
+        if f'h{states[i]}' in data.columns:
+            inbred_targets.append([f'h{states[i]}'])
+            homo_targets.append([f'h{states[i]}',states[i]])
+        else:
+            homo_targets.append([states[i]])
+
         for j in range(i + 1, n_states):
             het_targets.append([states[i] + states[j]])
 
@@ -58,12 +66,15 @@ def get_rle(data, states, penalty=0.5):
                 l.append(states[i] + states[j])
             elif i > j:
                 l.append(states[j] + states[i])
+            if f'h{states[i]}' in data.columns:
+                l.append(f'h{states[i]}')
         state_targets.append(l)
 
-    targets = het_targets + state_targets + homo_targets
+    targets = het_targets + state_targets + homo_targets + inbred_targets
     types = ["het"] * len(het_targets)
     types += ["state"] * len(state_targets)
     types += ["homo"] * len(homo_targets)
+    types += ["inbred"] * len(inbred_targets)
 
     res = []
 

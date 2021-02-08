@@ -391,11 +391,12 @@ def make_obs2sfs(snp_states, max_states = None, states=None):
     else:
         data = pd.DataFrame()
         for s in states: 
-            data[s] = snp_states[f'{s}_alt'] / (snp_states[f'{s}_alt'] + snp_states[f'{s}_ref'])
-            data[s] = np.nan_to_num(data[s], 0)
+            freq = snp_states[f'{s}_alt'] / (snp_states[f'{s}_alt'] + snp_states[f'{s}_ref'])
+            freq = np.nan_to_num(freq, 0)
             m = np.max((snp_states[f'{s}_alt'] + snp_states[f'{s}_ref']))
             m = min((m, max_states))
-            data[s] = np.round(data[s] * m).astype(np.uint8)
+            freq = np.round(freq * m).astype(np.uint8)
+            data[f'{s}_alt'], data[f'{s}_ref'] = freq, m - freq
             sfs = data.drop_duplicates().reset_index(drop=True)
 
     sfs_dict = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
@@ -416,56 +417,38 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt,
     
     """
 
-    if max_states is None:
-        """1. create FLIPPED, which is true for SNP that need to be flipped"""
-        FLIPPED = (snp[anc_ref] == 0) & (snp[anc_ref] == 1)
-        FLIPPED.reset_index(drop=True, inplace=True)
-        snp.reset_index(drop=True, inplace=True)
+    """1. create FLIPPED, which is true for SNP that need to be flipped"""
+    FLIPPED = (snp[anc_ref] == 0) & (snp[anc_alt] >0 )
+    FLIPPED.reset_index(drop=True, inplace=True)
+    snp.reset_index(drop=True, inplace=True)
 
-        ix_flipped = [v.replace('alt', 'ref') if 'alt' in v else v.replace('ref', 'alt') for v in ix_normal]
-        ix_renamed = [v.replace('alt', 'der') if 'alt' in v else v.replace('ref', 'anc') for v in ix_normal]
+    """2. make data1, data2 which are flipped/non-flipped data"""
+    data1 = pd.DataFrame()
+    data2 = pd.DataFrame()
+    for s in states: 
+        data1[s] = snp.loc[~FLIPPED,f'{s}_alt'] /(snp.loc[~FLIPPED,f'{s}_alt'] + snp.loc[~FLIPPED, f'{s}_ref'])
+        data2[s] = snp.loc[FLIPPED,f'{s}_ref'] /(snp.loc[FLIPPED,f'{s}_alt'] + snp.loc[FLIPPED, f'{s}_ref'])
+        data1[s] = np.nan_to_num(data1[s], 0)
+        data2[s] = np.nan_to_num(data2[s], 0)
+        m = np.max((snp[f'{s}_alt'] + snp[f'{s}_ref']))
+        m = m if max_states is None else min((m, max_states))
+        data1[s] = np.round(data1[s] * m).astype(np.uint8)
+        data2[s] = np.round(data2[s] * m).astype(np.uint8)
 
-        """2. make dict[state] : index for all possible indices"""
-        sfs1 = snp.loc[~FLIPPED, ix_normal].reset_index(drop=True).drop_duplicates().reset_index(drop=True)
-        sfs2 = snp.loc[FLIPPED, ix_flipped].reset_index(drop=True).drop_duplicates().reset_index(drop=True)
-        sfs = pd.DataFrame(np.vstack((sfs1.to_numpy(), sfs2.to_numpy())), columns=ix_renamed).drop_duplicates(ignore_index=True)
-        sfs_dict = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
+        data1[f'{s}_alt'], data1[f'{s}_ref'] = data1[s], m - data1[s]
+        data2[f'{s}_alt'], data2[f'{s}_ref'] = data2[s], m - data2[s]
+        del data1[s], data2[s]
 
 
-        """4. use dicts to create SNP2SFS"""
-        SNP2SFS = np.empty(snp.shape[0], np.int32)
-        SNP2SFS[~FLIPPED] = [sfs_dict[tuple(i)] for i in snp.loc[~FLIPPED, ix_normal].to_numpy()]
-        SNP2SFS[FLIPPED] = [sfs_dict[tuple(i)] for i in snp.loc[FLIPPED, ix_flipped].to_numpy()]
-    else:
-        """1. create FLIPPED, which is true for SNP that need to be flipped"""
-        FLIPPED = (snp[anc_ref] == 0) & (snp[anc_alt] >0 )
-        FLIPPED.reset_index(drop=True, inplace=True)
-        snp.reset_index(drop=True, inplace=True)
-
-        ix_flipped = [v.replace('alt', 'ref') if 'alt' in v else v.replace('ref', 'alt') for v in ix_normal]
-        ix_renamed = [v.replace('alt', 'der') if 'alt' in v else v.replace('ref', 'anc') for v in ix_normal]
-
-        """2. make dict[state] : index for all possible indices"""
-        data1 = pd.DataFrame()
-        data2 = pd.DataFrame()
-        for s in states: 
-            data1[s] = snp.loc[~FLIPPED,f'{s}_alt'] /(snp.loc[~FLIPPED,f'{s}_alt'] + snp.loc[~FLIPPED, f'{s}_ref'])
-            data2[s] = snp.loc[FLIPPED,f'{s}_ref'] /(snp.loc[FLIPPED,f'{s}_alt'] + snp.loc[FLIPPED, f'{s}_ref'])
-            data1[s] = np.nan_to_num(data1[s], 0)
-            data2[s] = np.nan_to_num(data2[s], 0)
-            m = np.max((snp[f'{s}_alt'] + snp[f'{s}_ref']))
-            m = min((m, max_states))
-            data1[s] = np.round(data1[s] * m).astype(np.uint8)
-            data2[s] = np.round(data2[s] * m).astype(np.uint8)
-        data = pd.DataFrame(np.vstack((data1.to_numpy(), data2.to_numpy())),
-                           columns=states)
-        data[~FLIPPED] = data1
-        data[FLIPPED] = data2
-        sfs = data.drop_duplicates().reset_index(drop=True)
-        sfs_dict = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
-        data = np.array(data)
-        """4. use dicts to create SNP2SFS"""
-        SNP2SFS = np.array([sfs_dict[tuple(i)] for i in data], dtype=np.uint16)
+    data = pd.DataFrame(np.vstack((data1.to_numpy(), data2.to_numpy())),
+                       columns=data1.columns)
+    data[~FLIPPED] = data1
+    data[FLIPPED] = data2
+    sfs = data.drop_duplicates().reset_index(drop=True)
+    sfs_dict = dict((tuple(v.values()), k) for (k,v) in sfs.to_dict('index').items())
+    data = np.array(data)
+    """4. use dicts to create SNP2SFS"""
+    SNP2SFS = np.array([sfs_dict[tuple(i)] for i in data], dtype=np.uint16)
 
     return sfs, SNP2SFS, FLIPPED
 
@@ -582,6 +565,7 @@ def make_slug_reads_data(df, states, max_states=8, ancestral=None, cont_id = Non
     assert np.sum(df.tref) == np.sum(READS==0)
 
     snp = df[all_state_ix].reset_index().drop_duplicates()
+
 
     if flip and ancestral is not None:
         sfs, SNP2SFS, FLIPPED  = make_obs2sfs_folded(snp, sfs_state_ix, anc_ref,

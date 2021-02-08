@@ -558,6 +558,10 @@ def run_sfs():
 
     parser.add_argument("--seed", help="random number generator seed for resampling",
                         default=None)
+    parser.add_argument("--bin-reads", default=False, action='store_true',
+                        help="""Input file has info for binning reads. If false,
+                        reads are grouped by the `lib` column. Otherwise, it
+                        uses a deam and length column to bin itself""")
 
     add_target_file_options(parser)
     add_estimation_options_slug(parser)
