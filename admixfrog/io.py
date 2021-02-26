@@ -140,14 +140,14 @@ def filter_ref(ref, states, ancestral=None, cont=None,
         ref = ref[kp]
 
 
-    if filter_pos is not None:
+    if filter_pos is not None and filter_pos >= 0:
         chrom = ref.index.get_level_values('chrom').factorize()[0]
         pos = ref.index.get_level_values('pos').values
         kp = nfp(chrom, pos, ref.shape[0], filter_pos)
         log_.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
         ref = ref[kp]
 
-    if filter_map is not None:
+    if filter_map is not None and filter_pos >= 0:
         chrom = ref.index.get_level_values('chrom').factorize()[0]
         pos = ref.index.get_level_values('map').values
         kp = nfp(chrom, pos, ref.shape[0], filter_map)
@@ -378,7 +378,6 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
         df_libs['se_cont'] = se
         df_libs['l_cont'] = np.clip(cont - 1.96 * se, 0, 1)
         df_libs['h_cont'] = np.clip(cont + 1.96 * se, 0, 1)
-
 
     if ix is None:
         df = df_libs

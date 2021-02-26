@@ -255,7 +255,9 @@ def run():
     )
     parser.add_argument(
         "--filter-pos",
+        nargs="?",
         type=int,
+        default=None,
         help="""greedily prune sites to be at least POS positions apart""",
     )
 
@@ -268,6 +270,7 @@ def run():
     parser.add_argument(
         "--filter-map",
         type=float,
+        default=None,
         help="""greedily prune sites to be at least MAP recombination distance apart""",
     )
     parser.add_argument(

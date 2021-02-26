@@ -10,11 +10,15 @@ def get_runs(targetid, penalty=0.5):
     frag_score = 0
     frags = []
 
+
     while True:
         p = np.array([k for k in accumulate(p0, lambda x, y: max(x + y, 0))])
         pos_max, score_max = np.argmax(p), np.max(p)
         if score_max == 0. :
             break
+        else:
+            pass
+            #print(score_max)
 
         zeros = np.where(p[:pos_max] == 0)[0]
         if len(zeros) == 0:
