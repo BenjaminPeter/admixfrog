@@ -239,6 +239,10 @@ def load_admixfrog_data(states,
         df = read_geno_ref(fname=geno_file, pops=state_dict, 
                            target_ind=target, guess_ploidy=guess_ploidy)
         df['lib'] = 'lib0'
+        if pos_mode:
+            df.reset_index('map', inplace=True)
+            df.map = df.index.get_level_values('pos')
+            df.set_index('map', append=True, inplace=True)
         "2. standard ref and target from geno"
     elif ref_files and target_file is None and geno_file and target:
         raise NotImplementedError("")
@@ -324,7 +328,6 @@ def load_admixfrog_data(states,
             c_ref = np.random.poisson( (1 - f_cont) * target_cont_cov)
             c_alt = np.random.poisson( f_cont * target_cont_cov)
         except ValueError:
-            breakpoint()
             raise ValueError()
         log_.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
         log_.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")

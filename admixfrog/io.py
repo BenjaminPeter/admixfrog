@@ -352,7 +352,6 @@ def write_cont_table(df, cont, error, tot_n_snps, outname=None):
     df_libs["len_bin"] = len_bins
     df_libs["deam"] = deams
 
-    #breakpoint()
     CC = df.groupby(["lib"]).agg(({"tref": sum, "talt": sum})).reset_index()
     CC["n_reads"] = CC.tref + CC.talt
     del CC["tref"]

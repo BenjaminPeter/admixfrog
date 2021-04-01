@@ -52,6 +52,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
         hash_ind, hash_snp = head[3:]
         rlen = row_length(n_ind)
 
+
     z = np.fromfile(f'{fname}.geno', dtype=np.uint8).reshape(n_snp+1, rlen)[1:]
     X = np.unpackbits(z, axis=1).reshape(n_snp, rlen * 4, 2)
     del z
@@ -71,6 +72,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     chrom_order = pd.unique(snp.chrom)
     snp.chrom = snp.chrom.astype('category')                   
     snp.chrom.cat.reorder_categories(chrom_order, inplace=True)
+    snp.map *= 100 #from Morgan to cM
 
 
     ix = pd.MultiIndex.from_frame(ind[['pop', 'sex', 'id']]) 
@@ -131,6 +133,7 @@ def ref_alt(Y, copy=False):
     if 'mt' in Y.index:
         Y.loc['mt'] = Y.loc['mt'].transform(lambda x: np.where(x>1, 3, x)).values
 
+
     ref = Y.groupby(lambda x:x, level=0, axis=1).agg(ref_count)
     ref.rename(columns = lambda x: f'{x}_ref', inplace=True)
 
@@ -149,6 +152,7 @@ def ref_alt(Y, copy=False):
 
     if 'mt' in Y.index: # always haploid
         Y.loc['mt'] = Y.loc['mt'].transform(lambda x: 1 - x).values
+
 
     alt = Y.groupby(lambda x:x, level=0, axis=1).agg(ref_count)
     alt.rename(columns = lambda x: f'{x}_alt', inplace=True)
