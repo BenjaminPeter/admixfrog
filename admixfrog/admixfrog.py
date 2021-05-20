@@ -34,6 +34,7 @@ EST_DEFAULT = dict(
 
 def baum_welch(P, IX, pars, est_options, max_iter=1000, 
                ll_tol=1e-1, gt_mode=False,
+               scale_probs = True,
                do_hmm=True):
     O = est_options
     alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, gamma_names, sex = pars
@@ -66,10 +67,11 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
 
 
     s_scaling = update_snp_prob(
-        SNP, P, IX, cont, error, F, tau, O["est_inbreeding"], gt_mode
+        SNP, P, IX, cont, error, F, tau, O["est_inbreeding"], gt_mode,
+        scale_probs=scale_probs
     )
 
-    e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
+    e_scaling = update_emissions(E, SNP, P, IX, scale_probs=scale_probs)  # P(O | Z)
     scaling = e_scaling + s_scaling
 
     for it in range(max_iter):
@@ -136,7 +138,8 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
         log_.info("\t".join(["%.3f" % a for a in alpha0]))
 
         scaling = update_emission_stuff(
-            it, E, P, PG, SNP, Z, IX, cont, error, F, tau, scaling, est_options, gt_mode
+            it, E, P, PG, SNP, Z, IX, cont, error, F, tau, scaling, est_options,
+            gt_mode, scale_probs=scale_probs
         )
         #breakpoint()
 
@@ -162,7 +165,8 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
 
 
 def update_emission_stuff(
-    it, E, P, PG, SNP, Z, IX, cont, error, F, tau, scaling, est_options, gt_mode
+    it, E, P, PG, SNP, Z, IX, cont, error, F, tau, scaling, est_options,
+    gt_mode, scale_probs
 ):
     O = est_options
     cond_cont = O["est_contamination"] and (it % O["freq_contamination"] == 0 or it < 3)
@@ -181,8 +185,8 @@ def update_emission_stuff(
     if cond_Ftau:
         delta = update_Ftau(F, tau, PG, P, IX, est_options)
         if delta < 1e-5:  # when we converged, do not update F
-            O["est_F"], O["est_tau"] = False, False
-            cond_Ftau, cond_F = False, False
+            #O["est_F"], O["est_tau"] = False, False
+            #cond_Ftau, cond_F = False, False
             log_.info("stopping Ftau updates")
     if cond_Ftau or cond_cont:
         s_scaling = update_snp_prob(
@@ -195,6 +199,7 @@ def update_emission_stuff(
             tau,
             est_inbreeding=O["est_inbreeding"],
             gt_mode=gt_mode,
+            scale_probs=scale_probs
         )
 
         e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
@@ -238,6 +243,7 @@ def load_admixfrog_data(states,
     if ref_files is None and target_file is None and geno_file and target:
         df = read_geno_ref(fname=geno_file, pops=state_dict, 
                            target_ind=target, guess_ploidy=guess_ploidy)
+        df = filter_ref(df, states, ancestral=ancestral, **filter)
         df['lib'] = 'lib0'
         if pos_mode:
             df.reset_index('map', inplace=True)

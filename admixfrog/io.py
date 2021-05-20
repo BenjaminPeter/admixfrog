@@ -109,7 +109,7 @@ def load_ref(
 
 def filter_ref(ref, states, ancestral=None, cont=None,
                filter_delta=None, filter_pos=None, filter_map=None,
-               filter_ancestral=False, filter_cont=True):
+               filter_ancestral=False, filter_cont=True, **kwargs):
     n_states = len(states)
 
     if filter_ancestral and ancestral is not None:
@@ -147,7 +147,7 @@ def filter_ref(ref, states, ancestral=None, cont=None,
         log_.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
         ref = ref[kp]
 
-    if filter_map is not None and filter_pos >= 0:
+    if filter_map is not None and filter_map >= 0:
         chrom = ref.index.get_level_values('chrom').factorize()[0]
         pos = ref.index.get_level_values('map').values
         kp = nfp(chrom, pos, ref.shape[0], filter_map)
@@ -367,8 +367,6 @@ def write_cont_table(df, cont, error, tot_n_snps, outname=None):
     return df_libs
 
 def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
-
-
     df_rg = pd.DataFrame([k for k in rgs], columns=['rg'])
     df_cont = pd.DataFrame(cont, columns = ['cont'])
     df_libs = pd.concat((df_rg, df_cont), 1)

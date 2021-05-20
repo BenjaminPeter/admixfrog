@@ -56,6 +56,7 @@ ALGORITHM_OPTIONS = [
     "ancestral_prior",
     "split_lib",
     "do_hmm",
+    "scale_probs"
 ]
 
 ALGORITHM_OPTIONS_SLUG = [
@@ -648,6 +649,14 @@ def add_base_options(P):
         action="store_false",
         default=True,
         help="""no hmm, bins are independent"""
+    )
+
+    parser.add_argument(
+        "--dont-scale-probs",
+        dest='scale_probs',
+        action="store_false",
+        default=True,
+        help="""dont scale emission probabilities so that the max is 1"""
     )
 
 def add_base_options_slug(P):

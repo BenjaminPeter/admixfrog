@@ -220,6 +220,9 @@ def load_admixslug_data_native(states,
     data.index = data.index.set_levels(data.index.levels[0].astype(str), level=0)
 
 
+    n_sites = ref.shape[0]
+
+
     df = ref.join(data, how='inner')
     df = make_snp_ids(df)
 
@@ -230,7 +233,6 @@ def load_admixslug_data_native(states,
     if fake_contamination and cont_id:
         add_fake_contamination(df, cont_id, prop_cont=fake_contamination)
 
-    n_sites = df.shape[0]
 
     return df, sex, n_sites, ix
 

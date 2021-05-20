@@ -9,8 +9,10 @@ from collections.abc import Mapping
 from pprint import pprint
 try:
     from .utils import parse_state_string
+    from .io import filter_ref
 except (ImportError, ModuleNotFoundError):
     from utils import parse_state_string
+    from io import filter_ref
 
 def row_length(n_ind):
     return max(ceil(n_ind / 4 ), 48)

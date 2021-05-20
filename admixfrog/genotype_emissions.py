@@ -26,12 +26,11 @@ def snp2bin2(e_out, e_in, ix, weight):
             e_out[row] += e_in[i] * weight[i] - weight[i]
 
 
-def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
+def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250, scale_probs = True):
     """main function to calculate emission probabilities for each bin
     P(O | Z) = 1/S  \\ sum_G P(O, G | Z)  
 
     """
-    #import pdb; pdb.set_trace()
     n_homo_states = P.alpha.shape[1]
 
     snp_emissions = np.sum(SNP, 2)
@@ -47,7 +46,7 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250):
         log_.warning("%s underflow bins: %s", sum(bad_bins), np.where(bad_bins)[0])
     E[bad_bins] = bad_bin_cutoff / E.shape[1]
 
-    log_scaling = scale_mat(E)
+    log_scaling = scale_mat(E) if scale_probs else 0
     return log_scaling
 
 
@@ -70,7 +69,7 @@ def update_post_geno(PG, SNP, Z, IX):
     PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z)
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
     PG[np.isnan(PG)] = 0.0
-    PG = np.minimum(np.maximum(PG, 0), 1)  # rounding error
+    np.clip(PG,0, 1, out=PG)
 
     try:
         assert np.all(PG >= 0)
@@ -83,13 +82,13 @@ def update_post_geno(PG, SNP, Z, IX):
 
 
 def update_snp_prob(
-    SNP, P, IX, cont, error, F, tau, est_inbreeding=False, gt_mode=False
+    SNP, P, IX, cont, error, F, tau, est_inbreeding=False, gt_mode=False,
+    scale_probs=True
 ):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
     """
-    #import pdb; pdb.set_trace()
     cflat = np.array([cont[lib] for lib in P.lib])
     eflat = np.array([error[lib] for lib in P.lib])
 
@@ -106,7 +105,7 @@ def update_snp_prob(
     ll_snp = p_snps_given_gt(P, cflat, eflat, IX, gt_mode)
 
     SNP *= ll_snp[:, np.newaxis, :]
-    log_scaling = scale_mat3d(SNP)
+    log_scaling = scale_mat3d(SNP) if scale_probs else 0
 
     return log_scaling
 
