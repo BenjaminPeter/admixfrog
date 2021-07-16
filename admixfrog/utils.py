@@ -4,6 +4,7 @@ import pandas as pd
 import yaml
 from .slug_classes import SlugData, SlugPars, SlugParsSquare, SlugParsLogit, SlugReads
 from numba import njit
+from scipy.linalg import expm
 
 
 try:
@@ -639,6 +640,67 @@ def init_pars_sfs(n_sfs, n_rgs, F0, tau0, e0, c0, **kwargs):
                     b = e0)
     return pars
 
+def trans_mat_hap_to_dip(tmat):
+    """given a haploid transition rate matrix tmat, returns a diploid transition
+    matrix
+
+    assumptions:
+     - only one transition at a time
+     - "canonical" order of heterozygous states
+     - independence between haplotypes
+    """
+    n = tmat.shape[0]
+    n_homo = n
+    n_het = int(n * (n-1) / 2)
+    tmat2 = np.zeros((n_homo+n_het, n_homo+n_het))
+
+    #homo -> homo transition
+    #for i in range(n_homo):
+    #    for j in range(n_homo):
+    #        tmat2[i, j] = tmat[i, j] ** 2 #prob both change at once
+    
+    #homo -> het transition
+    for i in range(n_homo):
+        c = n_homo #state
+        for h1 in range(n_homo): #first het
+            for h2 in range(h1+1, n_homo): #second het
+                if i == h1: #only transition second haplotype
+                    tmat2[i, c] = tmat[h1, h2] 
+                    tmat2[c, i] = tmat[h2, h1] 
+                elif i == h2: #only transition first haplotype
+                    tmat2[i, c] = tmat[h2, h1] 
+                    tmat2[c, i] = tmat[h1, h2] 
+                else: #transition both
+                    pass
+                    #tmat2[i, c] = tmat[i, h1] * tmat[i, h2] + tmat[i, h2] * tmat[j, h1]
+                    #tmat2[c, i] = tmat[h1,i] * tmat[h2, i] + tmat[h2, i] * tmat[h1, j]
+                c += 1
+
+    #het -> het transition
+    c1 = n_homo
+    for i in range(n_homo): #first het from
+        for j in range(i+1, n_homo): #second het from
+            c2 = n_homo
+            for h1 in range(n_homo): #first het of target
+                for h2 in range(h1+1, n_homo): #second het of target
+                    if i == h1 and j == h2: #no transition
+                        continue
+                    elif i == h1: #transition second haplotype from j to h2
+                        tmat2[c1, c2] = tmat[j, h2] 
+                    elif j == h2: #transition first haplotype from i to h1
+                        tmat2[c1, c2] = tmat[i, h1] 
+                    else: #transition both
+                        pass
+                    c2 += 1
+            c1 += 1
+
+    s = np.sum(tmat2, 1)
+    for i in range(tmat2.shape[0]):
+        tmat2[i, i] -= s[i]
+
+    return tmat2
+
+
 def init_pars(
     state_ids,
     sex=None,
@@ -649,6 +711,8 @@ def init_pars(
     est_inbreeding=False,
     init_guess=None,
     do_hap=True,
+    transition_matrix=None,
+    bin_size=1.,
     **kwargs
 ):
     """initialize parameters
@@ -675,18 +739,29 @@ def init_pars(
     alpha0 = np.array([1 / n_states] * n_states)
     alpha0_hap = np.array([1 / n_hap] * n_hap)
 
-    trans_mat = np.zeros((n_states, n_states)) + 2e-2
-    trans_mat_hap = np.zeros((n_hap, n_hap)) + 2e-2
 
-    np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
-    np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
+    if transition_matrix is None:
+        trans_mat = np.zeros((n_states, n_states)) + 2e-2
+        trans_mat_hap = np.zeros((n_hap, n_hap)) + 2e-2
 
-    if init_guess is not None:
-        # guess = [i for i, n in enumerate(gamma_names) if init_guess in n]
-        guess = [i for i, n in enumerate(gamma_names) if n in init_guess]
-        log_.info("starting with guess %s " % guess)
-        trans_mat[:, guess] = trans_mat[:, guess] + 1
-        trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
+        np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
+        np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
+
+        if init_guess is not None:
+            guess = [i for i, n in enumerate(gamma_names) if n in init_guess]
+            log_.info("starting with guess %s " % guess)
+            trans_mat[:, guess] = trans_mat[:, guess] + 1
+            trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
+    else:
+        trans_mat_hap = pd.read_csv(transition_matrix, header=None).to_numpy()
+        trans_mat = trans_mat_hap_to_dip(trans_mat_hap)
+        print(f"BS:{bin_size}")
+        print(trans_mat)
+        print(trans_mat_hap)
+        trans_mat_hap = expm(trans_mat_hap * bin_size)
+        trans_mat = expm(trans_mat * bin_size)
+        print(trans_mat)
+        print(trans_mat_hap)
 
     cont, error = init_ce(c0, e0)
     F, tau = init_ftau(n_homo, F0, tau0)

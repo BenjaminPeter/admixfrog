@@ -55,7 +55,6 @@ ALGORITHM_OPTIONS = [
     "prior",
     "ancestral_prior",
     "split_lib",
-    "do_hmm",
     "scale_probs"
 ]
 
@@ -77,7 +76,7 @@ GENO_OPTIONS=[
     'geno_file',
     'guess_ploidy'
 ]
-def add_pop_options(parser):
+def add_pop_options(parser, states_only=False):
     parser.add_argument(
         "--states",
         "--state-ids",
@@ -94,21 +93,6 @@ def add_pop_options(parser):
         default=None, help="""Population assignments (yaml format)"""
     )
     parser.add_argument(
-        "--cont-id",
-        "--cont",
-        default="AFR",
-        help="""the source of contamination. Must be specified in ref file""",
-    )
-    parser.add_argument(
-        "--ancestral",
-        "-a",
-        type=str,
-        default=None,
-        help="""Outgroup population with the ancestral allele. By default, assume
-        ancestral allele is unknown
-        """,
-    )
-    parser.add_argument(
         "--random-read-samples",
         "--pseudo-haploid",
         nargs="*",
@@ -117,6 +101,22 @@ def add_pop_options(parser):
         only one allele is taken.
         """
     )
+    if not states_only:
+        parser.add_argument(
+            "--cont-id",
+            "--cont",
+            default="AFR",
+            help="""the source of contamination. Must be specified in ref file""",
+        )
+        parser.add_argument(
+            "--ancestral",
+            "-a",
+            type=str,
+            default=None,
+            help="""Outgroup population with the ancestral allele. By default, assume
+            ancestral allele is unknown
+            """,
+        )
 
 def add_output_options(parser):
     g = parser.add_argument_group(
@@ -478,6 +478,26 @@ def add_estimation_options(P):
     parser.add_argument(
         "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
     )
+    parser.add_argument(
+        "--transition-matrix",
+        "--tmat",
+        default=None,
+        help="""Transition rate matrix file. Units are expected to be the
+        transition rate per map distance (i.e. if the recombination map in the
+        ref file is in centimorgen, this is the number of transitions expected
+        per centimorgan). File is a csv file with a n x n
+        transition matrix where n is the number of homozygous states. States are assumed to
+        be ordered by the same ordering as given in the --states flag.
+        """
+    )
+    parser.add_argument(
+        "--dont-est-trans",
+        "--dont-est-transition",
+        dest='est_trans',
+        default=True,
+        action='store_false',
+        help="""Set this flag if transition matrix should be fixed"""
+    )
 
 def add_estimation_options_slug(P):
     parser = P.add_argument_group("""options that control estimation of model
@@ -640,15 +660,6 @@ def add_base_options(P):
         nargs="*",
         help="""init transition so that one state is favored. should be a 
         state in --state-ids """,
-    )
-
-    parser.add_argument(
-        "--no-hmm",
-        "--nohmm",
-        dest='do_hmm',
-        action="store_false",
-        default=True,
-        help="""no hmm, bins are independent"""
     )
 
     parser.add_argument(

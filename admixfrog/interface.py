@@ -43,6 +43,7 @@ def bam2():
     )
     parser.add_argument(
         "--random-read-sample",
+        "--pseudo_haploid",
         default=False,
         action="store_true",
         help="""At each position, just use a single read (bam-mode), or assume
@@ -174,7 +175,7 @@ def do_ref():
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
     )
 
-    add_pop_options(parser)
+    add_pop_options(parser, states_only=True)
     add_ref_options(parser)
     args = parser.parse_args()
     logger.info(pformat(args))
@@ -333,7 +334,7 @@ def run():
             filter_options[k] = V.pop(k)
         elif k.startswith("est_") or k.startswith("freq_"):
             est_options[k] = V.pop(k)
-        elif k in ["init_guess", "F0", "e0", "c0", "tau0", "run_penalty"]:
+        elif k in ["init_guess", "F0", "e0", "c0", "tau0", "transition_matrix", "run_penalty"]:
             init_pars[k] = V.pop(k)
         elif k in INFILE_OPTIONS:
             target_pars[k] = V.pop(k)

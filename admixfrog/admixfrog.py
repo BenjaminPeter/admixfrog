@@ -34,8 +34,7 @@ EST_DEFAULT = dict(
 
 def baum_welch(P, IX, pars, est_options, max_iter=1000, 
                ll_tol=1e-1, gt_mode=False,
-               scale_probs = True,
-               do_hmm=True):
+               scale_probs = True):
     O = est_options
     alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, gamma_names, sex = pars
     gll_mode = not gt_mode
@@ -75,20 +74,15 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
     scaling = e_scaling + s_scaling
 
     for it in range(max_iter):
-        if do_hmm:
-            alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans, gamma)
-            alpha_hap, beta_hap, n_hap = fwd_bwd_algorithm(
-                alpha0_hap, hap_emissions, trans_hap, hap_gamma
-            )
-            ll, old_ll = (
-                np.sum([np.sum(np.log(n_i)) for n_i in itertools.chain(n, n_hap)])
-                + scaling,
-                ll,
-            )
-        else:
-            Z[:] = alpha0 * E 
-            Z[:] = Z / np.sum(Z, 1)[:, np.newaxis]
-            ll, old_ll = np.sum(np.log(np.sum(alpha0 * E, 1))) + scaling, ll
+        alpha, beta, n = fwd_bwd_algorithm(alpha0, emissions, trans, gamma)
+        alpha_hap, beta_hap, n_hap = fwd_bwd_algorithm(
+            alpha0_hap, hap_emissions, trans_hap, hap_gamma
+        )
+        ll, old_ll = (
+            np.sum([np.sum(np.log(n_i)) for n_i in itertools.chain(n, n_hap)])
+            + scaling,
+            ll,
+        )
 
         assert np.allclose(np.sum(Z, 1), 1)
         assert not np.isnan(ll)
@@ -113,7 +107,7 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
             raise ValueError("nan observed in emissions")
 
         # update stuff
-        if do_hmm:
+        if O['est_trans']:
             trans = update_transitions(
                 trans, alpha, beta, gamma, emissions, n, est_inbreeding=O["est_inbreeding"]
             )
@@ -123,15 +117,13 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
                 beta_hap,
                 hap_gamma,
                 hap_emissions,
-                n_hap,
-                est_inbreeding=False,
+            n_hap,
+            est_inbreeding=False,
             )
             log_.debug(trans)
             log_.debug(trans_hap)
             alpha0 = np.linalg.matrix_power(trans, 10000)[0]
             alpha0_hap = np.linalg.matrix_power(trans_hap, 10000)[0]
-        else:
-            alpha0 = np.mean(Z, 0)
 
         if gamma_names is not None:
             log_.info("\t".join(gamma_names))
@@ -147,10 +139,6 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
     pars = ParsHD(
         alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, gamma_names, sex
     )
-
-    if not do_hmm:
-        alpha, beta, n = [], [], []
-        alpha_hap, beta_hap, n_hap = [], [], []
 
     return (
         Z,
@@ -432,7 +420,8 @@ def run_admixfrog(
     P = data2probs(df, IX, states, cont_id, prior=prior, ancestral=ancestral, ancestral_prior=ancestral_prior)
     log_.info("done creating prior")
 
-    pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], **init)
+    pars = init_pars(states, sex, est_inbreeding=est["est_inbreeding"], 
+                     bin_size=bin_size, **init)
 
     Z, G, pars, ll, emissions, hemissions, (_, beta, n), (_, bhap, nhap) = baum_welch(
         P, IX, pars, gt_mode=gt_mode, 
@@ -444,8 +433,6 @@ def run_admixfrog(
         df_pars = write_pars_table(pars, outname=f'{outname}.pars.yaml')
 
     if output["output_rsim"]:
-        if not kwargs['do_hmm']:
-            raise NotImplementedError()
         df_pred = pred_sims(
             trans=pars.trans,
             emissions=emissions,
