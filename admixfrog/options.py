@@ -461,7 +461,7 @@ def add_estimation_options(P):
         "--F0",
         nargs="*",
         type=float,
-        default=0.5,
+        default=0.01,
         help="initial F (should be in [0;1]) (default 0)",
     )
     parser.add_argument(
