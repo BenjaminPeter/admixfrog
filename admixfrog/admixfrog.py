@@ -71,6 +71,8 @@ def baum_welch(P, IX, pars, est_options, max_iter=1000,
     )
 
     e_scaling = update_emissions(E, SNP, P, IX, scale_probs=scale_probs)  # P(O | Z)
+    log_.info("e-scaling: %s", e_scaling)
+    log_.info("s-scaling: %s", s_scaling)
     scaling = e_scaling + s_scaling
 
     for it in range(max_iter):
@@ -190,7 +192,7 @@ def update_emission_stuff(
             scale_probs=scale_probs
         )
 
-        e_scaling = update_emissions(E, SNP, P, IX)  # P(O | Z)
+        e_scaling = update_emissions(E, SNP, P, IX, scale_probs=scale_probs)  # P(O | Z)
         log_.info("e-scaling: %s", e_scaling)
         log_.info("s-scaling: %s", s_scaling)
         scaling = e_scaling + s_scaling
