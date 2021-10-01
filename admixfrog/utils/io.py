@@ -1,3 +1,4 @@
+import logging
 import yaml
 from numba import njit
 from collections import Counter
@@ -6,20 +7,20 @@ import pandas as pd
 import numpy as np
 import itertools
 
+from .utils import posterior_table, parse_state_string, posterior_table_slug
 
-try:
-    from .utils import posterior_table, parse_state_string, posterior_table_slug
-    from .log import log_
-except (ImportError, ModuleNotFoundError):
-    from utils import posterior_table, parse_state_string, posterior_table_slug
-    from log import log_
 
 """reading and writing files"""
 
 
 def load_ref(
-    ref_files, state_dict, cont_id, ancestral=None, autosomes_only=False,
-    map_col = 'map', large_ref = True
+    ref_files,
+    state_dict,
+    cont_id,
+    ancestral=None,
+    autosomes_only=False,
+    map_col="map",
+    large_ref=True,
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files
@@ -27,30 +28,31 @@ def load_ref(
         expected to be generated with utils.parse_state_string
     """
 
-    #1. get list of states we care about
+    # 1. get list of states we care about
     label_states = list(state_dict.keys())
-    EXT = ['_ref', '_alt']
-    D = dict(((k+e), (v+e)) for ((k, v), e) in itertools.product(state_dict.items(), EXT))
-
+    EXT = ["_ref", "_alt"]
+    D = dict(
+        ((k + e), (v + e)) for ((k, v), e) in itertools.product(state_dict.items(), EXT)
+    )
 
     if ancestral is not None:
         label_states = list(set(list(label_states) + [ancestral]))
     if cont_id is not None:
         label_states = list(set(list(label_states) + [cont_id]))
 
-    #2. required in every ref
+    # 2. required in every ref
     basic_cols = ["chrom", "pos", "ref", "alt"]  # required in every ref
 
-    #target states
+    # target states
     ref_cols = [f"{s}_ref" for s in label_states]
     alt_cols = [f"{s}_alt" for s in label_states]
     data_cols = ref_cols + alt_cols
-    
+
     dtype_ = dict(chrom="category", bla=np.uint8)
     for col in data_cols:
         dtype_[col] = np.uint16 if large_ref else np.uint8
 
-    #which file a column is in
+    # which file a column is in
     file_ix = [None for i in data_cols]
     map_ix = None
 
@@ -63,31 +65,30 @@ def load_ref(
         for j, h in enumerate(headers):
             if col in h and file_ix[i] is None:
                 file_ix[i] = j
-                log_.debug(f"found col {col} in header {j}")
+                logging.debug(f"found col {col} in header {j}")
                 break
 
     if None in file_ix:
         s = [c for i, c in zip(file_ix, data_cols) if i is None]
         raise ValueError("columns not found in reference: " + ", ".join(s))
 
-    #read correct cols from each file
+    # read correct cols from each file
     for i, ref_file in enumerate(ref_files):
 
         cols0 = basic_cols + [col for ix, col in zip(file_ix, data_cols) if ix == i]
         if map_file == i:
-            cols0 = cols0 + [map_col] 
-            ix_cols = basic_cols  + [map_col]
+            cols0 = cols0 + [map_col]
+            ix_cols = basic_cols + [map_col]
         else:
             ix_cols = basic_cols
 
-        ref0 = pd.read_csv(ref_file, dtype=dtype_, 
-                           usecols=cols0)
+        ref0 = pd.read_csv(ref_file, dtype=dtype_, usecols=cols0)
         ref0.set_index(ix_cols, inplace=True)
-        ref0.index.rename('map', level=map_col, inplace=True)
+        ref0.index.rename("map", level=map_col, inplace=True)
 
-        #ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
+        # ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
         ref0 = ref0.loc[~ref0.index.duplicated()]
-        ref0 = ref0[~np.isnan(ref0.reset_index('map').map.values)]
+        ref0 = ref0[~np.isnan(ref0.reset_index("map").map.values)]
 
         if i == 0:
             ref = ref0
@@ -96,8 +97,7 @@ def load_ref(
 
     ref.fillna(value=0, inplace=True)
 
-
-    #aggregate different labels
+    # aggregate different labels
     ref = ref.rename(D, axis=1).groupby(level=0, axis=1).agg(sum)
 
     if autosomes_only:
@@ -107,20 +107,33 @@ def load_ref(
     return ref
 
 
-def filter_ref(ref, states, ancestral=None, cont=None,
-               filter_delta=None, filter_pos=None, filter_map=None,
-               filter_ancestral=False, filter_cont=True, **kwargs):
+def filter_ref(
+    ref,
+    states,
+    ancestral=None,
+    cont=None,
+    filter_delta=None,
+    filter_pos=None,
+    filter_map=None,
+    filter_ancestral=False,
+    filter_cont=True,
+    **kwargs,
+):
     n_states = len(states)
 
     if filter_ancestral and ancestral is not None:
-        no_ancestral_call = ref[f'{ancestral}_ref'] + ref[f'{ancestral}_alt'] ==0
+        no_ancestral_call = ref[f"{ancestral}_ref"] + ref[f"{ancestral}_alt"] == 0
         ref = ref.loc[~no_ancestral_call]
-        log_.info("filtering %s SNP due to missing ancestral call", np.sum(no_ancestral_call))
+        logging.info(
+            "filtering %s SNP due to missing ancestral call", np.sum(no_ancestral_call)
+        )
 
     if filter_cont and cont is not None:
-        no_cont_data = ref[f'{cont}_ref'] + ref[f'{cont}_alt'] ==0
+        no_cont_data = ref[f"{cont}_ref"] + ref[f"{cont}_alt"] == 0
         ref = ref.loc[~no_cont_data]
-        log_.info("filtering %s SNP due to missing contaminant call", np.sum(no_cont_data))
+        logging.info(
+            "filtering %s SNP due to missing contaminant call", np.sum(no_cont_data)
+        )
 
     if filter_delta is not None:
         kp = np.zeros(ref.shape[0], np.bool)
@@ -136,127 +149,155 @@ def filter_ref(ref, states, ancestral=None, cont=None,
                 delta = np.abs(f1 - f2)
                 kp = np.logical_or(kp, delta >= filter_delta)
 
-        log_.info("filtering %s SNP due to delta", np.sum(1 - kp))
+        logging.info("filtering %s SNP due to delta", np.sum(1 - kp))
         ref = ref[kp]
 
-
     if filter_pos is not None and filter_pos >= 0:
-        chrom = ref.index.get_level_values('chrom').factorize()[0]
-        pos = ref.index.get_level_values('pos').values
+        chrom = ref.index.get_level_values("chrom").factorize()[0]
+        pos = ref.index.get_level_values("pos").values
         kp = nfp(chrom, pos, ref.shape[0], filter_pos)
-        log_.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
+        logging.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
         ref = ref[kp]
 
     if filter_map is not None and filter_map >= 0:
-        chrom = ref.index.get_level_values('chrom').factorize()[0]
-        pos = ref.index.get_level_values('map').values
+        chrom = ref.index.get_level_values("chrom").factorize()[0]
+        pos = ref.index.get_level_values("map").values
         kp = nfp(chrom, pos, ref.shape[0], filter_map)
-        log_.info("filtering %s SNP due to map filter", np.sum(1 - kp))
+        logging.info("filtering %s SNP due to map filter", np.sum(1 - kp))
         ref = ref[kp]
 
     return ref
+
 
 def qbin_old(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
     if bin_size == -1:
         """case when we only want deam in first 3 pos vs everything else"""
         res = pd.Series(x, dtype=np.uint8)
-        res.loc[(x>=0) & (x <= short_threshold)] = 0
+        res.loc[(x >= 0) & (x <= short_threshold)] = 0
         res.loc[x > short_threshold] = 255
         res.loc[x < 0] = 255
         return res
     if neg_is_nan:
-        y_short = x.loc[(x>=0) & (x <= short_threshold) ]
-        y_long = x.loc[(x > short_threshold) ]
+        y_short = x.loc[(x >= 0) & (x <= short_threshold)]
+        y_long = x.loc[(x > short_threshold)]
 
         n_short_bins = min((254, max((1, int(y_short.shape[0] // bin_size)))))
-        short_cuts =  pd.qcut(y_short, q=n_short_bins, precision=0, labels=False, duplicates='drop')
+        short_cuts = pd.qcut(
+            y_short, q=n_short_bins, precision=0, labels=False, duplicates="drop"
+        )
         if len(short_cuts) == 0:
             ymax = 1
         else:
             ymax = max(short_cuts)
 
         n_long_bins = min((254 - ymax, max((1, int(y_long.shape[0] // bin_size)))))
-        long_cuts =  pd.qcut(y_long, q=n_long_bins, precision=0, labels=False, duplicates='drop')
+        long_cuts = pd.qcut(
+            y_long, q=n_long_bins, precision=0, labels=False, duplicates="drop"
+        )
 
         res = pd.Series(x, dtype=np.uint8)
-        res.loc[(x>=0) & (x <= short_threshold)] = short_cuts
+        res.loc[(x >= 0) & (x <= short_threshold)] = short_cuts
         res.loc[x > short_threshold] = long_cuts + ymax + 1
         res.loc[x < 0] = 255
         return res
     else:
         n_bins = min((254, max((1, int(x.shape[0] // bin_size)))))
-        cuts =  pd.qcut(x, q=n_bins, precision=0, labels=False, duplicates='drop')#.astype(np.uint8)
-        print(n_bins, 'x', x.shape, min(Counter(cuts).values()))
+        cuts = pd.qcut(
+            x, q=n_bins, precision=0, labels=False, duplicates="drop"
+        )  # .astype(np.uint8)
+        print(n_bins, "x", x.shape, min(Counter(cuts).values()))
         return cuts
+
 
 def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
     if bin_size == -1:
         """case when we only want deam in first 3 pos vs everything else"""
         res = pd.Series(x, dtype=np.uint8)
-        res.loc[(x>=0) & (x <= short_threshold)] = 0
+        res.loc[(x >= 0) & (x <= short_threshold)] = 0
         res.loc[x > short_threshold] = 255
         res.loc[x < 0] = 255
         return res
     if neg_is_nan:
-        y_short = x.loc[(x>=0) & (x <= short_threshold) ]
-        y_long = x.loc[(x > short_threshold) ]
+        y_short = x.loc[(x >= 0) & (x <= short_threshold)]
+        y_long = x.loc[(x > short_threshold)]
 
         n_short_bins = min((254, max((1, int(y_short.shape[0] // bin_size)))))
-        short_cuts =  pd.qcut(y_short, q=n_short_bins, precision=0, labels=False, duplicates='drop')
+        short_cuts = pd.qcut(
+            y_short, q=n_short_bins, precision=0, labels=False, duplicates="drop"
+        )
         if len(short_cuts) == 0:
             ymax = 1
         else:
             ymax = max(short_cuts)
 
         n_long_bins = min((254 - ymax, max((1, int(y_long.shape[0] // bin_size)))))
-        long_cuts =  pd.qcut(y_long, q=n_long_bins, precision=0, labels=False, duplicates='drop')
+        long_cuts = pd.qcut(
+            y_long, q=n_long_bins, precision=0, labels=False, duplicates="drop"
+        )
 
         res = pd.Series(x, dtype=np.uint8)
-        res.loc[(x>=0) & (x <= short_threshold)] = short_cuts
+        res.loc[(x >= 0) & (x <= short_threshold)] = short_cuts
         res.loc[x > short_threshold] = long_cuts + ymax + 1
         res.loc[x < 0] = 255
         return res
     else:
         n_bins = min((254, max((1, int(x.shape[0] // bin_size)))))
-        cuts =  pd.qcut(x, q=n_bins, precision=0, labels=False, duplicates='drop')#.astype(np.uint8)
-        print(n_bins, 'x', x.shape, min(Counter(cuts).values()))
+        cuts = pd.qcut(
+            x, q=n_bins, precision=0, labels=False, duplicates="drop"
+        )  # .astype(np.uint8)
+        print(n_bins, "x", x.shape, min(Counter(cuts).values()))
         return cuts
 
-def bin_reads(data, deam_bin_size = 10000, len_bin_size=1000, short_threshold=2):
+
+def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
     data.reset_index(inplace=True)
-    data['deam_bin'] = data.groupby(['lib']).deam.apply(qbin, bin_size=deam_bin_size, short_threshold=short_threshold)
-    data['len_bin'] = data.groupby(['lib', 'deam_bin']).len.apply(qbin, bin_size=len_bin_size, neg_is_nan=False)
-    data['rg'] = [f'{lib}_{d}_{l}' for lib, d, l in zip(data.lib, data.deam_bin, data.len_bin)]
-    data.set_index(['chrom', 'pos'], inplace=True)
+    data["deam_bin"] = data.groupby(["lib"]).deam.apply(
+        qbin, bin_size=deam_bin_size, short_threshold=short_threshold
+    )
+    data["len_bin"] = data.groupby(["lib", "deam_bin"]).len.apply(
+        qbin, bin_size=len_bin_size, neg_is_nan=False
+    )
+    data["rg"] = [
+        f"{lib}_{d}_{l}" for lib, d, l in zip(data.lib, data.deam_bin, data.len_bin)
+    ]
+    data.set_index(["chrom", "pos"], inplace=True)
 
-    ix = data[['rg', 'lib', 'deam_bin', 'deam', 'len_bin', 'len']].drop_duplicates().reset_index(drop=True)
-    ix = data.groupby('rg').agg(({'tref' : sum, 'talt' : sum})).reset_index().merge(ix)
-    ix['n_bin'] = ix.tref + ix.talt
-    del ix['tref'], ix['talt']
+    ix = (
+        data[["rg", "lib", "deam_bin", "deam", "len_bin", "len"]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+    ix = data.groupby("rg").agg(({"tref": sum, "talt": sum})).reset_index().merge(ix)
+    ix["n_bin"] = ix.tref + ix.talt
+    del ix["tref"], ix["talt"]
 
-    ix = data.groupby(['rg', 'deam', 'len']).agg(({'tref' : sum, 'talt' : sum})).reset_index().merge(ix)
-    ix['n_exact'] = ix.tref + ix.talt
+    ix = (
+        data.groupby(["rg", "deam", "len"])
+        .agg(({"tref": sum, "talt": sum}))
+        .reset_index()
+        .merge(ix)
+    )
+    ix["n_exact"] = ix.tref + ix.talt
     ix.n_exact = ix.n_exact.astype(int)
     ix.n_bin = ix.n_bin.astype(int)
     return ix
 
 
-def load_read_data(infile, split_lib=True, downsample=1, 
-                   make_bins = True,
-                   deam_bin_size=10000, len_bin_size=1000, high_cov_filter=0.001):
-    dtype_mandatory = dict(chrom="category", 
-                  pos=np.uint32,
-                  talt=np.uint8, 
-                  tref=np.uint8
-                  )
+def load_read_data(
+    infile,
+    split_lib=True,
+    downsample=1,
+    make_bins=True,
+    deam_bin_size=10000,
+    len_bin_size=1000,
+    high_cov_filter=0.001,
+):
+    dtype_mandatory = dict(
+        chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8
+    )
 
     dtype_optional = dict(
-                  lib=str, 
-                  rg=str,
-                  score=int,
-                  deam=np.int16,
-                  len=np.uint8,
-                  dmgpos=bool
+        lib=str, rg=str, score=int, deam=np.int16, len=np.uint8, dmgpos=bool
     )
 
     data0 = pd.read_csv(infile, dtype=dtype_mandatory, nrows=1)
@@ -264,17 +305,19 @@ def load_read_data(infile, split_lib=True, downsample=1,
         if c in dtype_optional:
             dtype_mandatory[c] = dtype_optional[c]
 
-    data = pd.read_csv(infile, dtype=dtype_mandatory, usecols=dtype_mandatory.keys()).dropna()
-    data.set_index(['chrom', 'pos'], inplace=True)
+    data = pd.read_csv(
+        infile, dtype=dtype_mandatory, usecols=dtype_mandatory.keys()
+    ).dropna()
+    data.set_index(["chrom", "pos"], inplace=True)
 
     if "rg" not in data:
-        if 'lib' in data:
-            data["rg"] = data['lib']
+        if "lib" in data:
+            data["rg"] = data["lib"]
         else:
             data["rg"] = "lib0"
-            data['lib'] = data['rg']
+            data["lib"] = data["rg"]
     elif not split_lib:
-            data = data.groupby(data.index.names).agg(sum)
+        data = data.groupby(data.index.names).agg(sum)
 
     if downsample < 1:
         data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))
@@ -308,7 +351,7 @@ def nfp(chrom, pos, n_snps, filter_pos):
     return kp
 
 
-#yaml writer with indent
+# yaml writer with indent
 class IndentDumper(yaml.Dumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(IndentDumper, self).increase_indent(flow, False)
@@ -359,28 +402,29 @@ def write_cont_table(df, cont, error, tot_n_snps, outname=None):
 
     df_libs = df_libs.merge(CC)
     df_libs.sort_values("n_reads", ascending=False)
-    df_libs['tot_n_snps'] = tot_n_snps
+    df_libs["tot_n_snps"] = tot_n_snps
 
     if outname is not None:
         df_libs.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
     return df_libs
 
+
 def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
-    df_rg = pd.DataFrame([k for k in rgs], columns=['rg'])
-    df_cont = pd.DataFrame(cont, columns = ['cont'])
+    df_rg = pd.DataFrame([k for k in rgs], columns=["rg"])
+    df_cont = pd.DataFrame(cont, columns=["cont"])
     df_libs = pd.concat((df_rg, df_cont), 1)
-    df_libs['n_sites'] = tot_n_snps
+    df_libs["n_sites"] = tot_n_snps
     if se is not None:
-        df_libs['se_cont'] = se
-        df_libs['l_cont'] = np.clip(cont - 1.96 * se, 0, 1)
-        df_libs['h_cont'] = np.clip(cont + 1.96 * se, 0, 1)
+        df_libs["se_cont"] = se
+        df_libs["l_cont"] = np.clip(cont - 1.96 * se, 0, 1)
+        df_libs["h_cont"] = np.clip(cont + 1.96 * se, 0, 1)
 
     if ix is None:
         df = df_libs
     else:
-        df = ix.merge(df_libs, how='left')
-        df.sort_values(['len', 'deam', 'lib'], inplace=True)
+        df = ix.merge(df_libs, how="left")
+        df.sort_values(["len", "deam", "lib"], inplace=True)
 
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
@@ -404,9 +448,14 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
     D = (
         data.reset_index(drop=False)
         .groupby(["chrom", "snp_id"])
-        .agg({"tref": sum, "talt": sum, 
-              'pos' : lambda x: x.iloc[0],
-              'map' : lambda x: x.iloc[0]})
+        .agg(
+            {
+                "tref": sum,
+                "talt": sum,
+                "pos": lambda x: x.iloc[0],
+                "map": lambda x: x.iloc[0],
+            }
+        )
         .reset_index()
     )
     if gt_mode:
@@ -419,9 +468,10 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
 
     return snp_df
 
+
 def write_snp_table_slug(df, posterior_gt, data, outname=None):
     D = (
-        df.groupby(["chrom", "pos", "map", 'ref', 'alt'])
+        df.groupby(["chrom", "pos", "map", "ref", "alt"])
         .agg({"tref": sum, "talt": sum})
         .reset_index()
     )
@@ -432,10 +482,11 @@ def write_snp_table_slug(df, posterior_gt, data, outname=None):
         snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
     return snp_df
+
 
 def write_snp_table_slug2(df, posterior_gt, data, outname=None):
     D = (
-        df.groupby(["chrom", "pos", "map", 'ref', 'alt'])
+        df.groupby(["chrom", "pos", "map", "ref", "alt"])
         .agg({"tref": sum, "talt": sum})
         .reset_index()
     )
@@ -446,6 +497,7 @@ def write_snp_table_slug2(df, posterior_gt, data, outname=None):
         snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
     return snp_df
+
 
 def write_vcf_header():
     s = """##fileformat=VCFv4.2\n"""
@@ -456,37 +508,40 @@ def write_vcf_header():
     s += '##FORMAT=<ID=GP,Number=1,Type=Float,Description="Genotype Probability">\n'
     return s
 
+
 def write_vcf_line(l, flipped):
     aa = l.alt if flipped else l.ref
     meta = l.chrom, l.pos, l.ref, l.alt, aa
-    gts = l.random_read, (l.L0, l.L1, l.L2), (l.G0, l.G1, l.G2), l.tref+l.talt
+    gts = l.random_read, (l.L0, l.L1, l.L2), (l.G0, l.G1, l.G2), l.tref + l.talt
     CHROM, POS, REF, ALT, ANC = meta
     random_read, (l0, l1, l2), (g0, g1, g2), (depth) = gts
-    s =  f'{CHROM}\t{POS}\t{CHROM}_{POS}\t{REF}\t{ALT}\t.\t.\tAA={ANC}\tGT:GL:GP:DP\t'
-    s += f'{random_read}:{l0:.4f},{l1:.4f},{l2:.4f}:{g0:.4f},{g1:.4f},{g2:.4f}:{int(depth)}'
-    s += '\n'
+    s = f"{CHROM}\t{POS}\t{CHROM}_{POS}\t{REF}\t{ALT}\t.\t.\tAA={ANC}\tGT:GL:GP:DP\t"
+    s += f"{random_read}:{l0:.4f},{l1:.4f},{l2:.4f}:{g0:.4f},{g1:.4f},{g2:.4f}:{int(depth)}"
+    s += "\n"
     return s
+
 
 def write_vcf_chroms(chroms):
     s = ""
     for chrom in chroms:
-        s += f'##contig=<ID={chrom}>\n'
+        s += f"##contig=<ID={chrom}>\n"
     return s
 
-def write_vcf(df, data, posterior_gt, genotype_ll, sample_name='test', outname=None):
+
+def write_vcf(df, data, posterior_gt, genotype_ll, sample_name="test", outname=None):
     D = (
-        df.groupby(["chrom", "pos", "map", 'ref', 'alt'])
+        df.groupby(["chrom", "pos", "map", "ref", "alt"])
         .agg({"tref": sum, "talt": sum})
         .reset_index()
     )
     T = posterior_table_slug(pg=posterior_gt, data=data, gtll=genotype_ll)
     snp_df = pd.concat((D, T, pd.DataFrame(data.SNP2SFS, columns=["sfs"])), axis=1)
 
-    with open(outname, 'wt') as f:
+    with open(outname, "wt") as f:
         f.write(write_vcf_header())
         f.write(write_vcf_chroms(data.chroms))
-        f.write('#CHROM	POS	ID	REF	ALT	QUAL	FILTER\tINFO\tFORMAT\t')
-        f.write(f'{sample_name}\n')
+        f.write("#CHROM	POS	ID	REF	ALT	QUAL	FILTER\tINFO\tFORMAT\t")
+        f.write(f"{sample_name}\n")
         for flipped, (_, l) in zip(data.FLIPPED, snp_df.iterrows()):
             f.write(write_vcf_line(l, flipped))
 
@@ -517,75 +572,77 @@ def write_sim_runs(df, outname=None):
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
+
 def write_sfs(sfs, pars, data, outname=None):
     df2 = pd.DataFrame(sfs.keys(), columns=data.states)
-    index = pd.Series(list(sfs.values()), name='sfs')
+    index = pd.Series(list(sfs.values()), name="sfs")
     df2 = df2.reindex(sorted(df2.columns), axis=1)
     df2 = pd.concat((index, df2), 1)
-    n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=['n_snps'])
+    n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=["n_snps"])
 
-    n_reads, n_endo  = Counter(), Counter()
+    n_reads, n_endo = Counter(), Counter()
 
-    for (sfs_, rg, n) in zip(data.OBS2SFS, data.OBS2RG, data.N): 
+    for (sfs_, rg, n) in zip(data.OBS2SFS, data.OBS2RG, data.N):
         n_reads[sfs_] += n
-        n_endo[sfs_] += n * (1-pars.cont[rg])
+        n_endo[sfs_] += n * (1 - pars.cont[rg])
 
+    n_reads = pd.Series((n_reads[i] for i in index), dtype=int, name="n_reads")
+    n_endo = pd.Series((n_endo[i] for i in index), dtype=float, name="n_endo")
+    F = pd.DataFrame(pars.F, columns=["F"])
+    tau = pd.DataFrame(pars.tau, columns=["tau"])
 
-    n_reads = pd.Series((n_reads[i] for i in index), dtype = int, name = 'n_reads')
-    n_endo = pd.Series((n_endo[i] for i in index), dtype = float, name = 'n_endo')
-    F = pd.DataFrame(pars.F, columns=['F'])
-    tau = pd.DataFrame(pars.tau, columns=['tau'])
-
-    sfs_df = pd.concat((df2, F, tau, n_snps, n_reads, n_endo),  axis=1)
+    sfs_df = pd.concat((df2, F, tau, n_snps, n_reads, n_endo), axis=1)
 
     if outname is not None:
-        sfs_df.to_csv(outname, float_format="%5f", index=False, compression='xz')
+        sfs_df.to_csv(outname, float_format="%5f", index=False, compression="xz")
+
 
 def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     df2 = sfs
-    n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=['n_snps'])
+    n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=["n_snps"])
 
-    n_reads, n_endo  = Counter(), Counter()
+    n_reads, n_endo = Counter(), Counter()
 
-    for (sfs_, rg) in zip(data.READ2SFS, data.READ2RG): 
+    for (sfs_, rg) in zip(data.READ2SFS, data.READ2RG):
         n_reads[sfs_] += 1
-        n_endo[sfs_] += 1 * (1-pars.cont[rg])
+        n_endo[sfs_] += 1 * (1 - pars.cont[rg])
 
-    n_anc, n_der  = Counter(), Counter()
-    for (sfs_, read_, flipped) in zip(data.READ2SFS, 
-                                           data.READS, 
-                                           data.FLIPPED[data.READ2SNP]): 
+    n_anc, n_der = Counter(), Counter()
+    for (sfs_, read_, flipped) in zip(
+        data.READ2SFS, data.READS, data.FLIPPED[data.READ2SNP]
+    ):
         if flipped:
             n_anc[sfs_] += read_
             n_der[sfs_] += 1 - read_
         else:
-            n_anc[sfs_] += 1 - read_ #0 = anc -> 1-0 = 1 anc allele
-            n_der[sfs_] += read_ #normal means 1==derived
+            n_anc[sfs_] += 1 - read_  # 0 = anc -> 1-0 = 1 anc allele
+            n_der[sfs_] += read_  # normal means 1==derived
 
-    n_reads = pd.Series((n_reads[i] for i in df2.index), dtype = int, name = 'n_reads')
-    n_endo = pd.Series((n_endo[i] for i in df2.index), dtype = float, name = 'n_endo')
-    n_anc = pd.Series((n_anc[i] for i in df2.index), dtype = float, name = 'n_anc')
-    n_der = pd.Series((n_der[i] for i in df2.index), dtype = float, name = 'n_der')
-    F = pd.DataFrame(pars.F, columns=['F'])
-    tau = pd.DataFrame(pars.tau, columns=['tau'])
+    n_reads = pd.Series((n_reads[i] for i in df2.index), dtype=int, name="n_reads")
+    n_endo = pd.Series((n_endo[i] for i in df2.index), dtype=float, name="n_endo")
+    n_anc = pd.Series((n_anc[i] for i in df2.index), dtype=float, name="n_anc")
+    n_der = pd.Series((n_der[i] for i in df2.index), dtype=float, name="n_der")
+    F = pd.DataFrame(pars.F, columns=["F"])
+    tau = pd.DataFrame(pars.tau, columns=["tau"])
 
-    sfs_df = pd.concat((df2, F, tau, n_snps, n_reads, n_endo),  axis=1)
-    sfs_df['read_ratio'] = n_der / (n_anc + n_der + 1e-400)
-    sfs_df['cont_est'] = 1 - sfs_df['n_endo'] / sfs_df['n_reads']
-    sfs_df['psi'] = sfs_df['tau'] + (sfs_df['read_ratio'] - sfs_df['tau']) / (sfs_df['cont_est'] + 1e-400)
+    sfs_df = pd.concat((df2, F, tau, n_snps, n_reads, n_endo), axis=1)
+    sfs_df["read_ratio"] = n_der / (n_anc + n_der + 1e-400)
+    sfs_df["cont_est"] = 1 - sfs_df["n_endo"] / sfs_df["n_reads"]
+    sfs_df["psi"] = sfs_df["tau"] + (sfs_df["read_ratio"] - sfs_df["tau"]) / (
+        sfs_df["cont_est"] + 1e-400
+    )
 
     if se_tau is not None:
         tau = pars.tau
-        sfs_df['se_tau'] = se_tau
-        sfs_df['l_tau'] = np.clip(tau - 1.96 * se_tau, 0, 1)
-        sfs_df['h_tau'] = np.clip(tau + 1.96 * se_tau, 0, 1)
+        sfs_df["se_tau"] = se_tau
+        sfs_df["l_tau"] = np.clip(tau - 1.96 * se_tau, 0, 1)
+        sfs_df["h_tau"] = np.clip(tau + 1.96 * se_tau, 0, 1)
 
     if se_F is not None:
         F = pars.F
-        sfs_df['se_F'] = se_F
-        sfs_df['l_F'] = np.clip(F - 1.96 * se_F, 0, 1)
-        sfs_df['h_F'] = np.clip(F + 1.96 * se_F, 0, 1)
-
+        sfs_df["se_F"] = se_F
+        sfs_df["l_F"] = np.clip(F - 1.96 * se_F, 0, 1)
+        sfs_df["h_F"] = np.clip(F + 1.96 * se_F, 0, 1)
 
     if outname is not None:
-        sfs_df.to_csv(outname, float_format="%5f", index=False, compression='xz')
+        sfs_df.to_csv(outname, float_format="%5f", index=False, compression="xz")

@@ -366,9 +366,14 @@ class BamFile(ComplexFile):
             return None
 
         try:
-            read_group = BamFile.cleanup_rg(A.get_tag("RG"))
+            #read_group = BamFile.cleanup_rg(A.get_tag("RG"))
+            read_group = A.get_tag("RG")
         except KeyError:
-            read_group = "NONE"
+            try:
+                #guess RG from XI XJ tag, which in some bam files are p7/p5 ix
+                read_group = f'{A.get_tag("XI")}_{A.get_tag("XJ")}'
+            except KeyError:
+                read_group = "NONE"
         try:
             baseq = ord(A.qual[pos_in_read]) - 33
         except UnicodeDecodeError:

@@ -1,29 +1,26 @@
 import numpy as np
+import logging
 import pandas as pd
 import yaml
 from pprint import pprint
 from collections import Counter, defaultdict
 from copy import deepcopy
-from .read_emissions2 import p_snps_given_gt
-from .io import load_read_data, load_ref, filter_ref
-from .io import write_bin_table, write_pars_table, write_cont_table
-from .io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
-from .io import write_snp_table_slug, write_cont_table_slug
-from .io import write_snp_table_slug2, write_sfs2, write_vcf
-from .utils import data2probs, init_pars_sfs
-from .utils import guess_sex, parse_state_string
-from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
-from .genotype_emissions import update_post_geno,  update_snp_prob
-from .genotype_emissions import update_emissions
-from .read_emissions import update_contamination
-from .rle import get_rle
-from .decode import pred_sims, resampling_pars
-from .log import log_, setup_log
-from .geno_io import read_geno_ref, read_geno
-from .slug_classes import SlugController
-from .utils import make_slug_data, make_slug_reads_data
-from .slug_em_reads import em, squarem
-from .slug_emissions_reads import full_posterior_genotypes
+from ..gll.read_emissions2 import p_snps_given_gt
+from ..utils.io import load_read_data, load_ref, filter_ref
+from ..utils.io import write_bin_table, write_pars_table, write_cont_table
+from ..utils.io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
+from ..utils.io import write_snp_table_slug, write_cont_table_slug
+from ..utils.io import write_snp_table_slug2, write_sfs2, write_vcf
+from ..utils.utils import data2probs, init_pars_sfs
+from ..utils.utils import guess_sex, parse_state_string
+from ..gll.genotype_emissions import update_post_geno,  update_snp_prob
+from ..gll.genotype_emissions import update_emissions
+from ..gll.read_emissions import update_contamination
+from ..utils.geno_io import read_geno_ref, read_geno
+from .classes import SlugController
+from ..utils.utils import make_slug_data, make_slug_reads_data
+from .em_reads import em, squarem
+from .emissions_reads import full_posterior_genotypes
 
 EST_DEFAULT = dict(
     [
@@ -111,7 +108,7 @@ def run_admixslug(
                              deam_bin_size = deam_bin_size,
                              len_bin_size = len_bin_size,
                              autosomes_only=autosomes_only)
-    log_.info("done loading data")
+    logging.info("done loading data")
 
 
 
@@ -261,8 +258,8 @@ def add_fake_contamination(df, cont_id, prop_cont):
         target_cont_cov = prop_cont * mean_endo_cov / (1 - prop_cont)
         f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt])
 
-        log_.debug(f"endogenous cov: {mean_endo_cov}")
-        log_.debug(f"fake contamination cov: {target_cont_cov}")
+        logging.debug(f"endogenous cov: {mean_endo_cov}")
+        logging.debug(f"fake contamination cov: {target_cont_cov}")
 
 
         try:
@@ -271,8 +268,8 @@ def add_fake_contamination(df, cont_id, prop_cont):
         except ValueError:
             breakpoint()
             raise ValueError()
-        log_.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
-        log_.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
+        logging.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
+        logging.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
         df.tref += c_ref
         df.talt += c_alt
         

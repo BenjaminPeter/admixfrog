@@ -4,8 +4,8 @@ import pdb
 from .read_emissions2 import p_snps_given_gt
 from numba import njit
 from math import exp, log
-from .log import log_
-from .utils import scale_mat, scale_mat3d
+from ..utils.log import log_
+from ..utils.utils import scale_mat, scale_mat3d
 from .gllmode_emissions import update_Ftau_gllmode, _p_gt_homo, update_geno_emissions
 
 

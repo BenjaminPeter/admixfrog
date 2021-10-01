@@ -735,3 +735,56 @@ def add_base_options_slug(P):
         default=0,
         help="number of resamples for Jackknife standard error estimation"
     )
+    parser.add_argument(
+        "--male",
+        dest="sex",
+        action="store_const",
+        const="m",
+        default=None,
+        help="Assumes haploid X chromosome. Default is guess from coverage. currently broken",
+    )
+    parser.add_argument(
+        "--female",
+        dest="sex",
+        action="store_const",
+        const="f",
+        default=None,
+        help="Assumes diploid X chromosome. Default is guess from coverage",
+    )
+    parser.add_argument(
+        "--chroms",
+        "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
+        """,
+    )
+
+def add_filter_options(parser): 
+    parser.add_argument(
+        "--filter-delta",
+        type=float,
+        help="""only use sites with allele frequency difference bigger than DELTA (default off)""",
+    )
+    parser.add_argument(
+        "--filter-pos",
+        type=int,
+        help="""greedily prune sites to be at least POS positions apart""",
+    )
+    parser.add_argument(
+        "--filter-map",
+        type=float,
+        help="""greedily prune sites to be at least MAP recombination distance apart""",
+    )
+    parser.add_argument(
+        "--filter-high-cov",
+        "--filter-highcov",
+        type=float,
+        default=0.001,
+        help="""remove SNP with highest coverage (default 0.001, i.e. 0.1%% of SNP are removed)""",
+    )
+    parser.add_argument(
+        "--filter-ancestral",
+        action="store_true",
+        default=False,
+        help="""remove sites with no ancestral allele information""",
+    )

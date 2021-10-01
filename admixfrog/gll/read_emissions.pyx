@@ -11,7 +11,7 @@ from libc.stdio cimport printf
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import betaln
 from scipy.stats import binom
-from .log import log_
+from ..utils.log import log_
 
 
 

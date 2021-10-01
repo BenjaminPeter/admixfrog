@@ -1,9 +1,9 @@
+import logging
 from numba import njit
 import pandas as pd
 from collections import Counter
 import numpy as np
 from random import random, seed
-from .log import log_
 
 
 @njit  # ('i8(i8, i8)')
@@ -231,24 +231,22 @@ def pred_sims(
         )
         df["chrom"] = i
         output.append(df)
-        log_.info("Posterior Simulating chromosome %s" % i)
+        logging.info("Posterior Simulating chromosome %s" % i)
     return pd.concat(output)
 
 
-
 def resampling_pars(tbl):
-    #breakpoint()
-    in_state = tbl[['state', 'it', 'len']].groupby(['state', 'it']).sum()  
-    tot = tbl[['it', 'len']].groupby(['it']).sum()                
+    # breakpoint()
+    in_state = tbl[["state", "it", "len"]].groupby(["state", "it"]).sum()
+    tot = tbl[["it", "len"]].groupby(["it"]).sum()
     Z = in_state / tot
-    sds = Z.groupby('state').std()
-    means = Z.groupby('state').mean()
+    sds = Z.groupby("state").std()
+    means = Z.groupby("state").mean()
 
-    sds.columns = ['sd']      
-    means.columns = ['mean']  
-    data = means.join(sds)    
-    data['lower'] = data['mean'] - 1.96 * data['sd']
-    data['upper'] = data['mean'] + 1.96 * data['sd']
+    sds.columns = ["sd"]
+    means.columns = ["mean"]
+    data = means.join(sds)
+    data["lower"] = data["mean"] - 1.96 * data["sd"]
+    data["upper"] = data["mean"] + 1.96 * data["sd"]
 
     return data
-

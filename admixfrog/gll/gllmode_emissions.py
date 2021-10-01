@@ -1,8 +1,8 @@
 from scipy.optimize import minimize
-from .log import log_
+from ..utils.log import log_
 import numpy as np
 import pdb
-from .distributions import gt_homo_dist
+from ..utils.distributions import gt_homo_dist
 from numba import njit
 from math import exp, log
 
