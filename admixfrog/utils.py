@@ -877,10 +877,10 @@ def scale_mat3d(M):
     """
     scaling = np.max(M, (1, 2))[:, np.newaxis, np.newaxis]
 
-    zeros = np.isclose(scaling, 0)[:, 0, 0]
+    #zeros = np.isclose(scaling, 0)[:, 0, 0]
     M /= scaling
-    M[zeros] = 1
-    scaling[zeros] = 1
+    #M[zeros] = 1
+    #scaling[zeros] = 1
 
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
