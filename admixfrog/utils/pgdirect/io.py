@@ -277,9 +277,9 @@ class BamFile(ComplexFile):
         
         Returns
         -------
-        simplified rg (everything after first dash is discarded)
+        simplified rg (underscore replaced by dash)
         """
-        return rg.split("-")[0]
+        return rg.replace("_", "-")
 
     def _open_file(self, chrom):
         self._handle = pysam.AlignmentFile(self.fname.format(CHROM=chrom))

@@ -284,7 +284,7 @@ class SlugReads:
         assert len(self.FLIPPED) == len(self.SNP2SFS)
         super().__setattr__("READS", np.array(self.READS))
         super().__setattr__("psi", np.array(self.psi))
-        super().__setattr__("FLIPPED", np.array(self.FLIPPED))
+        super().__setattr__("FLIPPED", np.array(self.FLIPPED, 'bool'))
         super().__setattr__("READ2RG", np.array(self.READ2RG))
         super().__setattr__("READ2SNP", np.array(self.READ2SNP))
         super().__setattr__("SNP2SFS", np.array(self.SNP2SFS))

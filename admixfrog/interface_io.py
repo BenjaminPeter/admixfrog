@@ -20,7 +20,7 @@ from .options import add_ref_options
 def do_ref():
     """subprogram to create reference file
     """
-    logger = setup_log()
+    setup_log()
     parser = argparse.ArgumentParser(description="create reference file from vcf")
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
@@ -29,13 +29,13 @@ def do_ref():
     add_pop_options(parser, states_only=True)
     add_ref_options(parser)
     args = parser.parse_args()
-    logger.info(pformat(args))
+    logging.info(pformat(args))
 
     pop2sample = load_pop_file(args.state_file, args.states)
     random_read_samples = load_random_read_samples(
         args.state_file, args.random_read_samples
     )
-    logger.debug(pformat(random_read_samples))
+    logging.debug(pformat(random_read_samples))
     vcf_to_ref(
         args.outfile,
         args.vcf_ref,
@@ -51,7 +51,7 @@ def do_ref():
 
 def bam():
     """create input file from bam/vcf"""
-    logger = setup_log()
+    setup_log()
     parser = argparse.ArgumentParser(description="Parse bam file for admixfrog")
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
@@ -89,7 +89,7 @@ def bam():
     add_target_file_options(parser)
     args = vars(parser.parse_args())
 
-    logger.info(pformat(args))
+    logging.info(pformat(args))
     force_target_file = args.pop("force_target_file")
     if isfile(args["outfile"]) and not force_target_file:
         raise ValueError(

@@ -403,7 +403,8 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, state
     """create sfs data structure taking ancestral allele into account
 
     basic strat
-    1. create FLIPPED, which is true for SNP that need to be flipped
+    1. create FLIPPED, which is true for SNP that need to be flipped, i.e.
+        the ancestral allele is the alt-allele
     2. make dict[state] : index for all possible indices
     4. use dict to create SNP2SFS
 

@@ -1,18 +1,19 @@
-from admixfrog.slug.slug_classes import *
-from admixfrog.slug.slug_emissions_reads import *
-from admixfrog.slug.slug_em_reads import *
+from admixfrog.slug.classes import *
+from admixfrog.slug.emissions_reads import *
+from admixfrog.slug.em_reads import *
 import numpy as np
 import pytest 
 
 def test_slug_p_gt_diploid():
     tau0 = 0.4
-    tau = np.array([tau0])
+    tau = np.zeros(4) + tau0
     F = np.array([0, 0.1, 1, 1])
     res = np.empty((4, 3))
 
     SNP2SFS = np.arange(4, dtype=int)
+    FLIP = np.zeros(4, dtype='bool')
 
-    slug_p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res)
+    res = p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res, FLIPPED=FLIP)
 
     pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
     pred2 = np.array([(1 - tau0), 0, tau0])
@@ -34,7 +35,7 @@ def test_slug_p_gt_diploid_flipped():
     FLIPPED = np.zeros(4, bool)
     FLIPPED[3] = True
 
-    slug_p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res, FLIPPED=FLIPPED)
+    p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res, FLIPPED=FLIPPED)
 
     pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
     pred2 = np.array([(1 - tau0), 0, tau0])
@@ -49,8 +50,10 @@ def test_slug_p_gt_diploid_flipped():
 def test_slug_p_gt_haploid():
     tau0 = np.arange(10) / 10.0
     res = np.empty((10, 3))
+    FLIPPED = np.zeros(1, dtype='bool')
 
-    slug_p_gt_haploid(tau0=tau0, SNP2SFS = np.arange(10, dtype=int), res=res)
+    p_gt_haploid(tau=tau0, SNP2SFS = np.arange(10, dtype=int), res=res,
+                 FLIPPED=FLIPPED)
     assert np.allclose(res[:, 1], 0)
     assert np.allclose(res[:, 2], tau0)
     assert np.allclose(res[:, 0], 1 - tau0)
@@ -72,14 +75,14 @@ def test_slug_fwd_p_x():
 
     IX = _IX()
 
-    bwd_x = slug_bwd_p_o_given_x(READS, 0, 0)
-    bwd_g1 = slug_bwd_p_one_o_given_g(bwd_x, pa, pc, IX.READ2SNP,
+    bwd_x = bwd_p_o_given_x(READS, 0, 0)
+    bwd_g1 = bwd_p_one_o_given_g(bwd_x, pa, pc, IX.READ2SNP,
                                       IX.READ2RG, IX.n_reads)
-    bwd_g = slug_bwd_p_all_o_given_g(bwd_g1, IX.READ2SNP, IX.n_snps)
+    bwd_g = bwd_p_all_o_given_g(bwd_g1, IX.READ2SNP, IX.n_snps)
 
-    px_cont = slug_fwd_p_x_cont(pa, IX.READ2SNP)
+    px_cont = fwd_p_x_cont(pa, IX.READ2SNP)
     px_nocont = message_fwd_p_x_nocont(pg, bwd_g, bwd_g1, IX.READ2SNP)
-    res = slug_fwd_p_x(px_cont, px_nocont, pc, IX.READ2RG)
+    res = fwd_p_x(px_cont, px_nocont, pc, IX.READ2RG)
 
     assert res[0, 1] == .3 * .3 + .75 * .7
     assert res[1, 1] == .3 
@@ -102,14 +105,14 @@ def test_slug_fwd_p_x2():
     IX = _IX()
 
 
-    bwd_x = slug_bwd_p_o_given_x(READS, 0.01, 0.01)
-    bwd_g1 = slug_bwd_p_one_o_given_g(bwd_x, pa, pc, IX.READ2SNP,
+    bwd_x = bwd_p_o_given_x(READS, 0.01, 0.01)
+    bwd_g1 = bwd_p_one_o_given_g(bwd_x, pa, pc, IX.READ2SNP,
                                       IX.READ2RG, IX.n_reads)
-    bwd_g = slug_bwd_p_all_o_given_g(bwd_g1, IX.READ2SNP, IX.n_snps)
+    bwd_g = bwd_p_all_o_given_g(bwd_g1, IX.READ2SNP, IX.n_snps)
 
-    px_cont = slug_fwd_p_x_cont(pa, IX.READ2SNP)
+    px_cont = fwd_p_x_cont(pa, IX.READ2SNP)
     px_nocont = message_fwd_p_x_nocont(fwd_g, bwd_g, bwd_g1, IX.READ2SNP)
-    res = slug_fwd_p_x(px_cont, px_nocont, pc, IX.READ2RG)
+    res = fwd_p_x(px_cont, px_nocont, pc, IX.READ2RG)
 
     assert 0.4 < res[0, 1]  < 0.5
     assert 0.03 < res[4, 1]  < 0.04 
@@ -141,14 +144,13 @@ def test_data1():
 def test_error_est():
     """simple test dataset for ensuring algorithm is correct
 
-    one RG with only endo (all ref) and one RG with only cont ( all 1)
     """
     data = SlugReads(
-        REF = [6, 9],
-        ALT = [6, 1],
-        psi = [1],
-        OBS2RG = [0, 1],
-        OBS2SNP = [0, 0],
+        READS = [0, 0, 0, 0, 1, 1, 1, 1],
+        psi = [1.],
+        READ2RG = [0, 0,0,0, 1, 1, 0, 0],
+        READ2SNP = np.zeros(8, dtype='i'),
+        FLIPPED = np.zeros(1, dtype='bool'),
         SNP2SFS = [0])
 
     pars = SlugParsSquare(
@@ -162,14 +164,13 @@ def test_error_est():
     update_pars_reads(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
-    assert pars.e == 0.5
-    assert pars.b == 0.9
+    assert pars.e == 1/3.
+    assert pars.b == 0
 
     update_pars_reads(pars, data, controller)
-    assert pars.prev_ll < pars.ll
+    assert pars.prev_ll <= pars.ll
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
-    assert pars.prev_ll  < pars.ll
     print( f'll : {pars.prev_ll} -> {pars.ll}')
 
 def test_cont_est():
@@ -199,7 +200,7 @@ def test_cont_est():
     assert pars.cont[2] == 1
     assert pars.cont[1] == 0.1
     print(f'C = {pars.cont}')
-    ll = calc_full_ll_g(data, pars)
+    ll = calc_full_ll_reads(data, pars)
     assert pars.ll  < ll
     print( f'll : {pars.ll} -> {ll}')
 
@@ -268,7 +269,7 @@ def test_ftau_est():
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
     print(f'tau = {pars.tau}')
-    ll = calc_full_ll_g(data, pars)
+    ll = calc_full_ll_reads(data, pars)
     print( f'll : {pars.ll} -> {ll}')
     assert .25 < pars.tau[0] < .26
     assert .64 < pars.tau[1] < .65

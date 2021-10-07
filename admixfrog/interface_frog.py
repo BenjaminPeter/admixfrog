@@ -25,7 +25,7 @@ from .options import add_base_options, add_pop_options
 
 
 def do_rle():
-    logger = setup_log()
+    setup_log()
     parser = argparse.ArgumentParser(description="Do RLE encoding")
     parser.add_argument(
         "--outfile", "--out", required=True, help="output file name (xz-zipped)"
@@ -35,7 +35,7 @@ def do_rle():
     )
     add_rle_options(parser)
     args = parser.parse_args()
-    logger.info(pformat(args))
+    logging.info(pformat(args))
     import pandas as pd
 
     dtype_ = dict(chrom="category")

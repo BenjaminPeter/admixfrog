@@ -4,8 +4,9 @@ from math import lgamma, exp, pow
 from copy import deepcopy
 
 
+#def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
 @njit
-def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
+def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l})
 
     Parameters
@@ -25,16 +26,18 @@ def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
         Pr(G_i = j  | F, tau)
     """
 
+
     if res is None:
-        res = np.empty((FLIPPED.shape[0], 3))
+        res = np.empty((SNP2SFS.shape[0], 3))
 
     #breakpoint()
     #F = np.array(F0) if len(F0) == 1 else F0[SNP2SFS]
     #tau = np.array(tau0) if len(tau0) == 1 else tau0[SNP2SFS]
     F = F0[SNP2SFS]
     tau = tau0[SNP2SFS]
-    if FLIPPED is not None:
-        tau[FLIPPED] = 1 - tau[FLIPPED]
+
+    #if FLIPPED is not None:
+    tau[FLIPPED] = 1 - tau[FLIPPED]
 
     res[:, 0] = F * (1 - tau) + (1 - F) * (1 - tau) ** 2  # HOMO REF
     res[:, 2] = F * tau       + (1 - F) * tau * tau  # HOMO ALT
@@ -46,15 +49,18 @@ def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
     return res
 
 @njit
-def p_gt_haploid(tau, F0, FLIPPED, SNP2SFS):
+def p_gt_haploid(tau,  SNP2SFS, FLIPPED=None, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l}) for haploid genotypes
     """
-    res = p_gt_diploid(tau, F0, FLIPPED, SNP2SFS)
+    F0 = np.ones_like(tau)
+    res = p_gt_diploid(tau, F0, FLIPPED=FLIPPED, SNP2SFS=SNP2SFS, res=res)
     return res 
 
 
 def fwd_p_g(data, pars):
-    """calculate forward probabilities of genotypes"""
+    """calculate forward probabilities of genotypes
+
+    """
     fwd_g = p_gt_diploid(pars.tau, pars.F, 
                               FLIPPED=data.FLIPPED, SNP2SFS=data.SNP2SFS)  # size [L x 3]
     if data.haploid_snps is not None:
