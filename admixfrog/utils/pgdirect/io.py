@@ -366,8 +366,7 @@ class BamFile(ComplexFile):
             return None
 
         try:
-            #read_group = BamFile.cleanup_rg(A.get_tag("RG"))
-            read_group = A.get_tag("RG")
+            read_group = BamFile.cleanup_rg(A.get_tag("RG"))
         except KeyError:
             try:
                 #guess RG from XI XJ tag, which in some bam files are p7/p5 ix
