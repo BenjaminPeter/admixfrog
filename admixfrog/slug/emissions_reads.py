@@ -65,9 +65,8 @@ def fwd_p_g(data, pars):
                               FLIPPED=data.FLIPPED, SNP2SFS=data.SNP2SFS)  # size [L x 3]
     if data.haploid_snps is not None:
         fwd_g[data.haploid_snps] = p_gt_haploid(pars.tau, 
-                                                F0 = np.ones_like(pars.tau),
-                                                     FLIPPED=data.FLIPPED[data.haploid_snps], 
-                                                     SNP2SFS=data.SNP2SFS[data.haploid_snps])  
+                                                 FLIPPED=data.FLIPPED[data.haploid_snps], 
+                                                 SNP2SFS=data.SNP2SFS[data.haploid_snps])  
     return fwd_g
 
 
