@@ -370,7 +370,7 @@ class BamFile(ComplexFile):
         except KeyError:
             try:
                 #guess RG from XI XJ tag, which in some bam files are p7/p5 ix
-                read_group = f'{A.get_tag("XI")}_{A.get_tag("XJ")}'
+                read_group = f'{A.get_tag("XI")}-{A.get_tag("XJ")}'
             except KeyError:
                 read_group = "NONE"
         try:
