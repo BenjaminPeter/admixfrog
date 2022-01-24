@@ -178,13 +178,14 @@ def test_cont_est():
 
     one RG with only endo (all ref) and one RG with only cont ( all 1)
     """
-    data = SlugData(
-        REF = [10, 9, 0],
-        ALT = [0, 1, 5],
+    reads = SlugReads(
+        READS = [0,0,0,0,0,0,1,1,0,0, 1,1],
         psi = [1],
-        OBS2RG = [0, 1, 2],
-        OBS2SNP = [0, 0, 0],
-        SNP2SFS = [0])
+        READ2RG = [0,0,0,0,0,0,1,1,1,1, 2, 2],
+        READ2SNP = [0] * 12,
+        SNP2SFS = [0],
+        FLIPPED = [False],
+    )
 
     pars = SlugPars(
         cont = [0.8, 0.5, .5],
@@ -195,89 +196,17 @@ def test_cont_est():
     )
     controller = SlugController(update_eb=False,  update_ftau=False,
                                 update_cont=True)
-    pars = update_pars_reads(pars, data, controller)
+    pars = update_pars_reads(pars, reads, controller)
     assert pars.cont[0] == 0
     assert pars.cont[2] == 1
-    assert pars.cont[1] == 0.1
+    assert pars.cont[1] == 0.5
     print(f'C = {pars.cont}')
-    ll = calc_full_ll_reads(data, pars)
-    assert pars.ll  < ll
+    ll = calc_full_ll_reads(reads, pars)
+    assert pars.ll  <= ll
     print( f'll : {pars.ll} -> {ll}')
 
 
-def test_ftau_est_hap():
-    """simple test dataset for ensuring algorithm is correct
 
-    one RG with only endo (all ref) and one RG with only cont ( all 1)
-    """
-    data = SlugData(
-        ALT = [0, 1, 5, 1],
-        REF = [10, 9, 0, 2],
-        psi = [1, 1, .5, 0],
-        OBS2RG = [0, 0, 0, 1],
-        OBS2SNP = [0, 1, 2, 3],
-        SNP2SFS = [0, 0, 1, 1],
-        haploid_snps = [2, 3]
-    )
-
-    pars = SlugPars(
-        cont = [0.0, .5],
-        tau = [0.4, .1],
-        F = [0.5, .5],
-        e = 0.00,
-        b = 0.00
-    )
-    controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
-    update_pars_reads(pars, data, controller)
-    print(f'eb= {pars.e}, {pars.b}')
-    print(f'C = {pars.cont}')
-    print(f'F = {pars.F}')
-    print(f'tau = {pars.tau}')
-    controller.update_ftau = False
-    update_pars_reads(pars, data, controller)
-    print( f'll : {pars.prev_ll} -> {pars.ll}')
-    assert pars.prev_ll  < pars.ll
-    assert .25 < pars.tau[0] < .26
-    assert pars.tau[1] == 1.
-    assert pars.F[0] == 0
-    return pars
-
-
-def test_ftau_est():
-    """simple test dataset for ensuring algorithm is correct
-
-    one RG with only endo (all ref) and one RG with only cont ( all 1)
-    """
-    data = SlugData(
-        REF = [10, 9, 0, 2],
-        ALT = [0, 1, 5, 1],
-        psi = [1, 1, .5, .1],
-        OBS2RG = [0, 0, 0, 1],
-        OBS2SNP = [0, 1, 2, 3],
-        SNP2SFS = [0, 0, 1, 1])
-
-    pars = SlugPars(
-        cont = [0.0, .1],
-        tau = [0.4, .1],
-        F = [0.5, .5],
-        e = 0.00,
-        b = 0.00
-    )
-    controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
-    update_pars_reads(pars, data, controller)
-    print(f'eb= {pars.e}, {pars.b}')
-    print(f'C = {pars.cont}')
-    print(f'F = {pars.F}')
-    print(f'tau = {pars.tau}')
-    ll = calc_full_ll_reads(data, pars)
-    print( f'll : {pars.ll} -> {ll}')
-    assert .25 < pars.tau[0] < .26
-    assert .64 < pars.tau[1] < .65
-    assert pars.F[0] == 0
-    assert pars.ll <= ll
-    breakpoint()
-    assert .3 < pars.F[1] < .4
-    return pars
 
 @pytest.mark.skip(reason="NYI")
 def test_delta_est():

@@ -149,8 +149,8 @@ def data2probs(
                 ref_prior[anc_is_unknown, i] += pb
 
                 # 3. where anc is known, create indices
-                m_anc = np.array(pd.concat((ref_is_anc, alt_is_anc), 1))
-                m_der = np.array(pd.concat((ref_is_der, alt_is_der), 1))
+                m_anc = np.array(pd.concat((ref_is_anc, alt_is_anc), axis=1))
+                m_der = np.array(pd.concat((ref_is_der, alt_is_der), axis=1))
                 ANC = np.array(snp_df[[ref_col, alt_col]])[m_anc]
                 DER = np.array(snp_df[[ref_col, alt_col]])[m_der]
 

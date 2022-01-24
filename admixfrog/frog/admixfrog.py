@@ -299,6 +299,14 @@ def load_admixfrog_data(
                 high_cov_filter=filter.pop("filter_high_cov"),
                 make_bins=False,
             )
+            assert np.max(data.tref+data.talt) <= 2
+            assert np.min(data.tref+data.talt) >= 0
+            if not data.index.is_unique:
+                dups = data.index.duplicated()
+                logging.warning(f'\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m')
+                logging.warning(' ==> strongly consider re-filtering input file')
+                data = data[~dups]
+                #raise ValueError("ensure that SNPs in gt-input are unique")
         else:
             data, _ = load_read_data(
                 target_file,
@@ -338,6 +346,7 @@ def load_admixfrog_data(
 
         df = ref.join(data, how="inner")
         df.index = df.index.set_levels(df.index.levels[0].astype(chrom_type), level=0)
+        df.sort_index(level=['chrom', 'pos'], inplace=True)
 
         "4. geno ref, standard target"
     elif ref_files is None and geno_file is None and target_file and target is None:

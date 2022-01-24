@@ -48,7 +48,7 @@ def load_ref(
     alt_cols = [f"{s}_alt" for s in label_states]
     data_cols = ref_cols + alt_cols
 
-    dtype_ = dict(chrom="category", bla=np.uint8)
+    dtype_ = dict(chrom="category")
     for col in data_cols:
         dtype_[col] = np.uint16 if large_ref else np.uint8
 
@@ -83,6 +83,7 @@ def load_ref(
             ix_cols = basic_cols
 
         ref0 = pd.read_csv(ref_file, dtype=dtype_, usecols=cols0)
+        ref0.chrom = pd.Categorical(ref0.chrom, ordered=True)
         ref0.set_index(ix_cols, inplace=True)
         ref0.index.rename("map", level=map_col, inplace=True)
 
@@ -104,6 +105,7 @@ def load_ref(
         ref = ref[ref.chrom != "X"]
         ref = ref[ref.chrom != "Y"]
         ref = ref[ref.chrom != "mt"]
+
     return ref
 
 
@@ -308,6 +310,7 @@ def load_read_data(
     data = pd.read_csv(
         infile, dtype=dtype_mandatory, usecols=dtype_mandatory.keys()
     ).dropna()
+    data.chrom = pd.Categorical(data.chrom, ordered=True)
     data.set_index(["chrom", "pos"], inplace=True)
 
     if "rg" not in data:
@@ -326,7 +329,9 @@ def load_read_data(
     # rm sites with no or extremely high coverage
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 1 - high_cov_filter)
-    data = data[data.tref + data.talt <= q]
+    to_remove = data.tref + data.talt > q
+    logging.info(f"high-cov filter at {q}, removing {sum(to_remove)} sites")
+    data = data[~to_remove]
 
     if make_bins:
         ix = bin_reads(data, deam_bin_size, len_bin_size)
@@ -447,22 +452,27 @@ def write_bin_table(Z, bins, viterbi_df, gamma_names, IX, outname=None):
 def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
     D = (
         data.reset_index(drop=False)
-        .groupby(["chrom", "snp_id"])
+        .groupby("snp_id")
         .agg(
             {
                 "tref": sum,
                 "talt": sum,
-                "pos": lambda x: x.iloc[0],
-                "map": lambda x: x.iloc[0],
+                "chrom" : lambda x: x.iloc[0],
+                "pos": min,
+                "map": min,
             }
         )
         .reset_index()
     )
+
     if gt_mode:
         snp_df = pd.concat((D, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+        snp_df = snp_df[['chrom', 'pos', 'map', 'snp_id', 'bin', 'tref', 'talt']]
     else:
         T = posterior_table(G, Z, IX)
         snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+
+    snp_df.sort_values(['chrom', 'pos'], inplace=True)
     if outname is not None:
         snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
