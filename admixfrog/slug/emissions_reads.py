@@ -4,7 +4,9 @@ from math import lgamma, exp, pow
 from copy import deepcopy
 
 
-def slug_p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
+#def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
+@njit
+def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l})
 
     Parameters
@@ -24,43 +26,52 @@ def slug_p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
         Pr(G_i = j  | F, tau)
     """
 
-    if res is None:
-        res = np.empty((FLIPPED.shape[0], 3))
 
-    F = np.array(F0) if len(F0) == 1 else F0[SNP2SFS]
-    tau = np.array(tau0) if len(tau0) == 1 else tau0[SNP2SFS]
-    if FLIPPED is not None:
-        tau[FLIPPED] = 1 - tau[FLIPPED]
+    if res is None:
+        res = np.empty((SNP2SFS.shape[0], 3))
+
+    #breakpoint()
+    #F = np.array(F0) if len(F0) == 1 else F0[SNP2SFS]
+    #tau = np.array(tau0) if len(tau0) == 1 else tau0[SNP2SFS]
+    F = F0[SNP2SFS]
+    tau = tau0[SNP2SFS]
+
+    #if FLIPPED is not None:
+    tau[FLIPPED] = 1 - tau[FLIPPED]
 
     res[:, 0] = F * (1 - tau) + (1 - F) * (1 - tau) ** 2  # HOMO REF
     res[:, 2] = F * tau       + (1 - F) * tau * tau  # HOMO ALT
     res[:, 1] = (1 - F) * 2 * tau * (1 - tau)
 
-    assert np.allclose(np.sum(res, 1), 1)
-    np.clip(res, 0, 1, out=res)  # rounding
+    #assert np.allclose(np.sum(res, 1), 1)
+    #np.clip(res, 0, 1, out=res)  # rounding
 
     return res
 
-
-def slug_p_gt_haploid(*args, **kwargs):
+@njit
+def p_gt_haploid(tau,  SNP2SFS, FLIPPED=None, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l}) for haploid genotypes
     """
-    res = slug_p_gt_diploid(F0=[1.], *args, **kwargs)
+    F0 = np.ones_like(tau)
+    res = p_gt_diploid(tau, F0, FLIPPED=FLIPPED, SNP2SFS=SNP2SFS, res=res)
     return res 
 
 
-def slug_fwd_p_g(data, pars):
-    """calculate forward probabilities of genotypes"""
-    fwd_g = slug_p_gt_diploid(pars.tau, pars.F, 
+def fwd_p_g(data, pars):
+    """calculate forward probabilities of genotypes
+
+    """
+    fwd_g = p_gt_diploid(pars.tau, pars.F, 
                               FLIPPED=data.FLIPPED, SNP2SFS=data.SNP2SFS)  # size [L x 3]
     if data.haploid_snps is not None:
-        fwd_g[data.haploid_snps] = slug_p_gt_haploid(pars.tau, 
-                                                     FLIPPED=data.FLIPPED[data.haploid_snps], 
-                                                     SNP2SFS=data.SNP2SFS[data.haploid_snps])  
+        fwd_g[data.haploid_snps] = p_gt_haploid(pars.tau, 
+                                                 FLIPPED=data.FLIPPED[data.haploid_snps], 
+                                                 SNP2SFS=data.SNP2SFS[data.haploid_snps])  
     return fwd_g
 
 
-def slug_bwd_p_o_given_x(READS, e, b):
+@njit
+def bwd_p_o_given_x(READS, e, b):
     """Caluclate Pr(O | X, e, b) 
 
     Parameters
@@ -85,7 +96,7 @@ def slug_bwd_p_o_given_x(READS, e, b):
 
 
 @njit
-def slug_bwd_p_one_o_given_g(bwd_x, fwd_a, fwd_c,  READ2SNP, READ2RG, n_reads):
+def bwd_p_one_o_given_g(bwd_x, fwd_a, fwd_c,  READ2SNP, READ2RG, n_reads):
     """calculate Pr(O_i | G ) 
     
     Parameters
@@ -125,7 +136,7 @@ def slug_bwd_p_one_o_given_g(bwd_x, fwd_a, fwd_c,  READ2SNP, READ2RG, n_reads):
     return bwd_g
 
 @njit
-def slug_bwd_p_all_o_given_g(bwd_g1, READ2SNP, n_snps):
+def bwd_p_all_o_given_g(bwd_g1, READ2SNP, n_snps):
     """
     calculate  ℙ(O_l | G_l) = ∏_r ∏_j ℙ(O_lrj | G_l)
 
@@ -139,8 +150,8 @@ def slug_bwd_p_all_o_given_g(bwd_g1, READ2SNP, n_snps):
 
     return bwd_g
 
-def slug_fwd_p_x_cont(psi, READ2SNP):
-    """slug_fwd_p_x_cont calculate Pr(X | C=1, psi)
+def fwd_p_x_cont(psi, READ2SNP):
+    """fwd_p_x_cont calculate Pr(X | C=1, psi)
     
     Parameters
     ----------
@@ -160,6 +171,7 @@ def slug_fwd_p_x_cont(psi, READ2SNP):
     return res
 
 
+@njit
 def message_fwd_p_x_nocont(fwd_g, bwd_g, bwd_g1, READ2SNP):
     """message passing version of Pr(X_i | C=0, G_l, O)
 
@@ -181,15 +193,16 @@ def message_fwd_p_x_nocont(fwd_g, bwd_g, bwd_g1, READ2SNP):
     -------
     Pr(X_li | C=0, G_l, O_l1, O_l2, O_l...) : np.ndarray[R x 1]
     """
-    v = np.arange(3)/2.; 
-    M = np.vstack((1-v, v)).T
+    M = np.array([[1., .5, 0.],
+                  [0., .5, 1.]]).T
 
     res = ((fwd_g * bwd_g)[READ2SNP]  / (bwd_g1 + 1e-300) @ M)
     res = res / np.expand_dims(np.sum(res, 1), 1)
 
     return res
 
-def slug_fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
+@njit
+def fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
     """Forward probability Pr(X_{lrj} = 1 | G_l, c_lr, a_lr)
 
     PG : array[n_snps x 3]  of G_l, the genotype at locus l
@@ -201,13 +214,21 @@ def slug_fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
                    = Σ_G Pr(X | G, C=0) Pr(G, C=0) + Σ_A Pr(X |A, C=1) Pr(A, C=1)
     """
 
-    res = (1 - fwd_c[READ2RG])[:, np.newaxis] * fwd_x_nocont
-    res += fwd_c[READ2RG][:, np.newaxis] * fwd_x_cont
+    #numpy version
+    #res = (1 - fwd_c[READ2RG])[:, np.newaxis] * fwd_x_nocont
+    #res += fwd_c[READ2RG][:, np.newaxis] * fwd_x_cont
+
+    res = np.empty_like(fwd_x_nocont)
+    res[:, 0] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 0]
+    res[:, 1] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 1]
+
+    res[:, 0] += fwd_c[READ2RG] * fwd_x_cont[:,0]
+    res[:, 1] += fwd_c[READ2RG] * fwd_x_cont[:,1]
 
     return res
 
 
-def slug_post_g(bwd_g, fwd_g):
+def posterior_g(bwd_g, fwd_g):
     """calculates marginalized posteriors for g, a and c
 
         post_g :   Pr(G_l | Z_l) x  (𝚷_rj Pr(O_lrj | G_l))    [L x 3]
@@ -219,25 +240,25 @@ def slug_post_g(bwd_g, fwd_g):
 
     return post_g
 
-def slug_post_x(bwd_x, *args, **kwargs):
-    fwd_x = slug_fwd_p_x(*args, **kwargs)
+def posterior_x(bwd_x, *args, **kwargs):
+    fwd_x = fwd_p_x(*args, **kwargs)
     post_x = fwd_x * bwd_x
     return post_x / np.sum(post_x, 1)[:, np.newaxis]
 
 
 def full_posterior_genotypes(data, pars):
-    fwd_g = slug_fwd_p_g(data, pars)
-    bwd_x = slug_bwd_p_o_given_x(data.READS, e=pars.e, b = pars.b)
-    bwd_g1 = slug_bwd_p_one_o_given_g(bwd_x, data.psi, pars.cont, 
+    fwd_g = fwd_p_g(data, pars)
+    bwd_x = bwd_p_o_given_x(data.READS, e=pars.e, b = pars.b)
+    bwd_g1 = bwd_p_one_o_given_g(bwd_x, data.psi, pars.cont, 
                                        data.READ2SNP, data.READ2RG, data.n_reads)
-    bwd_g = slug_bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
+    bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
 
-    return bwd_g, slug_post_g(bwd_g, fwd_g)
+    return bwd_g, posterior_g(bwd_g, fwd_g)
 
 
 
 #@njit
-def slug_post_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
+def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
     """ calculate Pr(C | O) = Pr(C, O) / Pr (O)
         with Pr(C, O)  = Σ_X  Pr(O | X) Pr(X | C) Pr(C)
 
@@ -254,10 +275,10 @@ def slug_post_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
 
 
 def calc_full_ll_reads(data, pars):
-    fwd_g = slug_fwd_p_g(data, pars)
-    bwd_x = slug_bwd_p_o_given_x(data.READS, e=pars.e, b=pars.b)  # Pr(O_lrj | G_lrj)
-    bwd_g1 = slug_bwd_p_one_o_given_g(bwd_x, data.psi, pars.cont, data.READ2SNP, data.READ2RG, data.n_reads)
-    bwd_g = slug_bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
+    fwd_g = fwd_p_g(data, pars)
+    bwd_x = bwd_p_o_given_x(data.READS, e=pars.e, b=pars.b)  # Pr(O_lrj | G_lrj)
+    bwd_g1 = bwd_p_one_o_given_g(bwd_x, data.psi, pars.cont, data.READ2SNP, data.READ2RG, data.n_reads)
+    bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
 
     ll2 = calc_ll(fwd_g, bwd_g)
     return ll2
@@ -266,6 +287,5 @@ def calc_full_ll_reads(data, pars):
 def calc_ll(fwd_g, bwd_g):
     ll = np.sum(np.log(np.sum(fwd_g * bwd_g, 1)))
     return ll
-
 
 

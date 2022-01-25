@@ -38,6 +38,21 @@ def test_run_from_bam_yaml(script_runner):
     print(ret.stderr)
     assert ret.success
 
+def test_run_from_bam_tmat(script_runner):
+    cmd = 'admixfrog --bam data/oase_chr9.bam --ref data/ref_A1240k.csv.xz '
+    cmd += ' --out res/test_bam3 --force-infile -b 100000 '
+    cmd += ' --states AFK=AFR ARC=NEA+DEN --cont-id AFK'
+    cmd += ' --pop-file data/pops2.yaml'
+    cmd += ' --tmat data/tmat.txt'
+    cmd += ' --dont-est-trans --dont-est-cont'
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(*args, cwd='tests')
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
+
 def test_fake_cont(script_runner):
     """test case 1"""
     cmd = 'admixfrog --infile data/oase_chr9.in.xz --ref data/ref_A1240k.csv.xz '

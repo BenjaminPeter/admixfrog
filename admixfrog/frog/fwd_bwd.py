@@ -1,6 +1,6 @@
 from numba import njit
 import numpy as np
-from .log import log_
+import logging
 
 
 @njit

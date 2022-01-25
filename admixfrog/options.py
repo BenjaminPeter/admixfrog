@@ -55,7 +55,7 @@ ALGORITHM_OPTIONS = [
     "prior",
     "ancestral_prior",
     "split_lib",
-    "do_hmm",
+    "scale_probs"
 ]
 
 ALGORITHM_OPTIONS_SLUG = [
@@ -67,7 +67,8 @@ ALGORITHM_OPTIONS_SLUG = [
     "split_lib",
     "jk_resamples"
     "deam_bin_size",
-    "len_bin_size"
+    "len_bin_size",
+    "bin_reads"
 ]
 
 #geno format options
@@ -75,7 +76,7 @@ GENO_OPTIONS=[
     'geno_file',
     'guess_ploidy'
 ]
-def add_pop_options(parser):
+def add_pop_options(parser, states_only=False):
     parser.add_argument(
         "--states",
         "--state-ids",
@@ -92,21 +93,6 @@ def add_pop_options(parser):
         default=None, help="""Population assignments (yaml format)"""
     )
     parser.add_argument(
-        "--cont-id",
-        "--cont",
-        default="AFR",
-        help="""the source of contamination. Must be specified in ref file""",
-    )
-    parser.add_argument(
-        "--ancestral",
-        "-a",
-        type=str,
-        default=None,
-        help="""Outgroup population with the ancestral allele. By default, assume
-        ancestral allele is unknown
-        """,
-    )
-    parser.add_argument(
         "--random-read-samples",
         "--pseudo-haploid",
         nargs="*",
@@ -115,6 +101,22 @@ def add_pop_options(parser):
         only one allele is taken.
         """
     )
+    if not states_only:
+        parser.add_argument(
+            "--cont-id",
+            "--cont",
+            default="AFR",
+            help="""the source of contamination. Must be specified in ref file""",
+        )
+        parser.add_argument(
+            "--ancestral",
+            "-a",
+            type=str,
+            default=None,
+            help="""Outgroup population with the ancestral allele. By default, assume
+            ancestral allele is unknown
+            """,
+        )
 
 def add_output_options(parser):
     g = parser.add_argument_group(
@@ -459,7 +461,7 @@ def add_estimation_options(P):
         "--F0",
         nargs="*",
         type=float,
-        default=0.5,
+        default=0.01,
         help="initial F (should be in [0;1]) (default 0)",
     )
     parser.add_argument(
@@ -475,6 +477,26 @@ def add_estimation_options(P):
     )
     parser.add_argument(
         "--c0", "-c", type=float, default=1e-2, help="initial contamination rate"
+    )
+    parser.add_argument(
+        "--transition-matrix",
+        "--tmat",
+        default=None,
+        help="""Transition rate matrix file. Units are expected to be the
+        transition rate per map distance (i.e. if the recombination map in the
+        ref file is in centimorgen, this is the number of transitions expected
+        per centimorgan). File is a csv file with a n x n
+        transition matrix where n is the number of homozygous states. States are assumed to
+        be ordered by the same ordering as given in the --states flag.
+        """
+    )
+    parser.add_argument(
+        "--dont-est-trans",
+        "--dont-est-transition",
+        dest='est_trans',
+        default=True,
+        action='store_false',
+        help="""Set this flag if transition matrix should be fixed"""
     )
 
 def add_estimation_options_slug(P):
@@ -641,12 +663,11 @@ def add_base_options(P):
     )
 
     parser.add_argument(
-        "--no-hmm",
-        "--nohmm",
-        dest='do_hmm',
+        "--dont-scale-probs",
+        dest='scale_probs',
         action="store_false",
         default=True,
-        help="""no hmm, bins are independent"""
+        help="""dont scale emission probabilities so that the max is 1"""
     )
 
 def add_base_options_slug(P):
@@ -713,4 +734,57 @@ def add_base_options_slug(P):
         type=int,
         default=0,
         help="number of resamples for Jackknife standard error estimation"
+    )
+    parser.add_argument(
+        "--male",
+        dest="sex",
+        action="store_const",
+        const="m",
+        default=None,
+        help="Assumes haploid X chromosome. Default is guess from coverage. currently broken",
+    )
+    parser.add_argument(
+        "--female",
+        dest="sex",
+        action="store_const",
+        const="f",
+        default=None,
+        help="Assumes diploid X chromosome. Default is guess from coverage",
+    )
+    parser.add_argument(
+        "--chroms",
+        "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
+        """,
+    )
+
+def add_filter_options(parser): 
+    parser.add_argument(
+        "--filter-delta",
+        type=float,
+        help="""only use sites with allele frequency difference bigger than DELTA (default off)""",
+    )
+    parser.add_argument(
+        "--filter-pos",
+        type=int,
+        help="""greedily prune sites to be at least POS positions apart""",
+    )
+    parser.add_argument(
+        "--filter-map",
+        type=float,
+        help="""greedily prune sites to be at least MAP recombination distance apart""",
+    )
+    parser.add_argument(
+        "--filter-high-cov",
+        "--filter-highcov",
+        type=float,
+        default=0.001,
+        help="""remove SNP with highest coverage (default 0.001, i.e. 0.1%% of SNP are removed)""",
+    )
+    parser.add_argument(
+        "--filter-ancestral",
+        action="store_true",
+        default=False,
+        help="""remove sites with no ancestral allele information""",
     )

@@ -1,13 +1,13 @@
 from numba import njit
 import numpy as np
 from copy import deepcopy
-from .slug_emissions_reads import slug_fwd_p_g
-from .slug_emissions_reads import slug_bwd_p_o_given_x
-from .slug_emissions_reads import slug_bwd_p_one_o_given_g,slug_bwd_p_all_o_given_g
-from .slug_emissions_reads import slug_fwd_p_x, slug_fwd_p_x_cont, message_fwd_p_x_nocont
-from .slug_emissions_reads import slug_post_g, slug_post_x, slug_post_c
-from .slug_emissions_reads import full_posterior_genotypes, calc_ll, calc_full_ll_reads
-from .log import log_
+from .emissions_reads import fwd_p_g
+from .emissions_reads import bwd_p_o_given_x
+from .emissions_reads import bwd_p_one_o_given_g,bwd_p_all_o_given_g
+from .emissions_reads import fwd_p_x, fwd_p_x_cont, message_fwd_p_x_nocont
+from .emissions_reads import posterior_g, posterior_x, posterior_c
+from .emissions_reads import full_posterior_genotypes, calc_ll, calc_full_ll_reads
+from ..utils.log import log_
 
 
 def norm(self):
@@ -111,41 +111,41 @@ def update_pars_reads(pars, data, controller):
     pars = deepcopy(pars) if controller.copy_pars else pars
 
     """ calc unconditional forward probs Pr(G), Pr(C), Pr(A)"""
-    fwd_g = slug_fwd_p_g(data, pars)
+    fwd_g = fwd_p_g(data, pars)
     fwd_a = data.psi  # size [L x 1]
     fwd_c = pars.cont  # size [O x 1]
 
     """run backward algorithm to calculate Pr(O | .)"""
-    bwd_x = slug_bwd_p_o_given_x(data.READS, pars.e, pars.b)  
-    bwd_g1 = slug_bwd_p_one_o_given_g(
+    bwd_x = bwd_p_o_given_x(data.READS, pars.e, pars.b)  
+    bwd_g1 = bwd_p_one_o_given_g(
         bwd_x, fwd_a, fwd_c, 
         data.READ2SNP, data.READ2RG, data.n_reads
     )  # size [O x 3]
-    bwd_g = slug_bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
+    bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
 
     """remaining forward probs Pr(X| C=0, G), Pr(X | C=1, A), Pr(X | C, A G) """
-    fwd_x_cont = slug_fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [L x 1]
+    fwd_x_cont = fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [L x 1]
     fwd_x_nocont = message_fwd_p_x_nocont(fwd_g, bwd_g, bwd_g1, data.READ2SNP)  # size [L x 1]
     
-    post_c = slug_post_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
-    post_x = slug_post_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG) 
-    from .slug_emissions_reads import slug_fwd_p_x
-    fwd_x = slug_fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
-    post_g = slug_post_g(bwd_g, fwd_g)
+    post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
+    post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG) 
+    from .emissions_reads import fwd_p_x
+    fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
+    post_g = posterior_g(bwd_g, fwd_g)
 
     if O.update_ftau:
-        post_g = slug_post_g(bwd_g, fwd_g)
+        post_g = posterior_g(bwd_g, fwd_g)
         pars.prev_F[:], pars.prev_tau[:] = pars.F, pars.tau
         pars.F, pars.tau = update_ftau(pars.F, pars.tau, data, post_g, 
                                        update_F=controller.update_F)
 
     if O.update_cont:
-        post_c = slug_post_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
+        post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
         pars.prev_cont[:] = pars.cont
         pars.cont = update_c(post_c, data.READ2RG, data.n_rgs)
 
     if O.update_eb:
-        post_x = slug_post_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG) 
+        post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG) 
         pars.prev_e, pars.prev_b = pars.e, pars.b
         pars.e, pars.b = update_eb(post_x, data.READS, two_errors = O.update_bias)
 

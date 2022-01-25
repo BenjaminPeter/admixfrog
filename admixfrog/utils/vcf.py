@@ -1,4 +1,4 @@
-import pdb
+import logging
 from collections import Counter
 import numpy as np
 import lzma
@@ -7,19 +7,20 @@ from collections import defaultdict
 import pandas as pd
 import yaml
 from pprint import pprint, pformat
-from .log import log_
 
 EXT = "ref", "alt"
+
 
 def parse_chroms(arg):
     chroms = []
     for s in arg.split(","):
         if "-" in s:
             a, b = s.split("-")
-            chroms.extend([str(s) for s in range(int(a), int(b)+1)])
+            chroms.extend([str(s) for s in range(int(a), int(b) + 1)])
         else:
             chroms.append(s)
     return chroms
+
 
 def load_pop_file(pop_file=None, pops=None):
     P = dict()
@@ -61,17 +62,16 @@ def vcf_to_ref(
     map_ids=["AA_Map"],
     default_map="AA_Map",
     rec_rate=1e-8,
-    chroms = None,
+    chroms=None,
     bed=None,
-    lax_alleles = False
+    lax_alleles=False,
 ):
 
     pprint(pop2sample)
 
-
     if chroms is None:
         vcf_first = vcf_file
-    else: 
+    else:
         vcf_first = vcf_file.format(CHROM=chroms[0])
 
     #  get chromosomes
@@ -80,7 +80,7 @@ def vcf_to_ref(
             chroms = [i for i in vcf.header.contigs]
         else:
             chroms = parse_chroms(chroms)
-        log_.info("chroms found: %s", chroms)
+        logging.info("chroms found: %s", chroms)
 
         sample2pop = defaultdict(list)
         for pop, v in pop2sample.items():
@@ -88,13 +88,12 @@ def vcf_to_ref(
                 if sample in vcf.header.samples:
                     sample2pop[sample].append(pop)
 
-
     samples = sample2pop.keys()
     pops = set(pop for s, v in sample2pop.items() for pop in v)
     pprint(sample2pop)
     pprint(pops)
 
-    map_ids = ['map'] + map_ids
+    map_ids = ["map"] + map_ids
 
     data_cols = [f"{p}_{e}" for p in pops for e in EXT]
 
@@ -115,8 +114,7 @@ def vcf_to_ref(
                 if "chrom" in rec:
                     rec = rec[rec.chrom == chrom]
 
-
-                rec['map'] = rec[default_map]
+                rec["map"] = rec[default_map]
                 rec_file_cols = list((pos_id, *map_ids))
                 rec = rec[rec_file_cols]
 
@@ -124,7 +122,7 @@ def vcf_to_ref(
                 R0 = next(rec_iter)[1]
                 R1 = next(rec_iter)[1]
 
-            #skip chrom if empty
+            # skip chrom if empty
             with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
                 try:
                     V = next(vcf)
@@ -153,8 +151,9 @@ def vcf_to_ref(
                             alt_ix = 1
                         else:
                             raise ValueError(f"weird alleles {row.alleles}")
-                        log_.debug(f"{row.chrom}, {row.pos}, {row.alleles}, {Counter(alleles)}")
-
+                        logging.debug(
+                            f"{row.chrom}, {row.pos}, {row.alleles}, {Counter(alleles)}"
+                        )
 
                     if row.alts[alt_ix] not in "ACGT" or lax_alleles:
                         continue
@@ -167,7 +166,7 @@ def vcf_to_ref(
                             f"{row.chrom},{row.pos},{row.ref},{row.alts[alt_ix]},{map_},"
                         )
                     else:
-                        if R1 is None: 
+                        if R1 is None:
                             map_ = R0[map_ids]
                         elif row.pos <= R0[pos_id]:
                             map_ = R0[map_ids]
@@ -200,7 +199,6 @@ def vcf_to_ref(
                         map_str = ",".join((str(m) for m in map_))
                         ref.write(f"{map_str},")
 
-
                     sample_data = row.samples
                     for s in sample_data:
                         if s in random_read_samples:
@@ -214,7 +212,6 @@ def vcf_to_ref(
                                     for pop in sample2pop[s]:
                                         D[f"{pop}_{EXT[allele > 0]}"] += 1
 
-
                     ref.write(",".join((str(D[c]) for c in data_cols)))
                     ref.write("\n")
 
@@ -223,12 +220,12 @@ def vcf_to_sample(
     outfile, vcf_file, ref_file, sample_id, random_read=False, chroms=None
 ):
     if chroms is None:
-        with VariantFile(vcf_file.format(CHROM='1')) as vcf:
+        with VariantFile(vcf_file.format(CHROM="1")) as vcf:
             chroms = [i for i in vcf.header.contigs]
     else:
         chroms = parse_chroms(chroms)
 
-    log_.debug("chroms found: %s", chroms)
+    logging.debug("chroms found: %s", chroms)
 
     ref = pd.read_csv(ref_file)
     ref.chrom = ref.chrom.astype(str)
@@ -247,13 +244,13 @@ def vcf_to_sample(
                     if row.pos in ref_local.pos.values:
                         if len(row.alleles) == 1:
                             ALT_INDEX = -1
-                        if len(row.alleles) != 2:
+                        elif len(row.alleles) != 2:
                             ref_row = ref_local[ref_local.pos == row.pos]
                             ref_alt = ref_row.alt.values
                             ALT_INDEX = np.where(ref_alt == row.alleles)[0].item()
-                        # log_.debug(f"{row.chrom}:{row.pos} in ref")
+                        # logging.debug(f"{row.chrom}:{row.pos} in ref")
                     else:
-                        #log_.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
+                        # logging.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
                         continue
 
                     infile.write(f"{row.chrom},{row.pos},")
@@ -264,15 +261,15 @@ def vcf_to_sample(
                             allele = sample_data[s]["GT"][0]
                             if allele == 0:
                                 infile.write("1,0\n")
-                            elif allele  == ALT_INDEX:
+                            elif allele == ALT_INDEX:
                                 infile.write("0,1\n")
                             else:
                                 infile.write("0,0\n")
                         else:
                             alleles = Counter(sample_data[s]["GT"])
-                            #breakpoint()
+                            # breakpoint()
                             infile.write(f"{alleles[0]},{alleles[ALT_INDEX]}\n")
-            log_.debug(f"done processing {chrom}")
+            logging.debug(f"done processing {chrom}")
 
 
 def load_random_read_samples(pop_file=None, random_read_samples=[]):
@@ -281,7 +278,7 @@ def load_random_read_samples(pop_file=None, random_read_samples=[]):
         with open(pop_file) as f:
             y = yaml.load(f, Loader=yaml.FullLoader)
             if "pseudo_haploid" in y:
-                pseudo_haps.extend(y['pseudo_haploid'])
+                pseudo_haps.extend(y["pseudo_haploid"])
     pseudo_haps.extend(random_read_samples)
     print(pseudo_haps)
     return pseudo_haps

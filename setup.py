@@ -6,8 +6,8 @@ USE_CYTHON = False
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
-extensions = [Extension("admixfrog.distributions", ["admixfrog/distributions"+ext]),
-              Extension("admixfrog.read_emissions", ["admixfrog/read_emissions"+ext])]
+extensions = [Extension("admixfrog.utils.distributions", ["admixfrog/utils/distributions"+ext]),
+              Extension("admixfrog.gll.read_emissions", ["admixfrog/gll/read_emissions"+ext])]
 
 if USE_CYTHON:
     from Cython.Build import cythonize

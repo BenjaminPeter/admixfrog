@@ -24,7 +24,6 @@ def p_reads_given_gt_gllmode(O, N, Pcont, c, error, n_obs):
     for g in range(3):
         p = c * Pcont + (1 - c) * g / 2
         p = p * (1 - error) + (1 - p) * error
-        # = binom.pmf(P.O, P.N, p)
         read_emissions[:, g] = binom_pmf(O, N, p)
 
     return read_emissions
@@ -43,10 +42,9 @@ def p_reads_given_gt_gtmode(O, N, Pcont, c, error, n_obs):
     """
     n_gt = 3
     read_emissions = np.ones((n_obs, n_gt))
-    for g in range(3):
-        # = binom.pmf(P.O, P.N, p)
-        read_emissions[O/N == g/2, g] = 1 - 2 * error[O==g]
-        read_emissions[O/N != g/2, g] = error[O!=g]
+    for g in range(n_gt):
+        read_emissions[O/N == g/2, g] = 1 - 2 * error[O/N==g/2]
+        read_emissions[O/N != g/2, g] = error[O/N != g/2]
 
     return read_emissions
 

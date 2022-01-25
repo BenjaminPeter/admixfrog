@@ -277,9 +277,9 @@ class BamFile(ComplexFile):
         
         Returns
         -------
-        simplified rg (everything after first dash is discarded)
+        simplified rg (underscore replaced by dash)
         """
-        return rg.split("-")[0]
+        return rg.replace("_", "-")
 
     def _open_file(self, chrom):
         self._handle = pysam.AlignmentFile(self.fname.format(CHROM=chrom))
@@ -368,7 +368,11 @@ class BamFile(ComplexFile):
         try:
             read_group = BamFile.cleanup_rg(A.get_tag("RG"))
         except KeyError:
-            read_group = "NONE"
+            try:
+                #guess RG from XI XJ tag, which in some bam files are p7/p5 ix
+                read_group = f'{A.get_tag("XI")}-{A.get_tag("XJ")}'
+            except KeyError:
+                read_group = "NONE"
         try:
             baseq = ord(A.qual[pos_in_read]) - 33
         except UnicodeDecodeError:

@@ -1,8 +1,8 @@
-import admixfrog.pgdirect as pg
+from . import pgdirect as pg
+import logging
 import pandas as pd
 from collections import defaultdict
 import lzma
-from .log import log_
 
 default_filter = {
     "deam_only": False,
@@ -14,10 +14,15 @@ default_filter = {
 
 
 class AdmixfrogInput(pg.ExtCoverage):
-    def __init__(self, outfile, deam_cutoff, length_bin_size=None, 
-                 random_read_sample=False, 
-                 report_alleles=False,
-                 **kwargs):
+    def __init__(
+        self,
+        outfile,
+        deam_cutoff,
+        length_bin_size=None,
+        random_read_sample=False,
+        report_alleles=False,
+        **kwargs,
+    ):
         self.outfile = outfile
         self.deam_cutoff = deam_cutoff
         self.length_bin_size = length_bin_size
@@ -73,14 +78,14 @@ class AdmixfrogInput(pg.ExtCoverage):
         for (rg, deam, len_), r in D.items():
             if self.length_bin_size is None:
                 # lib = f"{rg}_{deam}"
-                lib = "{rg}_{deam}".format(rg=rg, deam=deam)
+                lib = f"{rg}_{deam}"
             else:
                 # lib = f"{rg}_{len_}_{deam}"
-                lib = "{rg}_{len_}_{deam}".format(rg=rg, len_=len_, deam=deam)
+                lib = f"{rg}_{len_}_{deam}"
             if self.report_alleles:
-                #breakpoint()
-                alleles = "".join(sorted(snp.ref+snp.alt))
-                lib = f'{lib}_{alleles}'
+                # breakpoint()
+                alleles = "".join(sorted(snp.ref + snp.alt))
+                lib = f"{lib}_{alleles}"
             print(
                 snp.chrom,
                 snp.pos + 1,
@@ -93,11 +98,17 @@ class AdmixfrogInput(pg.ExtCoverage):
                 sep=",",
             )
 
+
 class AdmixfrogInput2(pg.ExtCoverage):
-    def __init__(self, outfile, deam_cutoff, length_bin_size=None, 
-                 random_read_sample=False, 
-                 report_alleles=False,
-                 **kwargs):
+    def __init__(
+        self,
+        outfile,
+        deam_cutoff,
+        length_bin_size=None,
+        random_read_sample=False,
+        report_alleles=False,
+        **kwargs,
+    ):
         self.outfile = outfile
         self.deam_cutoff = deam_cutoff
         self.length_bin_size = 1
@@ -145,17 +156,17 @@ class AdmixfrogInput2(pg.ExtCoverage):
             DEAM = min((r.deam[0], r.deam[1]))
 
             if r.base == snp.ref:
-                if r.base == 'T' and snp.alt == 'C' and not r.is_reverse :
+                if r.base == "T" and snp.alt == "C" and not r.is_reverse:
                     dmgsite = 1
-                elif r.base == 'A' and snp.alt == 'G' and r.is_reverse :
+                elif r.base == "A" and snp.alt == "G" and r.is_reverse:
                     dmgsite = 1
                 else:
                     dmgsite = 0
                 D[r.RG, DEAM, LEN, dmgsite].n_ref += 1
             elif r.base == snp.alt:
-                if r.base == 'T' and snp.ref == 'C' and not r.is_reverse :
+                if r.base == "T" and snp.ref == "C" and not r.is_reverse:
                     dmgsite = 1
-                elif r.base == 'A' and snp.ref == 'G' and r.is_reverse :
+                elif r.base == "A" and snp.ref == "G" and r.is_reverse:
                     dmgsite = 1
                 else:
                     dmgsite = 0
@@ -171,7 +182,6 @@ class AdmixfrogInput2(pg.ExtCoverage):
                 len_,
                 deam,
                 dmgsite_,
-
                 file=self.f,
                 sep=",",
             )
@@ -187,29 +197,42 @@ class RefIter:
             yield 0, (row.chrom, row.pos - 1, row.ref, row.alt)
 
 
-def process_bam(outfile, bamfile, ref, deam_cutoff, length_bin_size, 
-                random_read_sample=False,
-                **kwargs):
+def process_bam(
+    outfile,
+    bamfile,
+    ref,
+    deam_cutoff,
+    length_bin_size,
+    random_read_sample=False,
+    **kwargs,
+):
     """generate input file from bam-file
     """
     blocks = RefIter(ref)
     sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks)
 
     default_filter.update(kwargs)
-    log_.info("Filter is %s", default_filter)
+    logging.info("Filter is %s", default_filter)
     cov = AdmixfrogInput(
         **default_filter,
         random_read_sample=random_read_sample,
         length_bin_size=length_bin_size,
         deam_cutoff=deam_cutoff,
-        outfile=outfile
+        outfile=outfile,
     )
     sampleset.add_callback(cov)
     sampleset.run_callbacks()
 
-def process_bam2(outfile, bamfile, ref, deam_cutoff, length_bin_size, 
-                random_read_sample=False,
-                **kwargs):
+
+def process_bam2(
+    outfile,
+    bamfile,
+    ref,
+    deam_cutoff,
+    length_bin_size,
+    random_read_sample=False,
+    **kwargs,
+):
     """generate 2nd generation input file from bam-file
     file will have output cols
     chrom, pos, tref, talt, lib, len, deam, score
@@ -218,13 +241,13 @@ def process_bam2(outfile, bamfile, ref, deam_cutoff, length_bin_size,
     sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks)
 
     default_filter.update(kwargs)
-    log_.info("Filter is %s", default_filter)
+    logging.info("Filter is %s", default_filter)
     cov = AdmixfrogInput2(
         **default_filter,
         random_read_sample=random_read_sample,
         length_bin_size=length_bin_size,
         deam_cutoff=deam_cutoff,
-        outfile=outfile
+        outfile=outfile,
     )
     sampleset.add_callback(cov)
     sampleset.run_callbacks()

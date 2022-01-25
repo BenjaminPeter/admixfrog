@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from .log import log_
+import logging
 from itertools import accumulate
 
 
@@ -13,8 +13,11 @@ def get_runs(targetid, penalty=0.5):
     while True:
         p = np.array([k for k in accumulate(p0, lambda x, y: max(x + y, 0))])
         pos_max, score_max = np.argmax(p), np.max(p)
-        if score_max == 0. :
+        if score_max == 0.0:
             break
+        else:
+            pass
+            # print(score_max)
 
         zeros = np.where(p[:pos_max] == 0)[0]
         if len(zeros) == 0:
@@ -23,17 +26,17 @@ def get_runs(targetid, penalty=0.5):
             pos_min = np.max(zeros) + 1
         if pos_max != pos_min:
             frags.append((id_[pos_min], id_[pos_max], p[pos_max] - p[pos_min]))
-            #print("[%s|%s:%s] : %f" % (targetid.chrom.iloc[0], pos_min, pos_max, p[pos_max] - p[pos_min]))
-        p0[pos_min:(pos_max + 1)] = 0
+            # print("[%s|%s:%s] : %f" % (targetid.chrom.iloc[0], pos_min, pos_max, p[pos_max] - p[pos_min]))
+        p0[pos_min : (pos_max + 1)] = 0
 
-    #for i, score in zip(reversed(id_), reversed(p)):
+    # for i, score in zip(reversed(id_), reversed(p)):
     #    if score > 0 and score > frag_score:
     #        end_pos, frag_score = i, score
     #    if score == 0 and frag_score > 0:
     #        if i != end_pos:
     #            frags.append((i, end_pos, frag_score))
     #        frag_score = 0
-    #if frag_score > 0 and i != end_pos:
+    # if frag_score > 0 and i != end_pos:
     #    frags.append((i, end_pos, frag_score))
     return pd.DataFrame(frags, columns=["start", "end", "score"])
 
@@ -45,9 +48,16 @@ def get_rle(data, states, penalty=0.5):
     het_targets = []  # only heterozygous state
     homo_targets = []  # only homozygous state
     state_targets = []  # all homo and heterozygous states with one sample
+    inbred_targets = []  # all inbred states
 
     for i in range(n_states):
-        homo_targets.append([states[i]])
+
+        if f"h{states[i]}" in data.columns:
+            inbred_targets.append([f"h{states[i]}"])
+            homo_targets.append([f"h{states[i]}", states[i]])
+        else:
+            homo_targets.append([states[i]])
+
         for j in range(i + 1, n_states):
             het_targets.append([states[i] + states[j]])
 
@@ -58,17 +68,20 @@ def get_rle(data, states, penalty=0.5):
                 l.append(states[i] + states[j])
             elif i > j:
                 l.append(states[j] + states[i])
+            if f"h{states[i]}" in data.columns:
+                l.append(f"h{states[i]}")
         state_targets.append(l)
 
-    targets = het_targets + state_targets + homo_targets
+    targets = het_targets + state_targets + homo_targets + inbred_targets
     types = ["het"] * len(het_targets)
     types += ["state"] * len(state_targets)
     types += ["homo"] * len(homo_targets)
+    types += ["inbred"] * len(inbred_targets)
 
     res = []
 
     for target, type_ in zip(targets, types):
-        log_.info("rle for %s", target)
+        logging.info("rle for %s", target)
 
         data["target"] = np.sum(data[target], 1)
         runs = (

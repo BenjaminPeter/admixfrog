@@ -13,7 +13,7 @@ class TestGeno(object):
     def test_geno(self, script_runner):
         sid=self.target
 
-        cmd = f'admixfrog --gfile {self.data} --guess-ploidy -P --bin-size .001'
+        cmd = f'admixfrog --gfile {self.data} --guess-ploidy -P --bin-size 100000'
         cmd += f' --states {self.states} --out {self.final} --target {self.target}'
         cmd += f' --dont-est-contamination  --ancestral Denisova.DG --c0 0 '
         args = cmd.split()
