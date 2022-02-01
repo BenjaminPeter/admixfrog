@@ -484,7 +484,7 @@ def make_slug_data(df, states, ancestral=None, cont_id=None, sex=None):
 
     rgs, OBS2RG = make_obs2rg(df.rg)
 
-    snp = df[all_state_ix].reset_index().drop_duplicates()
+    snp = df[list(all_state_ix)].reset_index().drop_duplicates()
 
     chroms = pd.unique(snp.chrom)
     haplo_chroms, haplo_snps = get_haploid_stuff(snp, chroms, sex)
@@ -561,7 +561,7 @@ def make_slug_reads_data(
     assert np.sum(df.talt) == np.sum(READS == 1)
     assert np.sum(df.tref) == np.sum(READS == 0)
 
-    snp = df[all_state_ix].reset_index().drop_duplicates()
+    snp = df[list(all_state_ix)].reset_index().drop_duplicates()
 
     if flip and ancestral is not None:
         sfs, SNP2SFS, FLIPPED = make_obs2sfs_folded(

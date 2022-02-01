@@ -418,7 +418,7 @@ def write_cont_table(df, cont, error, tot_n_snps, outname=None):
 def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
     df_rg = pd.DataFrame([k for k in rgs], columns=["rg"])
     df_cont = pd.DataFrame(cont, columns=["cont"])
-    df_libs = pd.concat((df_rg, df_cont), 1)
+    df_libs = pd.concat((df_rg, df_cont), axis=1)
     df_libs["n_sites"] = tot_n_snps
     if se is not None:
         df_libs["se_cont"] = se
@@ -656,3 +656,5 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
 
     if outname is not None:
         sfs_df.to_csv(outname, float_format="%5f", index=False, compression="xz")
+
+    return sfs_df

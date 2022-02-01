@@ -123,14 +123,23 @@ def run_admixslug(
 
     if controller.n_resamples > 0:
         jk_pars_list = []
+        jk_sfs = list()
 
         for i in range(controller.n_resamples):
             jk_data = data.jackknife_sample(i, controller.n_resamples)
             jk_pars = squarem(pars0, jk_data, controller)
             jk_pars_list.append(jk_pars)
+
+
+            if output["output_jk_sfs"]:
+                jk_sfs_row = write_sfs2(sfs, jk_pars, jk_data)
+                jk_sfs_row['rep'] = i
+                jk_sfs.append(jk_sfs_row)
+
             print(f"done with jackknife sample {i+1} / {controller.n_resamples}")
 
         jk_table = np.vstack(tuple(p.pars for p in jk_pars_list))
+        jk_sfs = pd.concat(jk_sfs)
 
         n = np.sum(~np.isnan(jk_table), 0)
         se = np.sqrt(((n-1)/(n)*np.nansum((jk_table - pars.pars) ** 2, 0)))
@@ -158,6 +167,10 @@ def run_admixslug(
         write_sfs2(sfs, pars, data,
                    se_tau=se_pars.tau, se_F = se_pars.F, 
                    outname=f'{outname}.sfs.xz')
+
+    if output["output_jk_sfs"]:
+        jk_sfs.to_csv(f'{outname}.jksfs.xz', float_format="%5f", 
+                      index=False, compression="xz")
 
     if output["output_snp"]:
         df_snp = write_snp_table_slug2(df=df, data=data, posterior_gt = posterior_gt, outname=f'{outname}.snp.xz')

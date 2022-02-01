@@ -233,11 +233,17 @@ def add_output_options_slug(parser):
     )
 
     parser.add_argument(
-        "--no-vcf",
-        action="store_false",
-        default=True,
-        dest="output_vcf",
-        help="""Disable output of vcf""",
+        "--output-vcf",
+        action="store_true",
+        default=False,
+        help="""Enable output of vcf""",
+    )
+
+    parser.add_argument(
+        "--output-jk-sfs",
+        default=False,
+        action="store_true",
+        help="""write a SFS file for each JK resample"""
     )
 
 

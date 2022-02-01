@@ -305,16 +305,20 @@ class SlugReads:
         RSLICE = np.ones(self.n_reads, bool)
         lsp = np.linspace(0, self.n_reads, n_samples+1, dtype=int)
         RSLICE[lsp[i]:lsp[i+1]] = 0
+        old_snp_ids = np.unique(self.READ2SNP[RSLICE]) #old snp ids
+        udict = dict(zip(old_snp_ids,range(len(old_snp_ids))))
+        new_snp_ids = np.array(list(udict[snp] for snp in self.READ2SNP[RSLICE]))
 
         return SlugReads(READS = self.READS[RSLICE],
-                         READ2SNP = self.READ2SNP[RSLICE],
+                         #READ2SNP = self.READ2SNP[RSLICE],
+                         READ2SNP = new_snp_ids,
                          READ2RG = self.READ2RG[RSLICE],
-                         SNP2SFS = self.SNP2SFS, #[SSLICE],
-                         FLIPPED = self.FLIPPED, #[SSLICE],
+                         SNP2SFS = self.SNP2SFS[old_snp_ids], #[SSLICE],
+                         FLIPPED = self.FLIPPED[old_snp_ids], #[SSLICE],
                          haploid_snps=self.haploid_snps,
                          states = self.states,
                          rgs = self.rgs,
-                         psi = self.psi,
+                         psi = self.psi[old_snp_ids],
                          chroms = self.chroms,
                          haplo_chroms = self.haplo_chroms,
                          sex = self.sex)
