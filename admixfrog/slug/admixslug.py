@@ -150,6 +150,9 @@ def run_admixslug(
         se_pars._pars[:] = np.nan
 
 
+    if output["fstats"]:
+        df_fstats = calc_fstats(jk_sfs, states, stats_to_calculate)
+
 
 
     # output formating from here
