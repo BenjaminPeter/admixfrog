@@ -158,8 +158,11 @@ def run_admixslug(
 
 
     if output["output_cont"]:
+        ct = Counter(data.READ2RG)
+        n_reads = [ct[i] for i in range(data.n_rgs)]
         df_cont = write_cont_table_slug(ix, data.rgs, pars.cont, 
-                                   n_sites, 
+                                        n_reads,
+                                        n_sites, 
                                         se= se_pars.cont,
                                         outname=f'{outname}.cont.xz')
 

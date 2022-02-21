@@ -415,10 +415,11 @@ def write_cont_table(df, cont, error, tot_n_snps, outname=None):
     return df_libs
 
 
-def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
+def write_cont_table_slug(ix, rgs, cont, n_reads, tot_n_snps, se=None, outname=None):
     df_rg = pd.DataFrame([k for k in rgs], columns=["rg"])
     df_cont = pd.DataFrame(cont, columns=["cont"])
-    df_libs = pd.concat((df_rg, df_cont), axis=1)
+    df_n_reads = pd.DataFrame(n_reads, columns=["n_reads"])
+    df_libs = pd.concat((df_rg, df_cont, df_n_reads), axis=1)
     df_libs["n_sites"] = tot_n_snps
     if se is not None:
         df_libs["se_cont"] = se
