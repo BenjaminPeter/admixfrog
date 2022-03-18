@@ -139,7 +139,7 @@ def run_admixslug(
             print(f"done with jackknife sample {i+1} / {controller.n_resamples}")
 
         jk_table = np.vstack(tuple(p.pars for p in jk_pars_list))
-        jk_sfs = pd.concat(jk_sfs)
+        if output["output_jk_sfs"]: jk_sfs = pd.concat(jk_sfs)
 
         n = np.sum(~np.isnan(jk_table), 0)
         se = np.sqrt(((n-1)/(n)*np.nansum((jk_table - pars.pars) ** 2, 0)))
@@ -161,8 +161,11 @@ def run_admixslug(
 
 
     if output["output_cont"]:
+        ct = Counter(data.READ2RG)
+        n_reads = [ct[i] for i in range(data.n_rgs)]
         df_cont = write_cont_table_slug(ix, data.rgs, pars.cont, 
-                                   n_sites, 
+                                        n_reads,
+                                        n_sites, 
                                         se= se_pars.cont,
                                         outname=f'{outname}.cont.xz')
 

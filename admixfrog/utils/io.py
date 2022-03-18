@@ -415,10 +415,11 @@ def write_cont_table(df, cont, error, tot_n_snps, outname=None):
     return df_libs
 
 
-def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
+def write_cont_table_slug(ix, rgs, cont, n_reads, tot_n_snps, se=None, outname=None):
     df_rg = pd.DataFrame([k for k in rgs], columns=["rg"])
     df_cont = pd.DataFrame(cont, columns=["cont"])
-    df_libs = pd.concat((df_rg, df_cont), axis=1)
+    df_n_reads = pd.DataFrame(n_reads, columns=["n_reads"])
+    df_libs = pd.concat((df_rg, df_cont, df_n_reads), axis=1)
     df_libs["n_sites"] = tot_n_snps
     if se is not None:
         df_libs["se_cont"] = se
@@ -608,7 +609,6 @@ def write_sfs(sfs, pars, data, outname=None):
 
 
 def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
-    df2 = sfs
     n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=["n_snps"])
 
     n_reads, n_endo = Counter(), Counter()
@@ -628,14 +628,14 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
             n_anc[sfs_] += 1 - read_  # 0 = anc -> 1-0 = 1 anc allele
             n_der[sfs_] += read_  # normal means 1==derived
 
-    n_reads = pd.Series((n_reads[i] for i in df2.index), dtype=int, name="n_reads")
-    n_endo = pd.Series((n_endo[i] for i in df2.index), dtype=float, name="n_endo")
-    n_anc = pd.Series((n_anc[i] for i in df2.index), dtype=float, name="n_anc")
-    n_der = pd.Series((n_der[i] for i in df2.index), dtype=float, name="n_der")
+    n_reads = pd.Series((n_reads[i] for i in sfs.index), dtype=int, name="n_reads")
+    n_endo = pd.Series((n_endo[i] for i in sfs.index), dtype=float, name="n_endo")
+    n_anc = pd.Series((n_anc[i] for i in sfs.index), dtype=float, name="n_anc")
+    n_der = pd.Series((n_der[i] for i in sfs.index), dtype=float, name="n_der")
     F = pd.DataFrame(pars.F, columns=["F"])
     tau = pd.DataFrame(pars.tau, columns=["tau"])
 
-    sfs_df = pd.concat((df2, F, tau, n_snps, n_reads, n_endo), axis=1)
+    sfs_df = pd.concat((sfs, F, tau, n_snps, n_reads, n_endo), axis=1)
     sfs_df["read_ratio"] = n_der / (n_anc + n_der + 1e-400)
     sfs_df["cont_est"] = 1 - sfs_df["n_endo"] / sfs_df["n_reads"]
     sfs_df["psi"] = sfs_df["tau"] + (sfs_df["read_ratio"] - sfs_df["tau"]) / (

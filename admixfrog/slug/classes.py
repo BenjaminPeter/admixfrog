@@ -277,6 +277,9 @@ class SlugReads:
     haploid_snps : Any = None #which snp are haploid
     sex : str = 'm'
 
+    n_sfs : Any = None
+    n_rgs : Any = None
+
     def __post_init__(self):
         assert len(self.READ2RG) == len(self.READ2SNP)
         assert len(self.READS) == len(self.READ2RG)
@@ -287,11 +290,12 @@ class SlugReads:
         super().__setattr__("FLIPPED", np.array(self.FLIPPED, 'bool'))
         super().__setattr__("READ2RG", np.array(self.READ2RG))
         super().__setattr__("READ2SNP", np.array(self.READ2SNP))
-        super().__setattr__("SNP2SFS", np.array(self.SNP2SFS))
-        super().__setattr__("n_sfs", np.max(self.SNP2SFS) + 1)
-        super().__setattr__("n_rgs", np.max(self.READ2RG) + 1)
-        assert 1 + np.max(self.READ2SNP) <= self.n_snps
-        assert 1 + np.max(self.READ2RG) <= self.n_rgs
+        super().__setattr__("SNP3SFS", np.array(self.SNP2SFS))
+        #give option to set n_sfs and n_rgs manually for resampling which may toss out some..
+        if self.n_sfs is None: 
+            super().__setattr__("n_sfs", np.max(self.SNP2SFS) + 1)
+        if self.n_rgs is None: 
+            super().__setattr__("n_rgs", np.max(self.READ2RG) + 1)
         self.READS.flags.writeable = False
         self.FLIPPED.flags.writeable = False
         self.psi.flags.writeable = False
@@ -309,8 +313,7 @@ class SlugReads:
         udict = dict(zip(old_snp_ids,range(len(old_snp_ids))))
         new_snp_ids = np.array(list(udict[snp] for snp in self.READ2SNP[RSLICE]))
 
-        return SlugReads(READS = self.READS[RSLICE],
-                         #READ2SNP = self.READ2SNP[RSLICE],
+        sr = SlugReads(READS = self.READS[RSLICE],
                          READ2SNP = new_snp_ids,
                          READ2RG = self.READ2RG[RSLICE],
                          SNP2SFS = self.SNP2SFS[old_snp_ids], #[SSLICE],
@@ -321,7 +324,10 @@ class SlugReads:
                          psi = self.psi[old_snp_ids],
                          chroms = self.chroms,
                          haplo_chroms = self.haplo_chroms,
+                         n_sfs = self.n_sfs,
+                         n_rgs = self.n_rgs,
                          sex = self.sex)
+        return sr
                          
 
     @property
