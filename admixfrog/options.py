@@ -1,17 +1,18 @@
 """option groups
 """
 # set up a list of option groups to keep things organized
-#population comparison options
-POP_OPTIONS = ["cont_id", 
-               "ref_files", 
-               "sex", 
-               "states", 
-               "state_file",
-               "random_read_samples"
-               "ancestral"]
+# population comparison options
+POP_OPTIONS = [
+    "cont_id",
+    "ref_files",
+    "sex",
+    "states",
+    "state_file",
+    "random_read_samples" "ancestral",
+]
 
 
-#generate target_file from vcf, bam or geno
+# generate target_file from vcf, bam or geno
 INFILE_OPTIONS = [
     "bamfile",
     "deam_cutoff",
@@ -24,10 +25,10 @@ INFILE_OPTIONS = [
     "alleles",
     "vcfgt",
     "target",
-    "target_file"
+    "target_file",
 ]
 
-#generate reference from vcf or geno
+# generate reference from vcf or geno
 REFFILE_OPTIONS = [
     "vcf_ref",
     "pop_file",
@@ -35,12 +36,12 @@ REFFILE_OPTIONS = [
     "rec_rate",
     "pos_id",
     "map_id",
-    'default_map',
+    "default_map",
     "chroms",
     "force_ref",
 ]
 
-#algorithm control options
+# algorithm control options
 ALGORITHM_OPTIONS = [
     "bin_size",
     "snp_mode",
@@ -55,7 +56,7 @@ ALGORITHM_OPTIONS = [
     "prior",
     "ancestral_prior",
     "split_lib",
-    "scale_probs"
+    "scale_probs",
 ]
 
 ALGORITHM_OPTIONS_SLUG = [
@@ -65,17 +66,15 @@ ALGORITHM_OPTIONS_SLUG = [
     "ll_tol",
     "max_iter",
     "split_lib",
-    "jk_resamples"
-    "deam_bin_size",
+    "jk_resamples" "deam_bin_size",
     "len_bin_size",
-    "bin_reads"
+    "bin_reads",
 ]
 
-#geno format options
-GENO_OPTIONS=[
-    'geno_file',
-    'guess_ploidy'
-]
+# geno format options
+GENO_OPTIONS = ["geno_file", "guess_ploidy"]
+
+
 def add_pop_options(parser, states_only=False):
     parser.add_argument(
         "--states",
@@ -88,9 +87,10 @@ def add_pop_options(parser, states_only=False):
         """,
     )
     parser.add_argument(
-        "--state-file", 
+        "--state-file",
         "--pop-file",
-        default=None, help="""Population assignments (yaml format)"""
+        default=None,
+        help="""Population assignments (yaml format)""",
     )
     parser.add_argument(
         "--random-read-samples",
@@ -99,7 +99,7 @@ def add_pop_options(parser, states_only=False):
         default=[],
         help="""Set a sample as a pseudo-haploid random-read sample for the reference. This means when creating a reference,
         only one allele is taken.
-        """
+        """,
     )
     if not states_only:
         parser.add_argument(
@@ -118,6 +118,7 @@ def add_pop_options(parser, states_only=False):
             """,
         )
 
+
 def add_output_options(parser):
     g = parser.add_argument_group(
         "output name and files to be generated",
@@ -126,7 +127,7 @@ def add_output_options(parser):
                                   """,
     )
     g.add_argument(
-        "--outname", 
+        "--outname",
         "--out",
         "-o",
         default="admixfrog",
@@ -186,6 +187,7 @@ def add_output_options(parser):
         help="""Disable output of sfs""",
     )
 
+
 def add_output_options_slug(parser):
     g = parser.add_argument_group(
         "output name and files to be generated",
@@ -194,7 +196,7 @@ def add_output_options_slug(parser):
                                   """,
     )
     g.add_argument(
-        "--outname", 
+        "--outname",
         "--out",
         "-o",
         default="admixfrog",
@@ -243,9 +245,22 @@ def add_output_options_slug(parser):
         "--output-jk-sfs",
         default=False,
         action="store_true",
-        help="""write a SFS file for each JK resample"""
+        help="""write a SFS file for each JK resample""",
     )
 
+    parser.add_argument(
+        "--output-fstats",
+        default=False,
+        action="store_true",
+        help="""write all F-stats involving target""",
+    )
+
+    # parser.add_argument(
+    #    "--output-pi",
+    #    default=False,
+    #    action="store_true",
+    #    help="""write all pw differences"""
+    # )
 
 
 def add_target_file_options(parser):
@@ -260,8 +275,13 @@ def add_target_file_options(parser):
                    --force-target-file is set
                    """,
     )
-    g.add_argument("--force-target-file", "--force-bam", '--force-infile', 
-                   default=False, action="store_true")
+    g.add_argument(
+        "--force-target-file",
+        "--force-bam",
+        "--force-infile",
+        default=False,
+        action="store_true",
+    )
     # g.add_argument("--bedfile", "--bed",
     #               help="Bed file with anc/der allele to restrict to")
     g.add_argument(
@@ -305,8 +325,11 @@ def add_target_file_options(parser):
     )
     parser.add_argument(
         "--target",
+        "--name",
         "--sample-id",
-        help="""sample id if target is read from vcf or geno file. No effect for bam-file
+        default=None,
+        help="""sample name if target is read from vcf or geno file. 
+        written in output of f-stats
         """,
     )
 
@@ -326,26 +349,28 @@ def add_rle_options(parser):
         default=100,
         help="""Number of replicates that are sampled from posterior. Useful for
         parameter estimation and bootstrapping
-        """
+        """,
     )
 
 
 def add_geno_options(parser):
-    g = parser.add_argument_group("""geno (Eigenstrat/Admixtools/Reich) format
-                                  parser options""")
+    g = parser.add_argument_group(
+        """geno (Eigenstrat/Admixtools/Reich) format
+                                  parser options"""
+    )
     g.add_argument(
-        "--geno-file", 
+        "--geno-file",
         "--gfile",
         help="""geno file name (without extension, expects .snp/.ind/.geno
         files). Only reads binary format for now""",
     )
     g.add_argument(
         "--guess-ploidy",
-        action='store_true',
+        action="store_true",
         default=True,
         help="""guess ploidy of individuals (use if e.g. random read sample
         inds are present)
-        """
+        """,
     )
 
 
@@ -390,14 +415,12 @@ def add_ref_options(parser):
         """,
     )
     parser.add_argument(
-        "--default-map",
-        default="AA_Map",
-        help="""default recombination map column"""
+        "--default-map", default="AA_Map", help="""default recombination map column"""
     )
     parser.add_argument(
         "--chroms",
         "--chromosome-files",
-        default='1-22,X',
+        default="1-22,X",
         help="""The chromosomes to be used in vcf-mode.
         """,
     )
@@ -405,8 +428,10 @@ def add_ref_options(parser):
 
 
 def add_estimation_options(P):
-    parser = P.add_argument_group("""options that control estimation of model
-                                  parameters""")
+    parser = P.add_argument_group(
+        """options that control estimation of model
+                                  parameters"""
+    )
     parser.add_argument(
         "--dont-est-contamination",
         action="store_false",
@@ -421,13 +446,13 @@ def add_estimation_options(P):
         dest="est_error",
         help="""estimate sequencing error per rg""",
     )
-    #parser.add_argument(
+    # parser.add_argument(
     #    "--dont-est-error",
     #    action="store_false",
     #    default=True,
     #    dest="est_error",
     #    help="""estimate sequencing error per rg""",
-    #)
+    # )
     parser.add_argument(
         "--freq-contamination",
         "--fc",
@@ -494,20 +519,23 @@ def add_estimation_options(P):
         per centimorgan). File is a csv file with a n x n
         transition matrix where n is the number of homozygous states. States are assumed to
         be ordered by the same ordering as given in the --states flag.
-        """
+        """,
     )
     parser.add_argument(
         "--dont-est-trans",
         "--dont-est-transition",
-        dest='est_trans',
+        dest="est_trans",
         default=True,
-        action='store_false',
-        help="""Set this flag if transition matrix should be fixed"""
+        action="store_false",
+        help="""Set this flag if transition matrix should be fixed""",
     )
 
+
 def add_estimation_options_slug(P):
-    parser = P.add_argument_group("""options that control estimation of model
-                                  parameters""")
+    parser = P.add_argument_group(
+        """options that control estimation of model
+                                  parameters"""
+    )
     parser.add_argument(
         "--dont-est-contamination",
         action="store_false",
@@ -540,7 +568,7 @@ def add_estimation_options_slug(P):
         "--est-tau",
         "-tau",
         action="store_false",
-        dest='est_tau',
+        dest="est_tau",
         default=True,
         help="""Estimate tau (population structure in references)""",
     )
@@ -591,7 +619,7 @@ def add_base_options(P):
 
     parser.add_argument(
         "--snp-mode",
-        action='store_true',
+        action="store_true",
         default=False,
         help="""in SNP mode, no binning of nearby SNP is done,
         instead each SNP is a bin. Recombination is assumed to be constant
@@ -609,13 +637,13 @@ def add_base_options(P):
         ref and alt allele count for each reference, to reflect the uncertainty in allele
         frequencies from a sample. If references are stationary with size 2N, this is
         approximately  [\\sum_i^{2N}(1/i) 2N]^{-1}.
-          """
+          """,
     )
     parser.add_argument(
         "--ancestral-prior",
         type=float,
         default=0,
-        help="""Prior added to ancestral allele."""
+        help="""Prior added to ancestral allele.""",
     )
     parser.add_argument(
         "-P",
@@ -670,11 +698,12 @@ def add_base_options(P):
 
     parser.add_argument(
         "--dont-scale-probs",
-        dest='scale_probs',
+        dest="scale_probs",
         action="store_false",
         default=True,
-        help="""dont scale emission probabilities so that the max is 1"""
+        help="""dont scale emission probabilities so that the max is 1""",
     )
+
 
 def add_base_options_slug(P):
     parser = P.add_argument_group("options that control the algorithm behavior")
@@ -689,7 +718,10 @@ def add_base_options_slug(P):
         "--ll-tol", type=float, default=1e-2, help="""stop EM when DeltaLL < ll-tol"""
     )
     parser.add_argument(
-        "--ptol", type=float, default=1e-4, help="""stop EM when parameters change by less than ptol"""
+        "--ptol",
+        type=float,
+        default=1e-4,
+        help="""stop EM when parameters change by less than ptol""",
     )
     parser.add_argument(
         "--dont-split-lib",
@@ -739,7 +771,7 @@ def add_base_options_slug(P):
         "--n-resamples",
         type=int,
         default=0,
-        help="number of resamples for Jackknife standard error estimation"
+        help="number of resamples for Jackknife standard error estimation",
     )
     parser.add_argument(
         "--male",
@@ -765,7 +797,8 @@ def add_base_options_slug(P):
         """,
     )
 
-def add_filter_options(parser): 
+
+def add_filter_options(parser):
     parser.add_argument(
         "--filter-delta",
         type=float,

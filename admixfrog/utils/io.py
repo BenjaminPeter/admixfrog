@@ -636,6 +636,7 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     tau = pd.DataFrame(pars.tau, columns=["tau"])
 
     sfs_df = pd.concat((sfs, F, tau, n_snps, n_reads, n_endo), axis=1)
+    np.nan_to_num(sfs_df.n_snps,copy=False, nan=0)
     sfs_df["read_ratio"] = n_der / (n_anc + n_der + 1e-400)
     sfs_df["cont_est"] = 1 - sfs_df["n_endo"] / sfs_df["n_reads"]
     sfs_df["psi"] = sfs_df["tau"] + (sfs_df["read_ratio"] - sfs_df["tau"]) / (
@@ -658,3 +659,19 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
         sfs_df.to_csv(outname, float_format="%5f", index=False, compression="xz")
 
     return sfs_df
+
+
+def write_f3_table(df, outname=None):
+    df = df[['X', 'A', 'B', 'f3', 'rep']] 
+    if outname is not None:
+        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+    return df
+
+def write_f4_table(df, outname=None):
+    df = df[['A', 'B', 'C', 'D', 'f4', 'rep']] 
+    if outname is not None:
+        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+    return df
+
+
+

@@ -18,8 +18,7 @@ from .options import add_ref_options
 
 
 def do_ref():
-    """subprogram to create reference file
-    """
+    """subprogram to create reference file"""
     setup_log()
     parser = argparse.ArgumentParser(description="create reference file from vcf")
     parser.add_argument(
@@ -111,6 +110,7 @@ def bam():
         del args["chroms"]
         process_bam(**args)
 
+
 def bam2():
     """create input file from bam/vcf"""
     setup_log()
@@ -173,4 +173,3 @@ def bam2():
         del args["target"]
         del args["chroms"]
         process_bam2(**args)
-

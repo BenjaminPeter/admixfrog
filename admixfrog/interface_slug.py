@@ -1,6 +1,7 @@
 """basic command line interfaces
 """
 import argparse
+import os
 from pprint import pprint, pformat
 import admixfrog
 import numpy as np
@@ -23,6 +24,7 @@ from .options import add_filter_options
 from .options import add_geno_options, add_ref_options
 from .options import add_pop_options, add_base_options_slug
 from .options import add_output_options_slug, add_estimation_options_slug
+
 
 
 def run_sfs():
@@ -68,11 +70,6 @@ def run_sfs():
                         """,
     )
 
-    parser.add_argument(
-        "--vcf-sample-name",
-        default="admixslug",
-        help="""sample name to be used in admixslug""",
-    )
     parser.add_argument(
         "--force-ref", "--force-vcf", default=False, action="store_true"
     )
@@ -242,6 +239,9 @@ def run_sfs():
                 "no sample defined (set either --target-file --bam --vcfgt or --gfile must be set"
             )
 
+    if target_pars['target'] is None:
+        target_pars['target'] = os.path.basename(target_pars['target_file']).split("_")[0]
+
     from . import __version__
 
     logging.info(f"admixslug {__version__}")
@@ -254,6 +254,7 @@ def run_sfs():
         target=target_pars["target"],
         target_file=target_pars["target_file"],
     )
+
 
 def profile():
     import cProfile
