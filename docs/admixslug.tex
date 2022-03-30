@@ -1,0 +1,119 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[top=1in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage{amsmath}
+\usepackage[round]{natbib}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\author{Benjamin Peter}
+
+\newcommand{\BE}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\BFZ}{\mathbf{Z}}
+\newcommand{\BFG}{\mathbf{G}}
+\newcommand{\BFO}{\mathbf{O}}
+
+\title{Supplement 1: Admixslug Model Details}
+\begin{document}
+	\maketitle
+\section*{Model Overview}
+	Here, we present a graphical model for the joint estimation of contamination and a conditional site-frequency spectrum, implemented in a program called \texttt{admixslug}.
+	
+	The model aims to combine information from both sequences and relatedness to other populations.
+	
+	In brief, we assume we have NGS-data from $L$ SNPs, and a set of one or more reference populations $Z_i$ with reference genotypes at these loci. 
+	
+	
+	
+	
+	Finally, we assume that for each SNP we have zero or more reads sampled from $R$ disjoint read groups. The total number of reads from a particular read group at a particular SNP $G_{sl}$ is $n_{rsl}$, and the random variable denoting the number of non-reference alleles is $O_{rsl}$. Each read group will have its own contamination rate $c_r$ and error parameter $e_r$, that are estimated directly from the data.
+	
+	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination and error rate for each read group, the substructure in each source $\tau_k$, and the average drift since admixture from each source $F_k$. 
+\section*{Notation overview}
+	To summarize, the notation is as follows: 
+	\begin{itemize}
+		\item $R, L$ denote the number of read groups and loci, respectively
+		\item $K$ is the number of SFS-bins 
+		\item $n_{rl}$ the number of reads of readgroup $r$ at SNP $l$.
+		\item $\BFO = (O_{rli})$ the $i$-th read from read group $r$ at SNP $l$
+		\item $\BFG = (G_{l})$ the genotype at SNP $l$
+		\item $\BFZ = (Z_{l})$ the SFS of SNP $l$
+		\item $F_k$ a parameter estimating coalescence sinc gene flow for SNP in SFS-entry $k$.
+		\item $\tau_k$ the proportion of derived alleles in SFS-entry $k$.		
+		\item $c_r$ proportion of contaminant reads in read group $r$
+		\item $e,b$  error rate, and reference bias
+		\item $\mathbf{\theta} = (c_r, e, b, \tau_k, F_k)$, the set of all parameters to be estimated
+	\end{itemize}
+
+
+\section*{Model details}
+\subsection*{Error model}
+We consider sequencing error, contamination and reference bias.
+
+The random variable $X_{lri}$ reflects the base on the $i$-th sequence from read group $r$ at SNP locus $l$, $X_{lri}=0$ means the sequence carries the reference allele, and $X_{lri}=1$ means the sequence carries the alt allele. $O_{rli}$ is the base on the resulting sequencing read
+
+\begin{align}
+P(O_{lri}=0 | X_{lri}=0) &= 1-e\nonumber\\
+P(O_{lri}=1 | X_{lri}=0) &= e\nonumber\\
+P(O_{lri}=1 | X_{lri}=1) &= b\nonumber\\
+P(O_{lri}=1 | X_{lri}=1) &= 1-b
+\end{align}
+We can think of $e$ as the sequencing error, and $b$ as the reference bias + sequencing error.
+
+\subsection*{Sequence model}
+
+There are two possible origins for each sequence $X_{lri}$, it is either a contaminant, or endogenous. 
+Let $C_{lri} =1 $ mean that $X_{lri}$ is contaminant, and $C_{lri} =0 $ mean it is not. Furthermore, let $\psi_l$ be the alt allele frequency in a reference contamination panel, which we assume to be known. Let $G_l$ be the genotype of the target individual at SNP $l$ (which is either 0, 1 or 2).
+
+\begin{align}
+P(X_{lri} = 0 | C_{lri} = 1, \psi_l) &= 1 - \psi_l\nonumber\\ 
+P(X_{lri} = 1 | C_{lri} = 1, \psi_l) &= \psi_l\nonumber\\ 
+P(X_{lri} = 0 | C_{lri} = 0, G_l) &= 1 - \frac{G_l}{2}\nonumber\\ 
+P(X_{lri} = 1 | C_{lri} = 0, G_l) &= \frac{G_l}{2}
+\end{align}
+
+\subsection*{Contamination model}
+For read-group $r$, the probability that a read from that read group is a contaminant is 
+\begin{align}
+P(C_{lri} = 0 | c_r) &= 1-c_r\nonumber\\
+P(C_{lri} = 1 | c_r) &= c_r
+\end{align}
+independent of the locus.
+
+\subsection*{Genotype model}
+We estimate the genotype given the conditional-SFS entry $Z_l=k$, $F_k$ is the probability that both alleles are IBD, and $\tau_k$ is the probability that the individual has a derived allele at position $k$
+Thus
+\begin{align}
+P(G_l = 0| Z_l=k, \tau_k, F_k) &= F_k (1-\tau_k) + (1-F_k) (1-\tau_k)^2\nonumber\\
+P(G_l = 1| Z_l=k, \tau_k, F_k) &= 2(1-F_k) \tau(1-\tau_k)\nonumber\\
+P(G_l = 2| Z_l=k, \tau_k, F_k) &= F_k \tau_k + (1-F_k) \tau_k^2
+\end{align}
+
+\subsection*{Likelihood}
+We observe the data $\mathbf{O}$, and we know the parameters $\theta = (\tau_k, F_k, c_r, e,b)$, the 
+contamination panel $\psi$ and the conditional SFS $\mathbf{Z}$. The variables
+$C_r, X_{lri}$ and $G_l$ are latent variables we need to sum over.
+\begin{align}
+P(\mathbf{O} | \theta, \psi, \mathbf{Z}) &= 
+\prod_{l, r, i}\sum_{X_{lri}=0}^1\sum_{C_{lri}=0}^1\sum_{G_{l}=0}^2 P(O_{lri} |X_{lri}) P(X_{lri} | C_{lri}, \psi_l, G_l) P(C_{lri} | c_r) P(G_l | Z_l, \tau_k, F_k)
+\end{align}
+
+\subsection*{Parameter estimation}
+We estimate parameters using the complete-data log-likelihood using an EM-algorithm.
+\begin{align*}
+\log P(\mathbf{O}, \mathbf{X}, \mathbf{C}, \mathbf{G} | \theta, \psi, \mathbf{Z}) &= 
+\sum_{lri} \log P(O_{lri} | X_{lri}, e, b)\\
+&+ \sum_{lri}\log P(C_{lri} | c_r)\\
+&+ \sum_{lri}\log P(X_{lri} | C_{lri}, \psi_l, G_l)\\
+&+ \sum_{l} \log P( G_l | Z_l, \tau_k, F_k)
+\end{align*}
+
+
+
+
+
+\bibliography{main}
+\bibliographystyle{plainnat}
+
+
+\end{document}
