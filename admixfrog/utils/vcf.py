@@ -89,7 +89,7 @@ def vcf_to_ref(
                     sample2pop[sample].append(pop)
 
     samples = sample2pop.keys()
-    pops = set(pop for s, v in sample2pop.items() for pop in v)
+    pops = sorted(set(pop for s, v in sample2pop.items() for pop in v))
     pprint(sample2pop)
     pprint(pops)
 
