@@ -385,7 +385,7 @@ def make_obs2sfs(snp_states, max_states=None, states=None):
             freq = snp_states[f"{s}_alt"] / (
                 snp_states[f"{s}_alt"] + snp_states[f"{s}_ref"]
             )
-            freq = np.nan_to_num(freq, 0)
+            freq = np.nan_to_num(freq)
             m = np.max((snp_states[f"{s}_alt"] + snp_states[f"{s}_ref"]))
             m = min((m, max_states))
             freq = np.round(freq * m).astype(np.uint8)
@@ -426,8 +426,8 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, state
         data2[s] = snp.loc[FLIPPED, f"{s}_ref"] / (
             snp.loc[FLIPPED, f"{s}_alt"] + snp.loc[FLIPPED, f"{s}_ref"]
         )
-        data1[s] = np.nan_to_num(data1[s], 0)
-        data2[s] = np.nan_to_num(data2[s], 0)
+        data1[s] = np.nan_to_num(data1[s])
+        data2[s] = np.nan_to_num(data2[s])
         m = np.max((snp[f"{s}_alt"] + snp[f"{s}_ref"]))
         m = m if max_states is None else min((m, max_states))
         data1[s] = np.round(data1[s] * m).astype(np.uint8)

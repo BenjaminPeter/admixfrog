@@ -102,9 +102,9 @@ def load_ref(
     ref = ref.rename(D, axis=1).groupby(level=0, axis=1).agg(sum)
 
     if autosomes_only:
-        ref = ref[ref.chrom != "X"]
-        ref = ref[ref.chrom != "Y"]
-        ref = ref[ref.chrom != "mt"]
+        ref = ref[ref.index.get_level_values('chrom') != 'X']
+        ref = ref[ref.index.get_level_values('chrom') != 'Y']
+        ref = ref[ref.index.get_level_values('chrom') != 'mt']
 
     return ref
 
@@ -636,7 +636,7 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     tau = pd.DataFrame(pars.tau, columns=["tau"])
 
     sfs_df = pd.concat((sfs, F, tau, n_snps, n_reads, n_endo), axis=1)
-    np.nan_to_num(sfs_df.n_snps,copy=False, nan=0)
+    np.nan_to_num(sfs_df.n_snps,copy=False)
     sfs_df["read_ratio"] = n_der / (n_anc + n_der + 1e-400)
     sfs_df["cont_est"] = 1 - sfs_df["n_endo"] / sfs_df["n_reads"]
     sfs_df["psi"] = sfs_df["tau"] + (sfs_df["read_ratio"] - sfs_df["tau"]) / (
