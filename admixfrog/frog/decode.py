@@ -142,10 +142,10 @@ def pred_sims_rep(
 ):
     n_steps, n_states = emissions.shape
 
-    seq = np.zeros(n_steps, dtype=np.int64) 
+    seq = np.zeros(n_steps, dtype=np.int64)
     for i in range(n_steps):
         if i == 0:
-            p = alpha0
+            state = nb_choice(n_states, p=alpha0)
         else:
             p = post_trans(
                 trans=trans[state],
@@ -154,7 +154,7 @@ def pred_sims_rep(
                 beta_prev=beta[i - 1, state],
                 n=n[i],
             )
-        state = nb_choice(n_states, p)
+            state = nb_choice(n_states, p)
         seq[i] = state
     if decode:
         runs = decode_runs(seq, n_homo, n_states - n_homo, est_inbreeding)
