@@ -21,6 +21,7 @@ class AdmixfrogInput(pg.ExtCoverage):
         length_bin_size=None,
         random_read_sample=False,
         report_alleles=False,
+        max_reads=100,
         **kwargs,
     ):
         self.outfile = outfile
@@ -28,6 +29,7 @@ class AdmixfrogInput(pg.ExtCoverage):
         self.length_bin_size = length_bin_size
         self.random_read_sample = random_read_sample
         self.report_alleles = report_alleles
+        self.max_reads=max_reads
         if random_read_sample:
             raise NotImplementedError
         try:
@@ -54,7 +56,13 @@ class AdmixfrogInput(pg.ExtCoverage):
         reads = snp.reads(**self.kwargs)
         D = defaultdict(lambda: self.Obs())
         # n_ref, n_alt, n_deam, n_other = 0, 0, 0, 0
+        i = 0
         for r in reads:
+            i+=1
+            if i > self.max_reads:
+                print(f"Warning at {snp.chrom}:{snp.pos+1} more than {i-1} reads found ({len(reads)}). Skipping the rest...")
+                breakpoint()
+
             DEAM = (
                 "deam"
                 if (r.deam[0] < self.deam_cutoff or r.deam[1] < self.deam_cutoff)
@@ -97,6 +105,8 @@ class AdmixfrogInput(pg.ExtCoverage):
                 file=self.f,
                 sep=",",
             )
+
+
 
 
 class AdmixfrogInput2(pg.ExtCoverage):
@@ -204,6 +214,7 @@ def process_bam(
     deam_cutoff,
     length_bin_size,
     random_read_sample=False,
+    max_reads=100,
     **kwargs,
 ):
     """generate input file from bam-file
@@ -219,6 +230,7 @@ def process_bam(
         length_bin_size=length_bin_size,
         deam_cutoff=deam_cutoff,
         outfile=outfile,
+        max_reads=max_reads
     )
     sampleset.add_callback(cov)
     sampleset.run_callbacks()

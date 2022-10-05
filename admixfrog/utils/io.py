@@ -326,6 +326,7 @@ def load_read_data(
         data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))
         data.talt = binom.rvs(data.talt, downsample, size=len(data.talt))
 
+
     # rm sites with no or extremely high coverage
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 1 - high_cov_filter)

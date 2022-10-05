@@ -169,7 +169,6 @@ def baum_welch(
             gt_mode,
             scale_probs=scale_probs,
         )
-        # breakpoint()
 
     update_post_geno(PG, SNP, Z, IX)
     pars = ParsHD(
@@ -355,9 +354,14 @@ def load_admixfrog_data(
         raise ValueError("ambiguous input")
 
     # get ids of unique snps
-    snp_ids = df[~df.index.duplicated()].groupby(df.index.names).ngroup()
-    snp_ids = snp_ids.rename("snp_id")
-    snp_ids = pd.DataFrame(snp_ids)
+    snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=True).ngroup()
+    snp_ids.rename("snp_id", inplace=True)
+
+    #n_reads = (df['tref'] + df['talt']).groupby(df.index.names, observed=True).sum()
+    #n_reads.rename("n_reads", inplace=True)
+    #snp_ids = pd.DataFrame((snp_ids, n_reads))
+    
+    #snp_ids = pd.DataFrame(snp_ids)
     snp_ids.set_index("snp_id", append=True, inplace=True)
     df = snp_ids.join(df)
 

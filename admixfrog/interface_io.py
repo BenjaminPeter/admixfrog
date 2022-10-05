@@ -85,6 +85,15 @@ def bam():
         help="""The chromosomes to be used in vcf-mode.
         """,
     )
+    parser.add_argument(
+        "--max-reads",
+        "--max-reads-per-snp",
+        type=int,
+        default="100",
+        help="""Maximum number of reads to retain per SNP. High numbers may lead
+            to underflow errors in admixfrog
+        """,
+    )
     add_target_file_options(parser)
     args = vars(parser.parse_args())
 

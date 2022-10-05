@@ -57,6 +57,7 @@ ALGORITHM_OPTIONS = [
     "ancestral_prior",
     "split_lib",
     "scale_probs",
+    "max_cov"
 ]
 
 ALGORITHM_OPTIONS_SLUG = [

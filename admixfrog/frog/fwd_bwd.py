@@ -21,7 +21,6 @@ def fwd_step(alpha_prev, E, trans_mat):
 def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
     """
     calculate P(X_t | o_[1..t], a0)
-    =P(X_t , o_[1..t], a0 | o_[1..t])
     """
     n_steps, n_states = emission.shape
     alpha = np.empty((n_steps, n_states))
@@ -40,7 +39,6 @@ def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
 def fwd_algorithm(alpha0, emissions, trans_mat):
     """
     calculate P(X_t | o_[1..t], a0)
-    =P(X_t , o_[1..t], a0 | o_[1..t])
     """
     # alpha, n = [], []
     n_seqs = len(emissions)
