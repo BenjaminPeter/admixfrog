@@ -61,7 +61,6 @@ class AdmixfrogInput(pg.ExtCoverage):
             i+=1
             if i > self.max_reads:
                 print(f"Warning at {snp.chrom}:{snp.pos+1} more than {i-1} reads found ({len(reads)}). Skipping the rest...")
-                breakpoint()
 
             DEAM = (
                 "deam"
