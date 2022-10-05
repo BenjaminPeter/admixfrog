@@ -361,7 +361,7 @@ def load_admixfrog_data(
     #n_reads.rename("n_reads", inplace=True)
     #snp_ids = pd.DataFrame((snp_ids, n_reads))
     
-    #snp_ids = pd.DataFrame(snp_ids)
+    snp_ids = pd.DataFrame(snp_ids)
     snp_ids.set_index("snp_id", append=True, inplace=True)
     df = snp_ids.join(df)
 
