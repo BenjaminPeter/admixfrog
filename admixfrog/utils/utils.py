@@ -14,31 +14,19 @@ from scipy.linalg import expm
 
 Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
 Probs2 = namedtuple(
-    "Probs", ("O", "N", "P_cont", "alpha", "beta", "lib", "alpha_hap", "beta_hap")
+    "Probs", ("O", "N", "P_cont", "alpha", "beta", "lib", "alpha_hap", "beta_hap", "S")
 )
 Pars = namedtuple(
-    "Pars", ("alpha0", "trans_mat", "cont", "error", "F", "tau", "gamma_names", "sex")
+    "Pars", ("alpha0", "trans_mat", "cont", "error", "F", "tau", "sex")
 )  # for returning from varios functions
 ParsHD = namedtuple(
     "ParsHD",
-    (
-        "alpha0",
-        "alpha0_hap",
-        "trans",
-        "trans_hap",
-        "cont",
-        "error",
-        "F",
-        "tau",
-        "gamma_names",
-        "sex",
-    ),
+    ("alpha0", "alpha0_hap", "trans", "trans_hap", "cont", "error", "F", "tau", "sex"),
 )  # for returning from varios functions
 
 
 class _IX:
-    """class to be filled with various indices
-    """
+    """class to be filled with various indices"""
 
     def __init__(self):
         pass
@@ -47,7 +35,7 @@ class _IX:
 def data2probs(
     df,
     IX,
-    state_ids,
+    states,
     cont_id=None,
     prior=None,
     cont_prior=(1e-8, 1e-8),
@@ -64,6 +52,7 @@ def data2probs(
     lib[n_obs] : the library /read group of the observation
     alpha[n_snps, n_states] : the reference allele beta-prior
     beta[n_snps, n_states] : the alt allele beta-prior
+    S : States object with all states
 
 
     input:
@@ -77,8 +66,8 @@ def data2probs(
     doalphabeta: for e.g. SFS mode, alpha and beta don't need to be calcuated
     """
 
-    alt_ix = ["%s_alt" % s for s in state_ids]
-    ref_ix = ["%s_ref" % s for s in state_ids]
+    alt_ix = ["%s_alt" % s for s in states]
+    ref_ix = ["%s_ref" % s for s in states]
     snp_ix_states = set(alt_ix + ref_ix)
     ca, cb = cont_prior
 
@@ -93,7 +82,8 @@ def data2probs(
     snp_df = snp_df[~snp_df.index.get_level_values("snp_id").duplicated()]
     # snp_df = df[list(snp_ix_states)].groupby(df.index.names).first()
     n_snps = len(snp_df.index.get_level_values("snp_id"))
-    n_states = len(state_ids)
+
+    n_states = states.n_hap
 
     if not doalphabeta:
         if prior is None and cont_id is not None:
@@ -112,6 +102,7 @@ def data2probs(
             alpha_hap=[],
             beta_hap=[],
             lib=np.array(df.lib),
+            S=states,
         )
         return P
 
@@ -122,7 +113,7 @@ def data2probs(
             ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
 
         if ancestral is None:
-            for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, state_ids)):
+            for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, states)):
                 pa, pb = empirical_bayes_prior(snp_df[a], snp_df[b])
                 logging.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
                 alt_prior[:, i] = snp_df[a] + pa
@@ -136,7 +127,7 @@ def data2probs(
             ref_is_der, alt_is_der = alt_is_anc, ref_is_anc
             anc_is_unknown = (1 - alt_is_anc) * (1 - ref_is_anc) == 1
 
-            for i, (alt_col, ref_col, s) in enumerate(zip(alt_ix, ref_ix, state_ids)):
+            for i, (alt_col, ref_col, s) in enumerate(zip(alt_ix, ref_ix, states)):
 
                 # 1. set up base entries based on observed counts
                 alt_prior[:, i] = snp_df[alt_col]
@@ -191,6 +182,7 @@ def data2probs(
         alpha_hap=alt_prior[IX.haploid_snps],
         beta_hap=ref_prior[IX.haploid_snps],
         lib=np.array(df.lib),
+        S=states,
     )
     return P
 
@@ -408,7 +400,7 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, state
     2. make dict[state] : index for all possible indices
     4. use dict to create SNP2SFS
 
-    
+
     """
 
     """1. create FLIPPED, which is true for SNP that need to be flipped"""
@@ -452,7 +444,7 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, state
 
 
 def make_slug_data(df, states, ancestral=None, cont_id=None, sex=None):
-    """ create a SlugData object with the following attributes:
+    """create a SlugData object with the following attributes:
     N: np.ndarray  # number of reads [O x 1]
     O: np.ndarray  # number of obs [O x 1]
     psi: np.ndarray  # freq of contaminant [L x 1]
@@ -538,8 +530,7 @@ def make_full_df(df, n_reads):
 def make_slug_reads_data(
     df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True
 ):
-    """ create a SlugReads object with the following attributes:
-    """
+    """create a SlugReads object with the following attributes:"""
     ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
     sfs_state_ix = alt_ix + ref_ix  # states used in sfs
     all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral
@@ -599,8 +590,7 @@ def make_slug_reads_data(
 
 
 def init_ftau(n_states, F0=0.5, tau0=0):
-    """initializes F and tau, which exist for each homozygous state
-    """
+    """initializes F and tau, which exist for each homozygous state"""
     try:
         if len(F0) == n_states:
             F = F0
@@ -704,7 +694,9 @@ def trans_mat_hap_to_dip(tmat):
 
 
 def init_pars(
-    state_ids,
+    states,
+    homo_ids=None,
+    het_ids=None,
     sex=None,
     F0=0.001,
     tau0=1,
@@ -722,21 +714,8 @@ def init_pars(
     returns a pars object
     """
 
-    homo = [s for s in state_ids]
-    het = []
-    hap = ["h%s" % s for s in homo]
-
-    for i, s in enumerate(state_ids):
-        for s2 in state_ids[i + 1 :]:
-            het.append(s + s2)
-    gamma_names = homo + het
-    if est_inbreeding:
-        gamma_names.extend(hap)
-
-    n_states = len(gamma_names)
-    n_homo = len(homo)
-    n_het = len(het)
-    n_hap = len(hap)
+    n_states = states.n_states
+    n_hap = states.n_hap
 
     alpha0 = np.array([1 / n_states] * n_states)
     alpha0_hap = np.array([1 / n_hap] * n_hap)
@@ -749,7 +728,7 @@ def init_pars(
         np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
 
         if init_guess is not None:
-            guess = [i for i, n in enumerate(gamma_names) if n in init_guess]
+            guess = [i for i, n in enumerate(states.state_names) if n in init_guess]
             logging.info("starting with guess %s " % guess)
             trans_mat[:, guess] = trans_mat[:, guess] + 1
             trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
@@ -765,7 +744,7 @@ def init_pars(
         print(trans_mat_hap)
 
     cont, error = init_ce(c0, e0)
-    F, tau = init_ftau(n_homo, F0, tau0)
+    F, tau = init_ftau(states.n_homo, F0, tau0)
 
     if do_hap:
         return ParsHD(
@@ -777,11 +756,10 @@ def init_pars(
             error,
             F,
             tau,
-            gamma_names,
             sex=sex,
         )
     else:
-        return Pars(alpha0, trans_mat, cont, error, F, tau, gamma_names, sex=sex)
+        return Pars(alpha0, trans_mat, cont, error, F, tau, sex=sex)
 
 
 def posterior_table(pg, Z, IX, est_inbreeding=False):
@@ -815,8 +793,7 @@ def posterior_table_slug(pg, data, gtll=None):
 
 
 def empirical_bayes_prior(der, anc, known_anc=False):
-    """using beta-binomial plug-in estimator
-    """
+    """using beta-binomial plug-in estimator"""
 
     n = anc + der
     f = np.nanmean(der / n) if known_anc else 0.5
@@ -837,9 +814,9 @@ def empirical_bayes_prior(der, anc, known_anc=False):
 
 def guess_sex(ref, data, sex_ratio_threshold=0.75):
     """
-        guessing the sex of individuals by comparing heterogametic chromosomes.
-        By convention, all chromosomes are assumed to be diploid unless they start
-        with an `X` or `Z` or `h`
+    guessing the sex of individuals by comparing heterogametic chromosomes.
+    By convention, all chromosomes are assumed to be diploid unless they start
+    with an `X` or `Z` or `h`
     """
     ref["heterogametic"] = [
         v[0] in "XZxzh" for v in ref.index.get_level_values("chrom")
@@ -903,7 +880,7 @@ def scale_mat3d(M):
 def parse_state_string(states, ext=[""], operator="+", state_file=None):
     """parse shortcut parse strings
 
-    the basic way states are defined is as 
+    the basic way states are defined is as
         --states AFR NEA DEN
 
     this assmues the columns AFR, NEA and DEN are known and present in the reference
@@ -912,7 +889,7 @@ def parse_state_string(states, ext=[""], operator="+", state_file=None):
     -- states AFR=YRI+SAN NEA=VIN DEN=Denisova2
 
     return rename dict for reference
-    
+
     """
     ext2 = ["_ref", "_alt"]
     d1 = [s.split("=") for s in states if s is not None]
@@ -925,16 +902,16 @@ def parse_state_string(states, ext=[""], operator="+", state_file=None):
     )
     if state_file is not None:
         """logic here is:
-            - yaml file contains some groupings (i.e. assign all
-            Yorubans to YRI, all San to SAN
-            - state_dict contains further groupings / renaming / filtering
-                i.e. AFR=YRI+SAN
-            - stuff not in state_dict will not be required
+        - yaml file contains some groupings (i.e. assign all
+        Yorubans to YRI, all San to SAN
+        - state_dict contains further groupings / renaming / filtering
+            i.e. AFR=YRI+SAN
+        - stuff not in state_dict will not be required
 
-            therefore:
-            1. load yaml
-            2. get all required target pops from state_dict
-            3. add all expansions replacements
+        therefore:
+        1. load yaml
+        2. get all required target pops from state_dict
+        3. add all expansions replacements
         """
         Y = yaml.load(open(state_file), Loader=yaml.BaseLoader)
         # D = dict((v_, k) for (k,v) in Y.items() for v_ in v)

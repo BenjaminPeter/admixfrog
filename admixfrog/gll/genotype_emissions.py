@@ -6,7 +6,7 @@ from numba import njit
 from math import exp, log
 from ..utils.log import log_
 from ..utils.utils import scale_mat, scale_mat3d
-from .gllmode_emissions import update_Ftau_gllmode, _p_gt_homo, update_geno_emissions
+from .gllmode_emissions import _p_gt_homo, update_geno_emissions
 
 
 @njit
@@ -26,20 +26,16 @@ def snp2bin2(e_out, e_in, ix, weight):
             e_out[row] += e_in[i] * weight[i] - weight[i]
 
 
-def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250, scale_probs = True):
+def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250, scale_probs=True):
     """main function to calculate emission probabilities for each bin
-    P(O | Z) = 1/S  \\ sum_G P(O, G | Z)  
+    P(O | Z) = 1/S  \\ sum_G P(O, G | Z)
 
     """
-    n_homo_states = P.alpha.shape[1]
-
     snp_emissions = np.sum(SNP, 2)
 
     E[:] = 1  # reset
     snp2bin(E, snp_emissions, IX.SNP2BIN)
-    # snp2bin2(E, snp_emissions, IX.SNP2BIN, IX.snp_weight)
     log_.debug("mean emission %s" % np.mean(E))
-
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
     if sum(bad_bins) > 0:
@@ -52,8 +48,8 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250, scale_probs = True):
 
 def update_post_geno(PG, SNP, Z, IX):
     """
-    calculate P(G, Z | O), the probability of genotype given 
-    observations and hidden states Z. 
+    calculate P(G, Z | O), the probability of genotype given
+    observations and hidden states Z.
 
     P(G, Z| O) = P(Z|O) P(G | Z, O)
                = P(Z|O) P(O|G) P(G|Z) / sum_g P(G=g | Z)
@@ -62,28 +58,33 @@ def update_post_geno(PG, SNP, Z, IX):
 
     PG[n_snp x n_geno]: P( G| O'), prob of genotype given observations,
         parameters from previous iteration
-    SNP[n_snp x n_states x n_geno]: P(O, G | Z) 
+    SNP[n_snp x n_states x n_geno]: P(O, G | Z)
     Z[n_bin x n_states]: P(Z | O')
 
     """
     PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z)
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
     PG[np.isnan(PG)] = 0.0
-    np.clip(PG,0, 1, out=PG)
+    np.clip(PG, 0, 1, out=PG)
 
-    try:
-        assert np.all(PG >= 0)
-        assert np.all(PG <= 1)
-        assert np.allclose(np.sum(PG, (1, 2)), 1)
-    except AssertionError:
-        breakpoint()
+    assert np.all(PG >= 0)
+    assert np.all(PG <= 1)
+    assert np.allclose(np.sum(PG, (1, 2)), 1)
 
     return PG
 
 
 def update_snp_prob(
-    SNP, P, IX, cont, error, F, tau, est_inbreeding=False, gt_mode=False,
-    scale_probs=True
+    SNP,
+    P,
+    IX,
+    cont,
+    error,
+    F,
+    tau,
+    est_inbreeding=False,
+    gt_mode=False,
+    scale_probs=True,
 ):
     """
     calculate P(O, G |Z) = P(O | G) P(G | Z)
@@ -110,5 +111,40 @@ def update_snp_prob(
     return log_scaling
 
 
-def update_Ftau(F, tau, PG, P, IX, est_options, gt_mode=False):
-    return update_Ftau_gllmode(F, tau, PG, P, IX, est_options=est_options)
+def update_Ftau(F, tau, PG, P, IX, est_options):
+    delta = 0.0
+    for i, s in enumerate(P.S.homo_ids):
+
+        def f(args):
+            args = list(args)
+            F = args.pop(0) if est_options["est_F"] else F[i]
+            tau = exp(args.pop(0)) if est_options["est_tau"] else exp(tau[i])
+            x = np.log(_p_gt_homo(s, P, F, tau) + 1e-10) * PG[IX.diploid_snps, i, :]
+            if np.isnan(np.sum(x)):
+                raise ValueError("nan in likelihood")
+            return -np.sum(x)
+
+        init, bounds = [], []
+        if est_options["est_F"]:
+            init.append(F[i])
+            bounds.append((0, 1))
+        if est_options["est_tau"]:
+            init.append(tau[i])
+            bounds.append((-10, 20))
+
+        prev = f(init)
+        OO = minimize(f, init, bounds=bounds, method="L-BFGS-B")
+        opt = OO.x.tolist()
+
+        old_F, old_tau = F[i], tau[i]
+        if est_options["est_F"]:
+            F[i] = opt.pop(0)
+
+        if est_options["est_tau"]:
+            tau[i] = opt.pop(0)
+
+        log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, old_F, F[i])
+        log__ += "T: [%.4f->%.4f]:\t%.4f" % (old_tau, tau[i], prev - OO.fun)
+        log_.info(log__)
+        delta += abs(F[i] - old_F) + abs(tau[i] - old_tau)
+    return delta

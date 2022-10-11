@@ -53,7 +53,7 @@ def update_ftau(old_F, old_tau, data, post_g, update_F=True):
         if G0 + G1 + G2 > 0:
             tau[k] = (G1 / 2.0 + G2) / (G0 + G1 + G2)
         else:
-            tau[k] = 0.
+            tau[k] = 0.0
 
         # for F, exclude X-chromosome stuff
         if update_F:

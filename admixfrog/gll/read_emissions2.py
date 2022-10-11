@@ -38,13 +38,12 @@ def p_reads_given_gt(*args, gt_mode=False, **kwargs):
 
 @njit
 def p_reads_given_gt_gtmode(O, N, Pcont, c, error, n_obs):
-    """calculates P(O | G); probabilty of anc/derived genotype given input genotype
-    """
+    """calculates P(O | G); probabilty of anc/derived genotype given input genotype"""
     n_gt = 3
     read_emissions = np.ones((n_obs, n_gt))
     for g in range(n_gt):
-        read_emissions[O/N == g/2, g] = 1 - 2 * error[O/N==g/2]
-        read_emissions[O/N != g/2, g] = error[O/N != g/2]
+        read_emissions[O / N == g / 2, g] = 1 - 2 * error[O / N == g / 2]
+        read_emissions[O / N != g / 2, g] = error[O / N != g / 2]
 
     return read_emissions
 
@@ -59,8 +58,7 @@ def read2snp_emissions(read_emissions, n_snps, ix):
 
 
 def p_snps_given_gt(P, c, error, IX, gt_mode=False):
-    """calculates probabilty of observed read data given genotype
-    """
+    """calculates probabilty of observed read data given genotype"""
     read_emissions = p_reads_given_gt(
         P.O, P.N, P.P_cont, c, error, IX.n_obs, gt_mode=gt_mode
     )

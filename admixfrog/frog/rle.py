@@ -43,44 +43,33 @@ def get_runs(targetid, penalty=0.5):
 
 def get_rle(data, states, penalty=0.5):
     coords = data[["chrom", "map", "pos", "id"]]
-    n_states = len(states)
 
-    het_targets = []  # only heterozygous state
-    homo_targets = []  # only homozygous state
+    het_targets = [[s] for s in states.het_names]  # only heterozygous state
+    homo_targets = [[s] for s in states.homo_names]  # only homozygous state
     state_targets = []  # all homo and heterozygous states with one sample
-    inbred_targets = []  # all inbred states
+    # inbred_targets = states.roh_names  # all inbred states
+    name_state = []
 
-    for i in range(n_states):
-
-        if f"h{states[i]}" in data.columns:
-            inbred_targets.append([f"h{states[i]}"])
-            homo_targets.append([f"h{states[i]}", states[i]])
-        else:
-            homo_targets.append([states[i]])
-
-        for j in range(i + 1, n_states):
-            het_targets.append([states[i] + states[j]])
-
-    for i in range(n_states):
-        l = [states[i]]
-        for j in range(n_states):
-            if i < j:
-                l.append(states[i] + states[j])
-            elif i > j:
-                l.append(states[j] + states[i])
+    for i, s in enumerate(states.states):
+        name_state.append(s)
+        l = []
+        for (j1, j2), het_name in zip(states.het, states.het_names):
             if f"h{states[i]}" in data.columns:
                 l.append(f"h{states[i]}")
+            if i == j1 or i == j2:
+                l.append(het_name)
         state_targets.append(l)
 
-    targets = het_targets + state_targets + homo_targets + inbred_targets
-    types = ["het"] * len(het_targets)
-    types += ["state"] * len(state_targets)
-    types += ["homo"] * len(homo_targets)
-    types += ["inbred"] * len(inbred_targets)
+    targets = het_targets + state_targets + homo_targets  # + inbred_targets
+    names = [*states.het_names, *name_state, *states.homo_names]
+    types = ["het"] * states.n_het
+    types += ["state"] * states.n_hap
+    types += ["homo"] * states.n_homo
+    # types += ["inbred"] * states.n_roh
 
     res = []
 
-    for target, type_ in zip(targets, types):
+    for target, type_, name in zip(targets, types, names):
         logging.info("rle for %s", target)
 
         data["target"] = np.sum(data[target], 1)
@@ -93,7 +82,7 @@ def get_rle(data, states, penalty=0.5):
         del data["target"]
         if "level_1" in runs:
             del runs["level_1"]
-        runs["target"] = target[0]
+        runs["target"] = name
         runs["type"] = type_
 
         res.append(runs)

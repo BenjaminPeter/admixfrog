@@ -1,38 +1,29 @@
 import logging
 from numba import njit
+from numba.typed import List
 import pandas as pd
 from collections import Counter
 import numpy as np
 from random import random, seed
 
 
-@njit  # ('i8(i8, i8)')
-def get_hap_from_diploid(n_states, n_homo, est_inbreeding=False):
-    n_states = n_states + n_homo if est_inbreeding else n_states
-    het2homo = np.zeros((n_states, 2), np.uint8)
-    for s in range(n_homo):
-        het2homo[s] = s
-    for s1 in range(n_homo):
-        for s2 in range(s1 + 1, n_homo):
-            s += 1
-            het2homo[s] = [s1, s2]
-    if est_inbreeding:
-        for i in range(n_homo):
-            s += 1
-            het2homo[s] = -i
-
-    return het2homo
-
-
 @njit
-def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
-    D2H = get_hap_from_diploid(n_homo + n_het, n_homo, est_inbreeding)
-    # print(D2H)
+def decode_runs(seq, homo_ids, het_ids, est_inbreeding=False):
+    n_homo = len(homo_ids)
+    n_het = len(het_ids)
+    n_states = n_homo
+    D2H = np.zeros((n_homo + n_het, 2), dtype="i")
+    for i in range(n_homo):
+        D2H[i] = homo_ids[i]
+    for i in range(n_het):
+        D2H[i + n_homo] = het_ids[i]
+        if het_ids[i][0] > n_states:
+            n_states = het_ids[i][0] + 1
+        if het_ids[i][1] > n_states:
+            n_states = het_ids[i][1] + 1
 
     # init list of ints, numba needs typing
-    runs = [[(i, i, i) for i in range(0)] for i in range(n_homo)]  # run lengths
-    # else:
-    #    runs = [[i for i in range(0)] for i in range(n_homo)] #run lengths
+    runs = [[(i, i, i) for i in range(0)] for i in range(n_states)]  # run lengths
     for i in range(len(seq)):
         # print(r1, r2, l1, l2)
         if i == 0:
@@ -135,7 +126,8 @@ def pred_sims_rep(
     beta,
     alpha0,
     n,
-    n_homo,
+    homo_ids,
+    het_ids,
     decode=True,
     est_inbreeding=False,
     keep_loc=False,
@@ -157,7 +149,7 @@ def pred_sims_rep(
             state = nb_choice(n_states, p)
         seq[i] = state
     if decode:
-        runs = decode_runs(seq, n_homo, n_states - n_homo, est_inbreeding)
+        runs = decode_runs(seq, homo_ids, het_ids, est_inbreeding)
     else:
         runs = decode_runs_single(seq, n_states=np.max(seq) + 1)
     return runs
@@ -169,7 +161,7 @@ def pred_sims_single(
     beta,
     alpha0,
     n,
-    n_homo,
+    states,
     n_sims=100,
     decode=True,
     est_inbreeding=False,
@@ -178,7 +170,16 @@ def pred_sims_single(
     sims = []
     for it in range(n_sims):
         runs = pred_sims_rep(
-            trans, emissions, beta, alpha0, n, n_homo, decode, est_inbreeding, keep_loc
+            trans,
+            emissions,
+            beta,
+            alpha0,
+            n,
+            List(states.homo_ids),
+            List(states.het_ids),
+            decode,
+            est_inbreeding,
+            keep_loc,
         )
         for i, run in enumerate(runs):
             if keep_loc:
@@ -199,7 +200,7 @@ def pred_sims(
     beta,
     alpha0,
     n,
-    n_homo,
+    states,
     n_sims=100,
     decode=True,
     keep_loc=False,
@@ -208,7 +209,7 @@ def pred_sims(
     """simulate runs through the model using posterior parameter.
 
     uses the algorithm of Nielsen, Skov et al. to generate track-length
-    distribution. 
+    distribution.
 
     Parameters
     =====
@@ -217,7 +218,7 @@ def pred_sims(
     beta: list of result of bwd-algorithm
     alpha0: initial probability
     n : list of normalizing factors from fwd-algorithm
-    n_homo: number of homozygous states
+    states : state object
     n_sims: number of reps
     decode: whether diploid states are decoded into haploid ones
     keep_loc: whether location info should be kept
@@ -227,7 +228,7 @@ def pred_sims(
     output = []
     for i, (e, b, n_) in enumerate(zip(emissions, beta, n)):
         df = pred_sims_single(
-            trans, e, b, alpha0, n_, n_homo, n_sims, decode, est_inbreeding, keep_loc
+            trans, e, b, alpha0, n_, states, n_sims, decode, est_inbreeding, keep_loc
         )
         df["chrom"] = i
         output.append(df)
@@ -236,7 +237,6 @@ def pred_sims(
 
 
 def resampling_pars(tbl):
-    # breakpoint()
     in_state = tbl[["state", "it", "len"]].groupby(["state", "it"]).sum()
     tot = tbl[["it", "len"]].groupby(["it"]).sum()
     Z = in_state / tot

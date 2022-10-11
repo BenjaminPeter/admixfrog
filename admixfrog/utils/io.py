@@ -24,7 +24,7 @@ def load_ref(
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files
-    state_dict: a dict D[label] : pop. All populatios in sources with label are added to pop. This is 
+    state_dict: a dict D[label] : pop. All populatios in sources with label are added to pop. This is
         expected to be generated with utils.parse_state_string
     """
 
@@ -121,7 +121,6 @@ def filter_ref(
     filter_cont=True,
     **kwargs,
 ):
-    n_states = len(states)
 
     if filter_ancestral and ancestral is not None:
         no_ancestral_call = ref[f"{ancestral}_ref"] + ref[f"{ancestral}_alt"] == 0
@@ -140,7 +139,7 @@ def filter_ref(
     if filter_delta is not None:
         kp = np.zeros(ref.shape[0], np.bool)
         for i, s1 in enumerate(states):
-            for j in range(i + 1, n_states):
+            for j in range(i + 1, len(states)):
                 s2 = states[j]
                 f1 = np.nan_to_num(
                     ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"])
@@ -326,7 +325,6 @@ def load_read_data(
         data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))
         data.talt = binom.rvs(data.talt, downsample, size=len(data.talt))
 
-
     # rm sites with no or extremely high coverage
     data = data[data.tref + data.talt > 0]
     q = np.quantile(data.tref + data.talt, 1 - high_cov_filter)
@@ -374,6 +372,7 @@ def write_pars_table(pars, outname=None):
 
     except AttributeError:
         P = pars
+    # s = yaml.safe_dump(P, default_flow_style=False, indent=4)
     s = yaml.dump(P, Dumper=IndentDumper, default_flow_style=False, indent=4)
 
     if outname is not None:
@@ -459,7 +458,7 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
             {
                 "tref": sum,
                 "talt": sum,
-                "chrom" : lambda x: x.iloc[0],
+                "chrom": lambda x: x.iloc[0],
                 "pos": min,
                 "map": min,
             }
@@ -469,12 +468,12 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
 
     if gt_mode:
         snp_df = pd.concat((D, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
-        snp_df = snp_df[['chrom', 'pos', 'map', 'snp_id', 'bin', 'tref', 'talt']]
+        snp_df = snp_df[["chrom", "pos", "map", "snp_id", "bin", "tref", "talt"]]
     else:
         T = posterior_table(G, Z, IX)
         snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
 
-    snp_df.sort_values(['chrom', 'pos'], inplace=True)
+    snp_df.sort_values(["chrom", "pos"], inplace=True)
     if outname is not None:
         snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
 
@@ -637,7 +636,7 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     tau = pd.DataFrame(pars.tau, columns=["tau"])
 
     sfs_df = pd.concat((sfs, F, tau, n_snps, n_reads, n_endo), axis=1)
-    np.nan_to_num(sfs_df.n_snps,copy=False, nan=0)
+    np.nan_to_num(sfs_df.n_snps, copy=False, nan=0)
     sfs_df["read_ratio"] = n_der / (n_anc + n_der + 1e-400)
     sfs_df["cont_est"] = 1 - sfs_df["n_endo"] / sfs_df["n_reads"]
     sfs_df["psi"] = sfs_df["tau"] + (sfs_df["read_ratio"] - sfs_df["tau"]) / (
@@ -663,16 +662,14 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
 
 
 def write_f3_table(df, outname=None):
-    df = df[['X', 'A', 'B', 'f3', 'rep']] 
+    df = df[["X", "A", "B", "f3", "rep"]]
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
     return df
+
 
 def write_f4_table(df, outname=None):
-    df = df[['A', 'B', 'C', 'D', 'f4', 'rep']] 
+    df = df[["A", "B", "C", "D", "f4", "rep"]]
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
     return df
-
-
-

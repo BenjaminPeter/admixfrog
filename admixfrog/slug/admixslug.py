@@ -153,14 +153,17 @@ def run_admixslug(
         f3s, f4s, pis = calc_fstats(jk_sfs, states, name=target)
         df_f3 = write_f3_table(f3s, outname=f"{outname}.f3.jk.xz")
         df_f4 = write_f4_table(f4s, outname=f"{outname}.f4.jk.xz")
-        pis.to_csv(f'{outname}.pi.xz', float_format="%.6f", 
-                   index=False, compression="xz")
+        pis.to_csv(
+            f"{outname}.pi.xz", float_format="%.6f", index=False, compression="xz"
+        )
         f3_summary = summarize_f3(f3s)
-        f3_summary.to_csv(f'{outname}.f3.xz', float_format="%.6f", 
-                   index=False, compression="xz")
+        f3_summary.to_csv(
+            f"{outname}.f3.xz", float_format="%.6f", index=False, compression="xz"
+        )
         f4_summary = summarize_f4(f4s)
-        f4_summary.to_csv(f'{outname}.f4.xz', float_format="%.6f", 
-                   index=False, compression="xz")
+        f4_summary.to_csv(
+            f"{outname}.f4.xz", float_format="%.6f", index=False, compression="xz"
+        )
 
     # output formating from here
     if output["output_pars"]:

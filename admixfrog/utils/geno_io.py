@@ -32,7 +32,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
         - missing data is thus stored as '3', and will need to
             be handled
 
-    fname: reich-lab format without extensions: requires 
+    fname: reich-lab format without extensions: requires
             {fname}.ind/.geno/.snp to be present
     pops: filter for populations to be used
         supported are:
@@ -124,7 +124,7 @@ def ref_alt(Y, copy=False):
 
     Notes:
         - still a bit experimental
-        - will flip alleles inplace (i.e. input array Y WILL BE CHANGED 
+        - will flip alleles inplace (i.e. input array Y WILL BE CHANGED
             unless copy=True is set)
         - recognizes `Y` and `mt` as haploid
         - recognizes `X` as haploid if sex is male
@@ -170,7 +170,7 @@ def ref_alt(Y, copy=False):
 
 
 def ref_count(x):
-    """count number of reference alleles """
+    """count number of reference alleles"""
     v = np.sum(x * (x < 3), axis=1)
     return v
 

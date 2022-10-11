@@ -76,7 +76,7 @@ def bwd_algorithm(emissions, trans_mat, n):
     """
     calculate P(o[t+1..n] | X) / P(o[t+1..n])
 
-    emissions : list[np.array] 
+    emissions : list[np.array]
         list of emission probabilities, one per observed sequence (i.e. chromosome)
     n : list[np.array]
         list of normalization constants
