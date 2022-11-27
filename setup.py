@@ -1,5 +1,5 @@
 from setuptools import setup#, find_namespace_packages
-from distutils.extension import Extension
+from setuptools import Extension
 
 
 USE_CYTHON = False
