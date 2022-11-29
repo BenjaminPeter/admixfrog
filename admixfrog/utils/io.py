@@ -288,7 +288,7 @@ def load_read_data(
     infile,
     split_lib=True,
     downsample=1,
-    make_bins=True,
+    make_bins=False,
     deam_bin_size=10000,
     len_bin_size=1000,
     high_cov_filter=0.001,
