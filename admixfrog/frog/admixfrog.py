@@ -4,7 +4,7 @@ import itertools
 import yaml
 import logging
 from collections import Counter, defaultdict
-from ..utils.io import load_read_data, load_ref, filter_ref
+from ..utils.io import load_read_data_frog, load_ref, filter_ref
 from ..utils.io import write_bin_table, write_pars_table, write_cont_table
 from ..utils.io import write_snp_table, write_est_runs, write_sim_runs
 from ..utils.utils import bins_from_bed, data2probs, init_pars, Pars, ParsHD
@@ -292,10 +292,9 @@ def load_admixfrog_data(
         "3. standard input"
     elif ref_files and target_file and geno_file is None and target is None:
         if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-            data, _ = load_read_data(
+            data = load_read_data_frog(
                 target_file,
                 high_cov_filter=filter.pop("filter_high_cov"),
-                make_bins=False,
             )
             assert np.max(data.tref + data.talt) <= 2
             assert np.min(data.tref + data.talt) >= 0
@@ -308,11 +307,10 @@ def load_admixfrog_data(
                 data = data[~dups]
                 # raise ValueError("ensure that SNPs in gt-input are unique")
         else:
-            data, _ = load_read_data(
+            data = load_read_data_frog(
                 target_file,
                 split_lib,
                 downsample,
-                make_bins=False,
                 high_cov_filter=filter.pop("filter_high_cov"),
             )
 

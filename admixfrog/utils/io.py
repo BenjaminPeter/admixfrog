@@ -251,7 +251,9 @@ def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
 
 
 def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
+    """Bin reads into bins with approximately the same number of reads"""
     data.reset_index(inplace=True)
+    data["n"] = data["tref"] + data["talt"]
     data["deam_bin"] = data.groupby(["lib"]).deam.apply(
         qbin, bin_size=deam_bin_size, short_threshold=short_threshold
     )
@@ -268,31 +270,69 @@ def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
         .drop_duplicates()
         .reset_index(drop=True)
     )
-    ix = data.groupby("rg").agg(({"tref": sum, "talt": sum})).reset_index().merge(ix)
-    ix["n_bin"] = ix.tref + ix.talt
-    del ix["tref"], ix["talt"]
 
-    ix = (
-        data.groupby(["rg", "deam", "len"])
-        .agg(({"tref": sum, "talt": sum}))
-        .reset_index()
-        .merge(ix)
-    )
-    ix["n_exact"] = ix.tref + ix.talt
-    ix.n_exact = ix.n_exact.astype(int)
-    ix.n_bin = ix.n_bin.astype(int)
+    # df that count reads per bin and for each data atom
+    # n_bin = data[['rg','n']].groupby('rg').sum()
+    n_exact = data[["rg", "deam", "len", "n"]].groupby(["rg", "deam", "len"]).sum()
+    ix = ix.set_index(["rg", "deam", "len"]).join(n_exact, how="left").reset_index()
+    ix.rename(columns={"n": "n_exact"}, inplace=True)
+
     return ix
 
 
-def load_read_data(
+def load_read_data_frog(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
+    dtype_ = dict(chrom=str)
+    data = pd.read_csv(infile, dtype=dtype_).dropna()
+    data.set_index(["chrom", "pos"], inplace=True)
+    # data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
+
+    if "lib" not in data:
+        data["lib"] = "lib0"
+    elif not split_lib:
+        data = data.groupby(data.index.names).agg(sum)
+
+    if downsample < 1:
+        data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))
+        data.talt = binom.rvs(data.talt, downsample, size=len(data.talt))
+
+    # rm sites with extremely high coverage
+    data = data[data.tref + data.talt > 0]
+    q = np.quantile(data.tref + data.talt, 1 - high_cov_filter)
+    to_remove = data.tref + data.talt > q
+    logging.info(f"high-cov filter at {q}, removing {sum(to_remove)} sites")
+    data = data[~to_remove]
+
+    return data
+
+
+def load_read_data_slug(
     infile,
     split_lib=True,
     downsample=1,
-    make_bins=False,
     deam_bin_size=10000,
     len_bin_size=1000,
     high_cov_filter=0.001,
 ):
+    """loading the read data, second generation of input file.
+    The idea here (and chief difference to the previous vesion) is that the
+    binning of reads/data is done AFTER reading it in.
+
+    Returns:
+    data: a pandas df indexed by chromosome and position, with data columns
+        - 'rg' (a string identifier of reads grouped together'
+        - 'tref' number of ref alleles at site
+        - 'talt' number of alt alleles at site
+
+    ix: a pandas df that gives relationship between rg and read properties
+        - deam: at which positionr a read has the first deamination (-1 = no
+          deamination)
+        - len: length (in base pairs) of the read
+        - lib: the library ID (string)
+        - deam_bin: bin id for deaminated sites (no-deamination is assigned to
+          bin 255, max 256 bins)
+        - len_bin: bin id for length (max 256 bins)
+        - n_bin/n_exact (number of reads in each bin) or each category
+    """
     dtype_mandatory = dict(
         chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8
     )
@@ -332,11 +372,10 @@ def load_read_data(
     logging.info(f"high-cov filter at {q}, removing {sum(to_remove)} sites")
     data = data[~to_remove]
 
-    if make_bins:
-        ix = bin_reads(data, deam_bin_size, len_bin_size)
-        return data, ix
-
-    return data, None
+    ix = bin_reads(data, deam_bin_size, len_bin_size)
+    data = data[["rg", "tref", "talt"]].reset_index().set_index(["chrom", "pos", "rg"])
+    data = data.groupby(data.index.names, observed=True).sum()
+    return data, ix
 
 
 @njit
@@ -415,25 +454,26 @@ def write_cont_table(df, cont, error, tot_n_snps, outname=None):
     return df_libs
 
 
-def write_cont_table_slug(ix, rgs, cont, n_reads, tot_n_snps, se=None, outname=None):
-    df_rg = pd.DataFrame([k for k in rgs], columns=["rg"])
-    df_cont = pd.DataFrame(cont, columns=["cont"])
-    df_n_reads = pd.DataFrame(n_reads, columns=["n_reads"])
-    df_libs = pd.concat((df_rg, df_cont, df_n_reads), axis=1)
-    df_libs["n_sites"] = tot_n_snps
-    if se is not None:
-        df_libs["se_cont"] = se
-        df_libs["l_cont"] = np.clip(cont - 1.96 * se, 0, 1)
-        df_libs["h_cont"] = np.clip(cont + 1.96 * se, 0, 1)
+def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
+    df = np.empty_like(cont, dtype=object)
+    for rg, i in rgs.items():
+        df[i] = rg
+    df = pd.DataFrame(df, columns=["rg"])
 
-    if ix is None:
-        df = df_libs
-    else:
-        df = ix.merge(df_libs, how="left")
-        df.sort_values(["len", "deam", "lib"], inplace=True)
+    df["cont"] = cont
+    df = df.set_index("rg").join(ix[["rg", "n_exact"]].groupby("rg").sum())
+    df.rename({"n_exact": "n"}, inplace=True)
+    df["n_sites"] = tot_n_snps
+
+    if se is not None:
+        df["se_cont"] = se
+        df["l_cont"] = np.clip(cont - 1.96 * se, 0, 1)
+        df["h_cont"] = np.clip(cont + 1.96 * se, 0, 1)
 
     if outname is not None:
-        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        df.reset_index().to_csv(
+            outname, float_format="%.6f", index=False, compression="xz"
+        )
 
     return df
 

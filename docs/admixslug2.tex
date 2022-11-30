@@ -1,0 +1,25 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+
+\newcommand{\MO}{\mathbf{O}}
+\newcommand{\MX}{\mathbf{X}}
+\newcommand{\MC}{\mathbf{C}}
+\newcommand{\MG}{\mathbf{G}}
+\newcommand{\MZ}{\mathbf{Z}}
+\newcommand{\BE}{\mathbb{E}}
+\newcommand{\BP}{\mathbb{P}}
+\begin{document}
+	The $Q$-function is then
+	\begin{align}
+Q(\theta | \theta') &= \BE[\log \BP(\MO, \MX, \MC, \MG | \theta, \psi, \MZ | \theta'] \\
+&= \sum_{\MX, \MC, \MG}[\log \BP(\MO, \MX, \MC, \MG | \theta) \BP(\MG,\MC,\MX | \theta')\\
+&= \sum_{\MX, \MC, \MG}[\log \BP(\MO, \MX, \MC, \MG | \theta) \BP(\MG,\MC,\MX | \theta')\\
+	\end{align}
+	where the sum is over all possible states of the latent variables
+
+\end{document}

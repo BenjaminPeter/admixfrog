@@ -6,7 +6,7 @@ from pprint import pprint
 from collections import Counter, defaultdict
 from copy import deepcopy
 from ..gll.read_emissions2 import p_snps_given_gt
-from ..utils.io import load_read_data, load_ref, filter_ref
+from ..utils.io import load_read_data_slug, load_ref, filter_ref
 from ..utils.io import write_bin_table, write_pars_table, write_cont_table
 from ..utils.io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
 from ..utils.io import write_snp_table_slug, write_cont_table_slug
@@ -53,7 +53,6 @@ def run_admixslug(
     init=defaultdict(lambda: 1e-2),
     est=EST_DEFAULT,
     fake_contamination=0.0,
-    bin_reads=True,
     deam_bin_size=50000,
     len_bin_size=1000,
     filter=defaultdict(lambda: None),
@@ -92,7 +91,7 @@ def run_admixslug(
     state_dict2 = parse_state_string(states, state_file=state_file)
     states = list(dict(((x, None) for x in state_dict2.values())))
 
-    df, sex, n_sites, ix = load_admixslug_data_native(
+    df, ix, sex, n_sites = load_admixslug_data_native(
         target_file=target_file,
         ref_files=ref_files,
         states=states,
@@ -104,7 +103,6 @@ def run_admixslug(
         downsample=downsample,
         fake_contamination=fake_contamination,
         filter=filter,
-        make_bins=bin_reads,
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
         autosomes_only=autosomes_only,
@@ -149,6 +147,7 @@ def run_admixslug(
         se_pars = deepcopy(pars)
         se_pars._pars[:] = np.nan
 
+    # output formating from here
     if output["output_fstats"]:
         f3s, f4s, pis = calc_fstats(jk_sfs, states, name=target)
         df_f3 = write_f3_table(f3s, outname=f"{outname}.f3.jk.xz")
@@ -165,22 +164,19 @@ def run_admixslug(
             f"{outname}.f4.xz", float_format="%.6f", index=False, compression="xz"
         )
 
-    # output formating from here
     if output["output_pars"]:
         df_pars = write_pars_table(pars, outname=f"{outname}.pars.yaml")
 
     if output["output_cont"]:
-        ct = Counter(data.READ2RG)
-        n_reads = [ct[i] for i in range(data.n_rgs)]
         df_cont = write_cont_table_slug(
             ix,
             data.rgs,
             pars.cont,
-            n_reads,
             n_sites,
             se=se_pars.cont,
             outname=f"{outname}.cont.xz",
         )
+        ix.to_csv(f"{outname}.ix.xz", index=False, compression="xz")
 
     if output["output_sfs"]:
         write_sfs2(
@@ -229,23 +225,19 @@ def load_admixslug_data_native(
     downsample=1,
     map_col="map",
     fake_contamination=0,
-    make_bins=True,
     deam_bin_size=20_000,
     len_bin_size=5000,
     autosomes_only=False,
 ):
 
-    data, ix = load_read_data(
+    data, ix = load_read_data_slug(
         target_file,
         split_lib,
         downsample,
-        make_bins=make_bins,
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
         high_cov_filter=filter.pop("filter_high_cov"),
     )
-
-    data = data[["tref", "talt", "rg"]]
 
     ref = load_ref(
         ref_files,
@@ -263,13 +255,9 @@ def load_admixslug_data_native(
         ref.map = ref.index.get_level_values("pos")
         ref.set_index("map", append=True, inplace=True)
 
-    # workaround a pandas join bug
-    cats = ref.index.get_level_values(0).categories
-    ref.index = ref.index.set_levels(ref.index.levels[0].astype(str), level=0)
-    data.index = data.index.set_levels(data.index.levels[0].astype(str), level=0)
-
     n_sites = ref.shape[0]
 
+    # workaround a pandas join bug
     df = ref.join(data, how="inner")
     df = make_snp_ids(df)
 
@@ -277,10 +265,12 @@ def load_admixslug_data_native(
     if sex is None:
         sex = guess_sex(ref, data)
 
+    # this might be a little bit problematic because it should ideally be before we
+    # filter for existing categories
     if fake_contamination and cont_id:
         add_fake_contamination(df, cont_id, prop_cont=fake_contamination)
 
-    return df, sex, n_sites, ix
+    return df, ix, sex, n_sites
 
 
 def make_snp_ids(df):
@@ -316,7 +306,6 @@ def add_fake_contamination(df, cont_id, prop_cont):
         c_ref = np.random.poisson((1 - f_cont) * target_cont_cov)
         c_alt = np.random.poisson(f_cont * target_cont_cov)
     except ValueError:
-        breakpoint()
         raise ValueError()
     logging.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
     logging.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
