@@ -104,7 +104,7 @@ class SampleSet(object):
         self.file_iter = zip(*file_iter)
 
     @classmethod
-    def from_file_names(cls, file_names, *args, **kwargs):
+    def from_file_names(cls, file_names, chroms=None, *args, **kwargs):
         """from_file_names
         This is one of the ways a SampleSet object can be created. It takes in file names
         and returns all samples contained in this file. It's propbably the easiest to use,
@@ -124,11 +124,11 @@ class SampleSet(object):
         files = set()
         for file_name in file_names:
             if file_name.endswith("bam"):
-                files.add(BamFile(file_name))
+                files.add(BamFile(file_name, chroms))
             elif file_name.endswith("vcf") or file_name.endswith("vcf.gz"):
-                files.add(VCFFile(file_name))
+                files.add(VCFFile(file_name, chroms))
             elif file_name.endswith("fa") or file_name.endswith("fa.gz"):
-                files.add(FastaFile(file_name))
+                files.add(FastaFile(file_name, chroms))
         samples = set((sample for f in files for sample in f.samples))
         return cls(samples=samples, files=files, *args, **kwargs)
 

@@ -26,8 +26,9 @@ class File(object):
 
     """
 
-    def __init__(self, fname, sample_name=None):
+    def __init__(self, fname, chroms=None, sample_name=None):
         self.fname = fname
+        self.chroms = chroms
         if sample_name is None:
             sample_name = os.path.basename(fname)
         self._samples = {Sample(self, sample_name)}
@@ -157,7 +158,12 @@ class VCFFile(ComplexFile):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        with pysam.VariantFile(self.fname.format(CHROM="1")) as h:
+        if self.chroms is None:
+            fname = self.fname.format(CHROM="1")
+        else:
+            fname = self.fname.format(CHROM=chroms[0])
+
+        with pysam.VariantFile(fname) as h:
             self._samples = set()
             for sample_name in h.header.samples:
                 self._samples.add(Sample(self, sample_name))
@@ -228,7 +234,10 @@ class BamFile(ComplexFile):
 
     def __init__(self, *args, samples="single", **kwargs):
         super().__init__(*args, **kwargs)
-        bam = pysam.AlignmentFile(self.fname.format(CHROM="1"))
+        if self.chroms is None:
+            bam = pysam.AlignmentFile(self.fname.format(CHROM="1"))
+        else:
+            bam = pysam.AlignmentFile(self.fname.format(CHROM=self.chroms[0]))
 
         if "RG" in bam.header:
             self.rgs = set(i["ID"] for i in bam.header["RG"])
@@ -417,9 +426,13 @@ class BamFile(ComplexFile):
 
 class BamFileFilter(BamFile):
     def __init__(self, outfile, min_length=0, minq=0, pos_in_read_cutoff=0,
+                 chroms=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
-        bam = pysam.AlignmentFile(self.fname.format(CHROM="1"))
+        if chroms is None:
+            bam = pysam.AlignmentFile(self.fname.format(CHROM="1"))
+        else:
+            bam = pysam.AlignmentFile(self.fname.format(CHROM=chroms[0]))
         self.outfile = pysam.AlignmentFile(outfile, 'wb', template=bam)
         self.min_length = min_length
         self.minq = minq
