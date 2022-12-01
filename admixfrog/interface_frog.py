@@ -15,6 +15,7 @@ from .utils.vcf import (
     load_random_read_samples,
     vcf_to_sample,
 )
+from .utils.states import States
 from .utils.log import setup_log
 from .utils.bam import process_bam
 from .options import INFILE_OPTIONS, REFFILE_OPTIONS, GENO_OPTIONS
@@ -41,8 +42,9 @@ def do_rle():
     dtype_ = dict(chrom="category")
     data = pd.read_csv(args.target_file, dtype=dtype_)
     data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
-    states = list(data.columns)[6:]
+    states = list(data.columns)[7:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
+    homo = States(homo)
 
     rle = get_rle(data, homo, args.run_penalty)
     rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")

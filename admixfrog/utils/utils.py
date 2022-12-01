@@ -17,10 +17,7 @@ Probs2 = namedtuple(
     "Probs", ("O", "N", "P_cont", "alpha", "beta", "lib", "alpha_hap", "beta_hap", "S")
 )
 Pars = namedtuple(
-    "Pars", ("alpha0", "trans_mat", "cont", "error", "F", "tau", "sex")
-)  # for returning from varios functions
-ParsHD = namedtuple(
-    "ParsHD",
+    "Pars",
     ("alpha0", "alpha0_hap", "trans", "trans_hap", "cont", "error", "F", "tau", "sex"),
 )  # for returning from varios functions
 
@@ -83,8 +80,6 @@ def data2probs(
     # snp_df = df[list(snp_ix_states)].groupby(df.index.names).first()
     n_snps = len(snp_df.index.get_level_values("snp_id"))
 
-    n_states = states.n_hap
-
     if not doalphabeta:
         if prior is None and cont_id is not None:
             ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
@@ -107,8 +102,8 @@ def data2probs(
         return P
 
     if prior is None:  # empirical bayes, estimate from data
-        alt_prior = np.empty((n_snps, n_states))
-        ref_prior = np.empty((n_snps, n_states))
+        alt_prior = np.empty((n_snps, states.n_raw_states))
+        ref_prior = np.empty((n_snps, states.n_raw_states))
         if cont_id is not None:
             ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
 
@@ -702,9 +697,7 @@ def init_pars(
     tau0=1,
     e0=1e-2,
     c0=1e-2,
-    est_inbreeding=False,
     init_guess=None,
-    do_hap=True,
     transition_matrix=None,
     bin_size=1.0,
     **kwargs,
@@ -714,8 +707,7 @@ def init_pars(
     returns a pars object
     """
 
-    n_states = states.n_states
-    n_hap = states.n_hap
+    n_states, n_hap = states.n_states, states.n_hap
 
     alpha0 = np.array([1 / n_states] * n_states)
     alpha0_hap = np.array([1 / n_hap] * n_hap)
@@ -735,31 +727,23 @@ def init_pars(
     else:
         trans_mat_hap = pd.read_csv(transition_matrix, header=None).to_numpy()
         trans_mat = trans_mat_hap_to_dip(trans_mat_hap)
-        print(f"BS:{bin_size}")
-        print(trans_mat)
-        print(trans_mat_hap)
         trans_mat_hap = expm(trans_mat_hap * bin_size)
         trans_mat = expm(trans_mat * bin_size)
-        print(trans_mat)
-        print(trans_mat_hap)
 
     cont, error = init_ce(c0, e0)
     F, tau = init_ftau(states.n_homo, F0, tau0)
 
-    if do_hap:
-        return ParsHD(
-            alpha0,
-            alpha0_hap,
-            trans_mat,
-            trans_mat_hap,
-            cont,
-            error,
-            F,
-            tau,
-            sex=sex,
-        )
-    else:
-        return Pars(alpha0, trans_mat, cont, error, F, tau, sex=sex)
+    return Pars(
+        alpha0,
+        alpha0_hap,
+        trans_mat,
+        trans_mat_hap,
+        cont,
+        error,
+        F,
+        tau,
+        sex=sex,
+    )
 
 
 def posterior_table(pg, Z, IX, est_inbreeding=False):

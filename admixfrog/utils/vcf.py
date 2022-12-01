@@ -12,6 +12,7 @@ EXT = "ref", "alt"
 
 
 def parse_chroms(arg):
+    if arg is None: return None
     chroms = []
     for s in arg.split(","):
         if "-" in s:

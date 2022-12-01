@@ -3,7 +3,8 @@ from itertools import chain
 
 class States(object):
     def __init__(
-        self, state_ids, homo_states=None, het_states=None, est_inbreeding=False
+        self, state_ids, homo_states=None, het_states=None, 
+        roh_states=None, est_inbreeding=False
     ):
         """get info about which states to include"""
 
@@ -21,12 +22,17 @@ class States(object):
                     self.het_ids.append((i, j + i + 1))
 
         if est_inbreeding:
-            # self.state_names.extend((f'h{s}' for s in self.all_homo_states[homo_ids]))
-            pass
+            if roh_states is None:
+                self.roh_ids = self.homo_ids
+            else:
+                self.roh_ids = [i for i, s in enumerate(self.states) if s in roh_states]
+        else:
+            self.roh_ids = list()
 
-        self.all_roh_states = [f"h{s}" for s in state_ids]
-        self.all_hap_states = [s for s in state_ids]
-        self.hap_ids = range(len(self.all_hap_states))
+        self.hap_ids = self.het_ids
+
+        self.est_inbreeding = est_inbreeding
+
 
     @property
     def homo(self):
@@ -39,6 +45,17 @@ class States(object):
             yield i
 
     @property
+    def roh(self):
+        if self.est_inbreeding:
+            for i in self.roh_ids:
+                yield i
+
+    @property
+    def hap(self):
+        for i in self.hap_ids:
+            yield i
+
+    @property
     def n_homo(self):
         return len(self.homo_ids)
 
@@ -47,8 +64,13 @@ class States(object):
         return len(self.het_ids)
 
     @property
+    def n_roh(self):
+        return len(self.roh_ids)
+
+    @property
     def n_hap(self):
-        return len(self.states)
+        return len(self.hap_ids)
+
 
     @property
     def homo_names(self):
@@ -61,12 +83,29 @@ class States(object):
             yield self.states[i] + self.states[j]
 
     @property
+    def roh_names(self):
+        for i in self.roh:
+            yield f'h{self.states[i]}'
+
+    @property
+    def hap_names(self):
+        for i in self.hap:
+            yield self.states[i]
+
+    #n state and state names do not contian haploid states, as I reuse the
+    #homozygous names
+    @property
     def n_states(self):
-        return self.n_homo + self.n_het
+        return self.n_homo + self.n_het + self.n_roh
 
     @property
     def state_names(self):
-        return chain(self.homo_names, self.het_names)
+        return chain(self.homo_names, self.het_names, self.roh_names)
+
+    @property
+    def n_raw_states(self):
+        """number of input/possible states"""
+        return len(self.states)
 
     def __iter__(self):
         return self.states.__iter__()

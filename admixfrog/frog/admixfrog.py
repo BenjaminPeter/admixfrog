@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from ..utils.io import load_read_data_frog, load_ref, filter_ref
 from ..utils.io import write_bin_table, write_pars_table, write_cont_table
 from ..utils.io import write_snp_table, write_est_runs, write_sim_runs
-from ..utils.utils import bins_from_bed, data2probs, init_pars, Pars, ParsHD
+from ..utils.utils import bins_from_bed, data2probs, init_pars, Pars
 from ..utils.utils import guess_sex, parse_state_string
 from ..utils.states import States
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
@@ -171,7 +171,7 @@ def baum_welch(
         )
 
     update_post_geno(PG, SNP, Z, IX)
-    pars = ParsHD(alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, sex)
+    pars = Pars(alpha0, alpha0_hap, trans, trans_hap, cont, error, F, tau, sex)
 
     return (
         Z,
@@ -451,7 +451,7 @@ def run_admixfrog(
     )
     state_dict2 = parse_state_string(states, state_file=state_file)
     states = list(dict(((x, None) for x in state_dict2.values())))
-    states = States(states, homo_states, het_states)
+    states = States(states, homo_states, het_states, est_inbreeding=est['est_inbreeding'])
 
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
@@ -497,7 +497,6 @@ def run_admixfrog(
         homo_ids=homo_states,
         het_ids=het_states,
         sex=sex,
-        est_inbreeding=est["est_inbreeding"],
         bin_size=bin_size,
         **init,
     )
@@ -543,7 +542,6 @@ def run_admixfrog(
             n=n,
             states=states,
             n_sims=n_post_replicates,
-            est_inbreeding=est["est_inbreeding"],
             keep_loc=keep_loc,
         )
         df_pred["chrom"] = [IX.diplo_chroms[i] for i in df_pred.chrom.values]
@@ -567,6 +565,11 @@ def run_admixfrog(
             ]
             df_pred_hap["state"] = [states[i] for i in df_pred_hap.state.values]
             df_pred = pd.concat((df_pred, df_pred_hap))
+
+        if keep_loc:
+            df_pred = df_pred[['state', 'chrom', 'start', 'end', 'len', 'it']]
+        else:
+            df_pred = df_pred[['state', 'chrom', 'len', 'it']]
 
         write_sim_runs(df_pred, outname=f"{outname}.res.xz")
         resampling_pars(df_pred).to_csv(

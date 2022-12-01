@@ -1,4 +1,5 @@
 from . import pgdirect as pg
+from .vcf import parse_chroms
 import logging
 import pandas as pd
 from collections import defaultdict
@@ -215,11 +216,13 @@ def process_bam(
     length_bin_size,
     random_read_sample=False,
     max_reads=100,
+    chroms=None,
     **kwargs,
 ):
     """generate input file from bam-file"""
     blocks = RefIter(ref)
-    sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks)
+    chroms = parse_chroms(chroms)
+    sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks, chroms=chroms)
 
     default_filter.update(kwargs)
     logging.info("Filter is %s", default_filter)
