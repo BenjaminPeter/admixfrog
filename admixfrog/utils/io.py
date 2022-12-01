@@ -254,10 +254,10 @@ def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
     """Bin reads into bins with approximately the same number of reads"""
     data.reset_index(inplace=True)
     data["n"] = data["tref"] + data["talt"]
-    data["deam_bin"] = data.groupby(["lib"]).deam.apply(
+    data["deam_bin"] = data.groupby(["lib"], group_keys=False).deam.apply(
         qbin, bin_size=deam_bin_size, short_threshold=short_threshold
     )
-    data["len_bin"] = data.groupby(["lib", "deam_bin"]).len.apply(
+    data["len_bin"] = data.groupby(["lib", "deam_bin"], group_keys=False).len.apply(
         qbin, bin_size=len_bin_size, neg_is_nan=False
     )
     data["rg"] = [
