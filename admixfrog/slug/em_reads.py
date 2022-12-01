@@ -18,8 +18,11 @@ def norm(self):
 def update_ftau(old_F, old_tau, data, post_g, update_F=True):
     """updates the SFS parameters
 
-    tau represents the conditional SFS entry, i.e. what proportion of sites are derived
-    in any particular SFS category
+    tau represents the conditional SFS entry, i.e. what proportion of sites are 
+    derived in any particular SFS category
+
+    F is the inbreeding coefficient, i.e. what proportion of sites coalesce
+    before the SFS entry
 
     Parameters
     ----------
@@ -75,7 +78,6 @@ def update_ftau(old_F, old_tau, data, post_g, update_F=True):
     return F, tau
 
 
-# @njit
 def update_c(post_c, READ2RG, n_rgs):
     """update c
     parameters:
@@ -176,16 +178,12 @@ def squarem(pars0, data, controller):
         pars1 = update_pars_reads(pars, data, controller)
         Δp1 = pars1 - pars
         if norm(Δp1) < EPS:  #  or pars1.ll - pars1.prev_ll < EPS:
-            # if pars1.ll < pars1.prev_ll:
-            #    breakpoint()
             pars = pars1
             break
 
         pars2 = update_pars_reads(pars1, data, controller)
         Δp2 = pars2 - pars1
         if norm(Δp2) < EPS or pars2.ll - pars1.ll < EPS:
-            # if pars2.ll < pars2.prev_ll:
-            #    breakpoint()
             pars = pars2
             break
 
@@ -227,8 +225,6 @@ def squarem(pars0, data, controller):
         s += f" | Δc : {pars.delta_cont:.4f} | Δtau : {pars.delta_tau:.4f} | ΔF : {pars.delta_F:.4f}"
         s += f" | Δ1 : {norm(Δp1):.4f}| Δ2:{norm(Δp2):.4f} "
         log_.info(s)
-        if np.isnan(pars.delta_tau):
-            breakpoint()
 
     return pars
 

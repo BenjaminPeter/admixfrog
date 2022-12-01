@@ -119,7 +119,7 @@ def run_admixslug(
     pars = squarem(pars, data, controller)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
 
-    if controller.n_resamples > 0:
+    if controller.n_resamples > 0 or output['output_fstats']:
         jk_pars_list = []
         jk_sfs = list()
 
