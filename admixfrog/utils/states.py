@@ -29,7 +29,7 @@ class States(object):
         else:
             self.roh_ids = list()
 
-        self.hap_ids = self.het_ids
+        self.hap_ids = self.homo_ids
 
         self.est_inbreeding = est_inbreeding
 
