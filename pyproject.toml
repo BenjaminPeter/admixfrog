@@ -28,9 +28,16 @@ bump = true
 pattern  = "^(?P<base>\\d+\\.\\d+\\.\\d+)(-?((?P<stage>[a-zA-Z]+)\\.?(?P<revision>\\d+)?))?"
 
 
-#format = "{{base}}"
-#format-jinja = "{% if distance == 0 %}{{ base }}{% else %}{{ base }}+{{ distance }}.{{ commit }}{% endif %}"
-
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry.scripts]
+admixfrog = 'admixfrog:run_frog'
+admixfrog-bam = 'admixfrog:bam'
+admixfrog-bam2 = 'admixfrog:bam2'
+admixfrog-rle = 'admixfrog:do_rle'
+admixfrog-profile = 'admixfrog:profile_frog'
+admixslug-profile = 'admixfrog:profile_slug'
+admixfrog-ref = 'admixfrog:do_ref'
+admixslug = 'admixfrog:run_sfs'
