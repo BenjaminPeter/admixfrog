@@ -18,13 +18,14 @@ pyyaml = ">=5.0"
 cython = ">=0.29"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.0"
+pytest = ">=7.2.0"
+#pytest-console-scripts = "*"
 
 
 [tool.poetry-dynamic-versioning]
 enable = true
 vcs = "git"
-bump = true
+bump = false
 pattern  = "^(?P<base>\\d+\\.\\d+\\.\\d+)(-?((?P<stage>[a-zA-Z]+)\\.?(?P<revision>\\d+)?))?"
 
 
