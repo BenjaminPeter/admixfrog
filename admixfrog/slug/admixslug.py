@@ -6,7 +6,7 @@ from pprint import pprint
 from collections import Counter, defaultdict
 from copy import deepcopy
 from ..gll.read_emissions2 import p_snps_given_gt
-from ..utils.io import load_read_data_slug, load_ref, filter_ref
+from ..utils.io import load_read_data, load_ref, filter_ref
 from ..utils.io import write_bin_table, write_pars_table, write_cont_table
 from ..utils.io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
 from ..utils.io import write_snp_table_slug, write_cont_table_slug
@@ -230,13 +230,14 @@ def load_admixslug_data_native(
     autosomes_only=False,
 ):
 
-    data, ix = load_read_data_slug(
+    data, ix = load_read_data(
         target_file,
         split_lib,
         downsample,
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
         high_cov_filter=filter.pop("filter_high_cov"),
+        make_bins=True
     )
 
     ref = load_ref(

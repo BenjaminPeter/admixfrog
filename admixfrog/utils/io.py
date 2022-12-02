@@ -48,7 +48,7 @@ def load_ref(
     alt_cols = [f"{s}_alt" for s in label_states]
     data_cols = ref_cols + alt_cols
 
-    dtype_ = dict(chrom="category")
+    dtype_ = dict(chrom="object")
     for col in data_cols:
         dtype_[col] = np.uint16 if large_ref else np.uint8
 
@@ -83,11 +83,9 @@ def load_ref(
             ix_cols = basic_cols
 
         ref0 = pd.read_csv(ref_file, dtype=dtype_, usecols=cols0)
-        ref0.chrom = pd.Categorical(ref0.chrom, ordered=True)
         ref0.set_index(ix_cols, inplace=True)
         ref0.index.rename("map", level=map_col, inplace=True)
 
-        # ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
         ref0 = ref0.loc[~ref0.index.duplicated()]
         ref0 = ref0[~np.isnan(ref0.reset_index("map").map.values)]
 
@@ -280,11 +278,11 @@ def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
     return ix
 
 
-def load_read_data_frog(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
+"""caused major pandas bug. Can probably be removed"""
+def load_read_data_old(infile, split_lib=True, downsample=1, high_cov_filter=0.001):
     dtype_ = dict(chrom=str)
     data = pd.read_csv(infile, dtype=dtype_).dropna()
     data.set_index(["chrom", "pos"], inplace=True)
-    # data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
 
     if "lib" not in data:
         data["lib"] = "lib0"
@@ -305,13 +303,14 @@ def load_read_data_frog(infile, split_lib=True, downsample=1, high_cov_filter=0.
     return data
 
 
-def load_read_data_slug(
+def load_read_data(
     infile,
     split_lib=True,
     downsample=1,
     deam_bin_size=10000,
     len_bin_size=1000,
     high_cov_filter=0.001,
+    make_bins=False,
 ):
     """loading the read data, second generation of input file.
     The idea here (and chief difference to the previous vesion) is that the
@@ -334,7 +333,7 @@ def load_read_data_slug(
         - n_bin/n_exact (number of reads in each bin) or each category
     """
     dtype_mandatory = dict(
-        chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8
+        chrom='object', pos=np.uint32, talt=np.uint8, tref=np.uint8
     )
 
     dtype_optional = dict(
@@ -349,7 +348,6 @@ def load_read_data_slug(
     data = pd.read_csv(
         infile, dtype=dtype_mandatory, usecols=dtype_mandatory.keys()
     ).dropna()
-    data.chrom = pd.Categorical(data.chrom, ordered=True)
     data.set_index(["chrom", "pos"], inplace=True)
 
     if "rg" not in data:
@@ -372,10 +370,13 @@ def load_read_data_slug(
     logging.info(f"high-cov filter at {q}, removing {sum(to_remove)} sites")
     data = data[~to_remove]
 
-    ix = bin_reads(data, deam_bin_size, len_bin_size)
-    data = data[["rg", "tref", "talt"]].reset_index().set_index(["chrom", "pos", "rg"])
-    data = data.groupby(data.index.names, observed=True).sum()
-    return data, ix
+    if make_bins:
+        ix = bin_reads(data, deam_bin_size, len_bin_size)
+        data = data[["rg", "tref", "talt"]].reset_index().set_index(["chrom", "pos", "rg"])
+        data = data.groupby(data.index.names, observed=True).sum()
+        return data, ix
+    else:
+        return data
 
 
 @njit

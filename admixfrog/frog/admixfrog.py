@@ -4,7 +4,7 @@ import itertools
 import yaml
 import logging
 from collections import Counter, defaultdict
-from ..utils.io import load_read_data_frog, load_ref, filter_ref
+from ..utils.io import load_read_data, load_ref, filter_ref
 from ..utils.io import write_bin_table, write_pars_table, write_cont_table
 from ..utils.io import write_snp_table, write_est_runs, write_sim_runs
 from ..utils.utils import bins_from_bed, data2probs, init_pars, Pars
@@ -291,10 +291,24 @@ def load_admixfrog_data(
         raise NotImplementedError("")
         "3. standard input"
     elif ref_files and target_file and geno_file is None and target is None:
+
+        hcf = filter.pop("filter_high_cov")
+
+        #load reference first
+        ref = load_ref(
+            ref_files, state_dict, cont_id, ancestral, autosomes_only, map_col=map_col
+        )
+        ref = filter_ref(ref, states, ancestral=ancestral, **filter)
+
+
+        #get categories for sorting/output
+        cats = pd.unique(ref.index.get_level_values('chrom'))
+        chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
+
         if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-            data = load_read_data_frog(
+            data = load_read_data(
                 target_file,
-                high_cov_filter=filter.pop("filter_high_cov"),
+                make_bins=False
             )
             assert np.max(data.tref + data.talt) <= 2
             assert np.min(data.tref + data.talt) >= 0
@@ -307,17 +321,19 @@ def load_admixfrog_data(
                 data = data[~dups]
                 # raise ValueError("ensure that SNPs in gt-input are unique")
         else:
-            data = load_read_data_frog(
+            data = load_read_data(
                 target_file,
                 split_lib,
                 downsample,
-                high_cov_filter=filter.pop("filter_high_cov"),
+                make_bins=False,
+                high_cov_filter=hcf,
             )
+            data = data[['lib', 'tref', 'talt']]
 
-        ref = load_ref(
-            ref_files, state_dict, cont_id, ancestral, autosomes_only, map_col=map_col
-        )
-        ref = filter_ref(ref, states, ancestral=ancestral, **filter)
+        # sexing stuff
+        if sex is None:
+            sex = guess_sex(ref, data)
+
 
         if fake_contamination and cont_id:
             """filter for SNP with fake ref data"""
@@ -332,19 +348,8 @@ def load_admixfrog_data(
             ref.set_index("map", append=True, inplace=True)
         ref = ref.loc[~ref.index.duplicated()]
 
-        # sexing stuff
-        if sex is None:
-            sex = guess_sex(ref, data)
-
-        cats = ref.index.get_level_values(0).categories
-        chrom_type = pd.CategoricalDtype(cats, ordered=True)
-
-        ref.index = ref.index.set_levels(ref.index.levels[0].astype(str), level=0)
-        data.index = data.index.set_levels(data.index.levels[0].astype(str), level=0)
-
         df = ref.join(data, how="inner")
-        df.index = df.index.set_levels(df.index.levels[0].astype(chrom_type), level=0)
-        df.sort_index(level=["chrom", "pos"], inplace=True)
+        #df2 = ref.join(data2, how="inner")
 
         "4. geno ref, standard target"
     elif ref_files is None and geno_file is None and target_file and target is None:
@@ -352,19 +357,19 @@ def load_admixfrog_data(
     else:
         raise ValueError("ambiguous input")
 
+    #sort by chromosome name. PANDAS is VERY DUMB WTF
+    df.index = df.index.set_levels(df.index.levels[0].astype(chrom_dtype), level=0)
+    df.reset_index(inplace=True)
+    df.sort_values(['chrom', 'pos'], inplace=True)
+    df.set_index(['chrom', 'pos', 'ref', 'alt', 'map'], inplace=True)
+
     # get ids of unique snps
     snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=True).ngroup()
     snp_ids.rename("snp_id", inplace=True)
 
-    # n_reads = (df['tref'] + df['talt']).groupby(df.index.names, observed=True).sum()
-    # n_reads.rename("n_reads", inplace=True)
-    # snp_ids = pd.DataFrame((snp_ids, n_reads))
-
     snp_ids = pd.DataFrame(snp_ids)
     snp_ids.set_index("snp_id", append=True, inplace=True)
     df = snp_ids.join(df)
-
-    df.sort_index(inplace=True)
 
     if fake_contamination and cont_id:
         cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"

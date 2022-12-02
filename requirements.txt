@@ -1,7 +1,7 @@
 numba>=0.42
 numpy>=1.0
 scipy>=1.1
-pandas>=1.0
+pandas>=1.5
 pybedtools>=0.7.10
 pysam>=0.15.0
 cython>=0.29
