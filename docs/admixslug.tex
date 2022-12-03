@@ -65,11 +65,21 @@ We can think of $e$ as the sequencing error, and $b$ as the reference bias + seq
 There are two possible origins for each sequence $X_{lri}$, it is either a contaminant, or endogenous. 
 Let $C_{lri} =1 $ mean that $X_{lri}$ is contaminant, and $C_{lri} =0 $ mean it is not. Furthermore, let $\psi_l$ be the alt allele frequency in a reference contamination panel, which we assume to be known. Let $G_l$ be the genotype of the target individual at SNP $l$ (which is either 0, 1 or 2).
 
+
 \begin{align}
 P(X_{lri} = 0 | C_{lri} = 1, \psi_l) &= 1 - \psi_l\nonumber\\ 
 P(X_{lri} = 1 | C_{lri} = 1, \psi_l) &= \psi_l\nonumber\\ 
 P(X_{lri} = 0 | C_{lri} = 0, G_l) &= 1 - \frac{G_l}{2}\nonumber\\ 
 P(X_{lri} = 1 | C_{lri} = 0, G_l) &= \frac{G_l}{2}
+\end{align}
+
+\paragraph{Faunal contamination}
+For faunal contamination, we might expect always the ancestral allele. Let $\phi_l=0$ mean the reference allele at locus $l$ is ancestral, in which case faunal contamination would have the reference allele. Likewise, if the derived allele is ancestral, then  $\phi_l=1$. 
+
+If we add faunal contamination, we extend $C_{lri}$ to an additional state, and add
+\begin{align}
+P(X_{lri} = 0 | C_{lri} = 2, \phi_l) &= 1-\phi_l\nonumber\\ 
+P(X_{lri} = 1 | C_{lri} = 2, \phi_l) &= \phi_l
 \end{align}
 
 \subsection*{Contamination model}
@@ -109,8 +119,13 @@ We estimate parameters using the complete-data log-likelihood using an EM-algori
 \end{align*}
 
 
-
-
+\subsection*{F-stats}
+\begin{align}
+F_4(Y, X_2; X_3, X_4) = \pi_{y3} +\pi_{y4} - \pi_{23} - \pi_{24}\\
+F_3(O; Y, X_2) = \pi_{OY} +\pi_{O2} - \pi_{Y2} - \pi_{OO}
+\end{align}
+from admixslug one can calculate $\pi_{yj}$:
+$$\pi_{yj} = n_0(X_j) \times \tau_0(X_j) + n_1(X_j)(.5 \tau_1 + .5(1-\tau_2(X_j)) + n_2(X_j)(1-\tau_2(X_j))$$
 
 \bibliography{main}
 \bibliographystyle{plainnat}
