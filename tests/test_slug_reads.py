@@ -108,7 +108,6 @@ def test_ftau_est_hap():
     assert pars.ll > ll0
     #assert .3 < pars.F[1] < .4
     #assert pars.F[0] == 0.5
-    return pars
 
 def test_ftau_est():
     """simple test dataset for ensuring algorithm is correct
@@ -146,7 +145,6 @@ def test_ftau_est():
     assert pars.ll > ll0
     #assert .3 < pars.F[1] < .4
     #assert pars.F[0] == 0.5
-    return pars
 
 @pytest.mark.skip(reason="NYI")
 def test_delta_est():
@@ -181,7 +179,6 @@ def test_delta_est():
     assert .64 < pars.tau[1] < .65
     assert pars.F[0] == 0
     assert .3 < pars.F[1] < .4
-    return pars
 
 @pytest.mark.skip(reason="takes very long")
 def test_update_large():
@@ -258,6 +255,6 @@ def test_update_large():
                                 ll_tol = 1e-4)
     #em(pars, data, controller)
     squarem(pars, data, controller)
-    return pars
+    assert True
 
 

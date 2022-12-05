@@ -13,7 +13,8 @@ from ..utils.io import write_snp_table_slug, write_cont_table_slug
 from ..utils.io import write_snp_table_slug2, write_sfs2, write_vcf
 from ..utils.io import write_f3_table, write_f4_table
 from ..utils.utils import data2probs, init_pars_sfs
-from ..utils.utils import guess_sex, parse_state_string
+from ..utils.utils import guess_sex
+from ..utils.states import States
 from ..gll.genotype_emissions import update_post_geno, update_snp_prob
 from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
@@ -85,17 +86,16 @@ def run_admixslug(
     if not est["est_contamination"] and init["c0"] == 0:
         cont_id = None
 
-    state_dict = parse_state_string(
-        states + [ancestral, cont_id], state_file=state_file
-    )
-    state_dict2 = parse_state_string(states, state_file=state_file)
-    states = list(dict(((x, None) for x in state_dict2.values())))
+    states = States.from_commandline(raw_states=states,
+                                     state_file=state_file,
+                                     ancestral=ancestral,
+                                     cont_id=cont_id)
+
 
     df, ix, sex, n_sites = load_admixslug_data_native(
         target_file=target_file,
         ref_files=ref_files,
         states=states,
-        state_dict=state_dict,
         ancestral=ancestral,
         sex=sex,
         cont_id=cont_id,
@@ -213,7 +213,6 @@ def run_admixslug(
 
 def load_admixslug_data_native(
     states,
-    state_dict=None,
     target_file=None,
     filter=defaultdict(lambda: None),
     ref_files=None,
@@ -242,7 +241,7 @@ def load_admixslug_data_native(
 
     ref = load_ref(
         ref_files,
-        state_dict,
+        states,
         cont_id,
         ancestral,
         autosomes_only,

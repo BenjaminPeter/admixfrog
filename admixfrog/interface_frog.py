@@ -278,7 +278,7 @@ def run_frog():
                 and not target_pars["force_target_file"]
             ):
                 raise ValueError(
-                    """target_file exists. Use this or set --force-target-file to 
+                    """target_file exists. Set --force-target-file to 
                                  regenerate"""
                 )
             logging.info("creating input from bam file")
@@ -296,7 +296,7 @@ def run_frog():
                 and not target_pars["force_target_file"]
             ):
                 raise ValueError(
-                    """target_file exists. Use this or set --force-target_file to 
+                    """target_file exists. Set --force-target_file to 
                                  regenerate"""
                 )
             logging.info("creating input from bam file")

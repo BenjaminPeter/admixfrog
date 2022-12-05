@@ -8,7 +8,7 @@ from ..utils.io import load_read_data, load_ref, filter_ref
 from ..utils.io import write_bin_table, write_pars_table, write_cont_table
 from ..utils.io import write_snp_table, write_est_runs, write_sim_runs
 from ..utils.utils import bins_from_bed, data2probs, init_pars, Pars
-from ..utils.utils import guess_sex, parse_state_string
+from ..utils.utils import guess_sex
 from ..utils.states import States
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
 from ..gll.genotype_emissions import update_post_geno, update_Ftau, update_snp_prob
@@ -242,10 +242,44 @@ def update_emission_stuff(
 
     return scaling
 
+def load_admixfrog_data_geno(geno_file,
+                             states,
+                             ancestral,
+                             filter=filter,
+                             target_ind=None,
+                             guess_ploidy=False,
+                             pos_mode=False
+                             ):
+        df = read_geno_ref(
+            fname=geno_file,
+            pops=states.state_dict,
+            target_ind=target_ind,
+            guess_ploidy=guess_ploidy,
+        )
+        df = filter_ref(df, states, ancestral=ancestral, **filter)
+        df["lib"] = "lib0"
+        if pos_mode:
+            df.reset_index("map", inplace=True)
+            df.map = df.index.get_level_values("pos")
+            df.set_index("map", append=True, inplace=True)
+    
+        cats = pd.unique(df.index.get_level_values('chrom'))
+        chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
+
+        if not df.index.is_unique:
+            dups = df.index.duplicated()
+            logging.warning(
+                f"\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m"
+            )
+            logging.warning(" ==> strongly consider re-filtering input file")
+            df = df[~dups]
+        return df
+
+
+
 
 def load_admixfrog_data(
     states,
-    state_dict=None,
     target=None,
     target_file=None,
     gt_mode=False,
@@ -265,45 +299,32 @@ def load_admixfrog_data(
 ):
     """
     we have the following possible input files
-    1. target (standalone csv)
-    2. ref (standalone csv)
-    3. geno (target and/or ref)
+    1. only a geno file (for target and reference)
+    2. custom ref/target (from standalone csv)
+    3. geno ref (and target from csv)
     """
     tot_n_snps = 0
 
     "1. only geno file"
     if ref_files is None and target_file is None and geno_file and target:
-        raise NotImplementedError("currently geno file support is on hold")
-        df = read_geno_ref(
-            fname=geno_file,
-            pops=state_dict,
-            target_ind=target,
-            guess_ploidy=guess_ploidy,
-        )
-        df = filter_ref(df, states, ancestral=ancestral, **filter)
-        df["lib"] = "lib0"
-        if pos_mode:
-            df.reset_index("map", inplace=True)
-            df.map = df.index.get_level_values("pos")
-            df.set_index("map", append=True, inplace=True)
-        "2. standard ref and target from geno"
-    elif ref_files and target_file is None and geno_file and target:
-        raise NotImplementedError("")
-        "3. standard input"
-    elif ref_files and target_file and geno_file is None and target is None:
+        df = load_admixfrog_data_geno(geno_file=geno_file, 
+                                      states = states,
+                                      ancestral=ancestral,
+                                      filter=filter,
+                                      target_ind=target,
+                                      guess_ploidy=guess_ploidy,
+                                      pos_mode = pos_mode
+                                      )
 
+    elif ref_files and target_file and (geno_file is None) and (target is None):
+        "2. standard input"
         hcf = filter.pop("filter_high_cov")
 
         #load reference first
         ref = load_ref(
-            ref_files, state_dict, cont_id, ancestral, autosomes_only, map_col=map_col
+            ref_files, states, cont_id, ancestral, autosomes_only, map_col=map_col
         )
         ref = filter_ref(ref, states, ancestral=ancestral, **filter)
-
-
-        #get categories for sorting/output
-        cats = pd.unique(ref.index.get_level_values('chrom'))
-        chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
 
         if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
             data = load_read_data(
@@ -319,7 +340,6 @@ def load_admixfrog_data(
                 )
                 logging.warning(" ==> strongly consider re-filtering input file")
                 data = data[~dups]
-                # raise ValueError("ensure that SNPs in gt-input are unique")
         else:
             data = load_read_data(
                 target_file,
@@ -333,7 +353,6 @@ def load_admixfrog_data(
         # sexing stuff
         if sex is None:
             sex = guess_sex(ref, data)
-
 
         if fake_contamination and cont_id:
             """filter for SNP with fake ref data"""
@@ -349,15 +368,17 @@ def load_admixfrog_data(
         ref = ref.loc[~ref.index.duplicated()]
 
         df = ref.join(data, how="inner")
-        #df2 = ref.join(data2, how="inner")
 
+    elif geno_file and target_file and ref_file is None:
         "4. geno ref, standard target"
-    elif ref_files is None and geno_file is None and target_file and target is None:
         raise NotImplementedError("")
     else:
-        raise ValueError("ambiguous input")
+        raise NotImplementedError("ambiguous input")
 
     #sort by chromosome name. PANDAS is VERY DUMB WTF
+    cats = pd.unique(df.index.get_level_values('chrom'))
+    chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
+
     df.index = df.index.set_levels(df.index.levels[0].astype(chrom_dtype), level=0)
     df.reset_index(inplace=True)
     df.sort_values(['chrom', 'pos'], inplace=True)
@@ -451,12 +472,13 @@ def run_admixfrog(
     if (not est["est_contamination"] and init["c0"] == 0) or gt_mode:
         cont_id = None
 
-    state_dict = parse_state_string(
-        states + [ancestral, cont_id], state_file=state_file
-    )
-    state_dict2 = parse_state_string(states, state_file=state_file)
-    states = list(dict(((x, None) for x in state_dict2.values())))
-    states = States(states, homo_states, het_states, est_inbreeding=est['est_inbreeding'])
+    states = States.from_commandline(raw_states=states,
+                                     state_file=state_file,
+                                     ancestral=ancestral,
+                                     cont_id=cont_id,
+                                     homo_states=homo_states,
+                                     het_states=het_states,
+                                     est_inbreeding=est['est_inbreeding'])
 
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
@@ -469,7 +491,6 @@ def run_admixfrog(
         gt_mode=gt_mode,
         states=states,
         sex=sex,
-        state_dict=state_dict,
         ancestral=ancestral,
         cont_id=cont_id,
         split_lib=split_lib,

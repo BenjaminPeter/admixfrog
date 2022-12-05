@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import itertools
 
-from .utils import posterior_table, parse_state_string, posterior_table_slug
+from .utils import posterior_table, posterior_table_slug
 
 
 """reading and writing files"""
@@ -15,7 +15,7 @@ from .utils import posterior_table, parse_state_string, posterior_table_slug
 
 def load_ref(
     ref_files,
-    state_dict,
+    states,
     cont_id,
     ancestral=None,
     autosomes_only=False,
@@ -24,15 +24,13 @@ def load_ref(
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files
-    state_dict: a dict D[label] : pop. All populatios in sources with label are added to pop. This is
-        expected to be generated with utils.parse_state_string
     """
 
     # 1. get list of states we care about
-    label_states = list(state_dict.keys())
+    label_states = list(states.state_dict.keys())
     EXT = ["_ref", "_alt"]
     D = dict(
-        ((k + e), (v + e)) for ((k, v), e) in itertools.product(state_dict.items(), EXT)
+        ((k + e), (v + e)) for ((k, v), e) in itertools.product(states.state_dict.items(), EXT)
     )
 
     if ancestral is not None:

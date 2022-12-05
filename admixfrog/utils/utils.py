@@ -750,10 +750,7 @@ def posterior_table(pg, Z, IX, est_inbreeding=False):
     freq = np.array([0, 1, 2, 0, 1]) if est_inbreeding else np.arange(3)
     PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
     mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
-    try:
-        random = np.random.binomial(1, np.clip(mu, 0, 1))
-    except ValueError:
-        breakpoint()
+    random = np.random.binomial(1, np.clip(mu, 0, 1))
     PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(
@@ -860,52 +857,3 @@ def scale_mat3d(M):
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
 
-
-def parse_state_string(states, ext=[""], operator="+", state_file=None):
-    """parse shortcut parse strings
-
-    the basic way states are defined is as
-        --states AFR NEA DEN
-
-    this assmues the columns AFR, NEA and DEN are known and present in the reference
-    We can rename and merge stuff here using the following syntax
-
-    -- states AFR=YRI+SAN NEA=VIN DEN=Denisova2
-
-    return rename dict for reference
-
-    """
-    ext2 = ["_ref", "_alt"]
-    d1 = [s.split("=") for s in states if s is not None]
-    d2 = [(s if len(s) > 1 else (s[0], s[0])) for s in d1]
-    state_dict = dict(
-        (f"{k}{ext_}", f"{i}{ext_}")
-        for i, j in d2
-        for k in j.split(operator)
-        for ext_ in ext
-    )
-    if state_file is not None:
-        """logic here is:
-        - yaml file contains some groupings (i.e. assign all
-        Yorubans to YRI, all San to SAN
-        - state_dict contains further groupings / renaming / filtering
-            i.e. AFR=YRI+SAN
-        - stuff not in state_dict will not be required
-
-        therefore:
-        1. load yaml
-        2. get all required target pops from state_dict
-        3. add all expansions replacements
-        """
-        Y = yaml.load(open(state_file), Loader=yaml.BaseLoader)
-        # D = dict((v_, k) for (k,v) in Y.items() for v_ in v)
-        s2 = dict()
-
-        for state, label in state_dict.items():
-            if state in Y:
-                for ind in Y[state]:
-                    s2[ind] = label
-            else:
-                s2[state] = label
-        state_dict = s2
-    return state_dict
