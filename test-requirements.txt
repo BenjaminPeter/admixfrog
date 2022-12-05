@@ -1,4 +1,0 @@
-pytest
-pytest-runner
-pytest-cov
-pytest-console-scripts
