@@ -133,9 +133,9 @@ def filter_ref(
         )
 
     if filter_delta is not None:
-        kp = np.zeros(ref.shape[0], np.bool)
+        kp = np.zeros(ref.shape[0], bool)
         for i, s1 in enumerate(states):
-            for j in range(i + 1, len(states)):
+            for j in range(i + 1, states.n_raw_states):
                 s2 = states[j]
                 f1 = np.nan_to_num(
                     ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"])
@@ -164,46 +164,6 @@ def filter_ref(
         ref = ref[kp]
 
     return ref
-
-
-def qbin_old(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
-    if bin_size == -1:
-        """case when we only want deam in first 3 pos vs everything else"""
-        res = pd.Series(x, dtype=np.uint8)
-        res.loc[(x >= 0) & (x <= short_threshold)] = 0
-        res.loc[x > short_threshold] = 255
-        res.loc[x < 0] = 255
-        return res
-    if neg_is_nan:
-        y_short = x.loc[(x >= 0) & (x <= short_threshold)]
-        y_long = x.loc[(x > short_threshold)]
-
-        n_short_bins = min((254, max((1, int(y_short.shape[0] // bin_size)))))
-        short_cuts = pd.qcut(
-            y_short, q=n_short_bins, precision=0, labels=False, duplicates="drop"
-        )
-        if len(short_cuts) == 0:
-            ymax = 1
-        else:
-            ymax = max(short_cuts)
-
-        n_long_bins = min((254 - ymax, max((1, int(y_long.shape[0] // bin_size)))))
-        long_cuts = pd.qcut(
-            y_long, q=n_long_bins, precision=0, labels=False, duplicates="drop"
-        )
-
-        res = pd.Series(x, dtype=np.uint8)
-        res.loc[(x >= 0) & (x <= short_threshold)] = short_cuts
-        res.loc[x > short_threshold] = long_cuts + ymax + 1
-        res.loc[x < 0] = 255
-        return res
-    else:
-        n_bins = min((254, max((1, int(x.shape[0] // bin_size)))))
-        cuts = pd.qcut(
-            x, q=n_bins, precision=0, labels=False, duplicates="drop"
-        )  # .astype(np.uint8)
-        print(n_bins, "x", x.shape, min(Counter(cuts).values()))
-        return cuts
 
 
 def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):

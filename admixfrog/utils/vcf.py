@@ -249,27 +249,27 @@ def vcf_to_sample(
                             ref_row = ref_local[ref_local.pos == row.pos]
                             ref_alt = ref_row.alt.values
                             ALT_INDEX = np.where(ref_alt == row.alleles)[0].item()
-                        # logging.debug(f"{row.chrom}:{row.pos} in ref")
                     else:
-                        # logging.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
                         continue
 
-                    infile.write(f"{row.chrom},{row.pos},")
+                    snp_str = f"{row.chrom},{row.pos}"
 
                     sample_data = row.samples
                     for s in sample_data:
                         if random_read:
                             allele = sample_data[s]["GT"][0]
                             if allele == 0:
-                                infile.write("1,0\n")
+                                allele_str = "1,0"
                             elif allele == ALT_INDEX:
-                                infile.write("0,1\n")
+                                allele_str = "0,1"
                             else:
-                                infile.write("0,0\n")
+                                allele_str = "0,0"
                         else:
                             alleles = Counter(sample_data[s]["GT"])
-                            # breakpoint()
-                            infile.write(f"{alleles[0]},{alleles[ALT_INDEX]}\n")
+                            allele_str = f"{alleles[0]},{alleles[ALT_INDEX]}"
+
+                    if allele_str != "0,0":
+                        infile.write(f'{snp_str},{allele_str}\n')
             logging.debug(f"done processing {chrom}")
 
 

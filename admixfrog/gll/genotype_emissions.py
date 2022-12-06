@@ -118,8 +118,8 @@ def update_Ftau(F, tau, PG, P, IX, est_options):
         def f(args):
             args = list(args)
             F = args.pop(0) if est_options["est_F"] else F[i]
-            tau = exp(args.pop(0)) if est_options["est_tau"] else exp(tau[i])
-            x = np.log(_p_gt_homo(s, P, F, tau) + 1e-10) * PG[IX.diploid_snps, i, :]
+            tau_ = exp(args.pop(0)) if est_options["est_tau"] else exp(tau[i])
+            x = np.log(_p_gt_homo(s, P, F, tau_) + 1e-10) * PG[IX.diploid_snps, i, :]
             if np.isnan(np.sum(x)):
                 raise ValueError("nan in likelihood")
             return -np.sum(x)
@@ -131,6 +131,7 @@ def update_Ftau(F, tau, PG, P, IX, est_options):
         if est_options["est_tau"]:
             init.append(tau[i])
             bounds.append((-10, 20))
+
 
         prev = f(init)
         OO = minimize(f, init, bounds=bounds, method="L-BFGS-B")

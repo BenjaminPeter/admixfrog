@@ -161,8 +161,8 @@ def data2probs(
             prior_anc_alt = snp_df[anc_alt] * ancestral_prior
             prior_anc_ref = snp_df[anc_ref] * ancestral_prior
 
-        alt_prior = snp_df[alt_ix].to_numpy() + prior_anc_alt[:, np.newaxis] + prior
-        ref_prior = snp_df[ref_ix].to_numpy() + prior_anc_ref[:, np.newaxis] + prior
+        alt_prior = snp_df[alt_ix].to_numpy() + np.array(prior_anc_alt)[:, np.newaxis] + prior
+        ref_prior = snp_df[ref_ix].to_numpy() + np.array(prior_anc_ref)[:, np.newaxis] + prior
         assert np.all(df.tref.values + df.talt.values < 256)
 
     # create named tuple for return
@@ -347,19 +347,6 @@ def get_haploid_stuff(snp, chroms, sex):
     return haplo_chroms, haploid_snps
 
 
-def make_obs2rg(v_lib):
-    libs = np.unique(v_lib)
-    libs = dict((l, i) for i, l in enumerate(libs))
-    OBS2RG = np.array([libs[i] for i in v_lib], dtype=np.uint16)
-    return libs, OBS2RG
-
-
-def make_reads2rg(v_lib):
-    libs = np.unique(v_lib)
-    libs = dict((l, i) for i, l in enumerate(libs))
-    READS2RG = np.array([libs[i] for i in v_lib], dtype=np.uint16)
-    return libs, READS2RG
-
 
 def make_obs2sfs(snp_states, max_states=None, states=None):
     # create dict [sfs] - > column
@@ -436,68 +423,6 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, state
     SNP2SFS = np.array([sfs_dict[tuple(i)] for i in data], dtype=np.uint16)
 
     return sfs, SNP2SFS, FLIPPED
-
-
-def make_slug_data(df, states, ancestral=None, cont_id=None, sex=None):
-    """create a SlugData object with the following attributes:
-    N: np.ndarray  # number of reads [O x 1]
-    O: np.ndarray  # number of obs [O x 1]
-    psi: np.ndarray  # freq of contaminant [L x 1]
-
-    OBS2RG: np.ndarray  # which obs is in which rg [O x 1]
-    OBS2SNP: np.ndarray  # which obs belongs to which locus [O x 1]
-    SNP2SFS: np.ndarray  # which snp belongs to which sfs entry [L x 1]
-
-    haploid_snps : Any = None
-
-    states : Any = None
-    rgs : Any = None
-    chroms : Any = None
-    """
-    ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
-    sfs_state_ix = alt_ix + ref_ix  # states used in sfs
-    all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral
-    sfs_state_flipped = [
-        v.replace("alt", "ref") if "alt" in v else v.replace("ref", "alt")
-        for v in sfs_state_ix
-    ]
-
-    if cont_id is not None:
-        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
-        all_state_ix.update([cont_ref, cont_alt])
-    if ancestral is not None:
-        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
-        all_state_ix.update([anc_ref, anc_alt])
-
-    rgs, OBS2RG = make_obs2rg(df.rg)
-
-    snp = df[list(all_state_ix)].reset_index().drop_duplicates()
-
-    chroms = pd.unique(snp.chrom)
-    haplo_chroms, haplo_snps = get_haploid_stuff(snp, chroms, sex)
-
-    if cont_id is None:
-        psi = np.zeros_like(SNP2SFS)
-    else:
-        psi = snp[cont_alt] / (snp[cont_alt] + snp[cont_ref] + 1e-100)
-
-    data = SlugData(
-        ALT=df.talt.to_numpy(),
-        REF=df.tref.to_numpy(),
-        psi=psi,
-        OBS2RG=OBS2RG,
-        OBS2SNP=df.index.get_level_values("snp_id").to_numpy(),
-        SNP2SFS=SNP2SFS,
-        haploid_snps=haplo_snps,
-        states=sfs_state_ix,
-        rgs=rgs,
-        sex=sex,
-        chroms=chroms,
-        haplo_chroms=haplo_chroms,
-    )
-
-    logging.debug("done creating data")
-    return data, sfs
 
 
 @njit

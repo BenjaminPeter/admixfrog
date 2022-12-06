@@ -65,46 +65,6 @@ def p_snps_given_gt(P, c, error, IX, gt_mode=False):
     return read2snp_emissions(read_emissions, IX.n_snps, IX.OBS2SNP)
 
 
-# @njit(fastmath=True)
-def get_po_given_c2(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
-    """
-    UNUSED, as cython version appears to be faster
-    """
-    ll = np.zeros(1)
-    BIN = obs2bin[rg2obs]
-    SNP = obs2snp[rg2obs]
-    for g in range(3):
-        p = c * P_cont[rg2obs] + (1.0 - c) * g / 2.0
-        p = p * (1 - e) + (1 - p) * e
-        p = O[rg2obs] * np.log(p) + (N[rg2obs] - O[rg2obs]) * np.log(1 - p)
-        ll += np.sum(Z[BIN] * pg[SNP, :, g] * p[:, np.newaxis])
-    return ll
-
-
-@njit
-def get_po_given_c(c, e, O, N, P_cont, Z, pg, rg2obs, obs2bin, obs2snp):
-    """
-    UNUSED, as cython version appears to be faster
-    """
-
-    n_obs = len(rg2obs)
-    n_states = pg.shape[1]
-    ll = np.zeros(1)
-    for i in range(n_obs):
-        obs = rg2obs[i]
-        bin_ = obs2bin[obs]
-        # BIN = obs2bin[rg2obs[i]]
-        # SNP = obs2snp[rg2obs[i]]
-        snp = obs2snp[obs]
-        for g in range(3):
-            p = c * P_cont[obs] + (1.0 - c) * g / 2.0
-            p = p * (1 - e) + (1 - p) * e
-            p = O[obs] * np.log(p) + (N[obs] - O[obs]) * np.log(1 - p)
-            for s in range(n_states):
-                ll += Z[bin_, s] * pg[snp, s, g] * p
-    return ll
-
-
 def update_contamination(cont, error, P, Z, pg, IX, libs):
     """
     update emissions by maximizing contamination parameter

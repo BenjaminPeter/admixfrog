@@ -218,8 +218,8 @@ def update_emission_stuff(
     if cond_Ftau:
         delta = update_Ftau(F, tau, PG, P, IX, est_options)
         if delta < 1e-5:  # when we converged, do not update F
-            # O["est_F"], O["est_tau"] = False, False
-            # cond_Ftau, cond_F = False, False
+            O["est_F"], O["est_tau"] = False, False
+            cond_Ftau, cond_F = False, False
             logging.info("stopping Ftau updates")
     if cond_Ftau or cond_cont:
         s_scaling = update_snp_prob(
@@ -410,11 +410,8 @@ def load_admixfrog_data(
         logging.debug(f"endogenous cov: {mean_endo_cov}")
         logging.debug(f"fake contamination cov: {target_cont_cov}")
 
-        try:
-            c_ref = np.random.poisson((1 - f_cont) * target_cont_cov)
-            c_alt = np.random.poisson(f_cont * target_cont_cov)
-        except ValueError:
-            raise ValueError()
+        c_ref = np.random.poisson((1 - f_cont) * target_cont_cov)
+        c_alt = np.random.poisson(f_cont * target_cont_cov)
         logging.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
         logging.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
         df.tref += c_ref
