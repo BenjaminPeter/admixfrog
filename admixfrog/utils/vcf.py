@@ -162,7 +162,7 @@ def vcf_to_ref(
                     D = defaultdict(int)
                     # rec stuff
                     if rec_file is None:
-                        map_ = row.pos * rec_rate
+                        map_ = row.pos * rec_rate * 100
                         ref.write(
                             f"{row.chrom},{row.pos},{row.ref},{row.alts[alt_ix]},{map_},"
                         )
@@ -175,9 +175,7 @@ def vcf_to_ref(
                             slope = (R1[map_ids] - R0[map_ids]) / (
                                 R1[pos_id] - R0[pos_id]
                             )
-                            map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) / (
-                                R1[pos_id] - R0[pos_id]
-                            )
+                            map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) 
                         elif row.pos > R1[pos_id]:
                             try:
                                 while row.pos > R1[pos_id]:
@@ -190,9 +188,7 @@ def vcf_to_ref(
                                 slope = (R1[map_ids] - R0[map_ids]) / (
                                     R1[pos_id] - R0[pos_id]
                                 )
-                                map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) / (
-                                    R1[pos_id] - R0[pos_id]
-                                )
+                                map_ = R0[map_ids] + slope * (row.pos - R0[pos_id])
 
                         ref.write(
                             f"{row.chrom},{row.pos},{row.ref},{row.alts[alt_ix]},"
