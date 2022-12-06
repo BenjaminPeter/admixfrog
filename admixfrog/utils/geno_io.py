@@ -44,7 +44,6 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
 
     with open(f"{fname}.geno", "rb") as f:
         head = f.read(48).strip(b"\x00").split()
-        print(head)
         assert head[0] == b"GENO"
         n_ind, n_snp = int(head[1]), int(head[2])
         hash_ind, hash_snp = head[3:]
