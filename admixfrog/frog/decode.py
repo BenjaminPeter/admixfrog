@@ -128,7 +128,7 @@ def post_trans(trans, emissions, beta, beta_prev, n):
     return beta / beta_prev / n * trans * emissions
 
 
-#@njit
+@njit
 def pred_sims_rep(
     trans,
     emissions,
