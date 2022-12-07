@@ -1,5 +1,5 @@
 import logging
-from numba import njit, int8
+from numba import njit, int64
 from numba.typed import List
 import pandas as pd
 from collections import Counter
@@ -15,6 +15,7 @@ def decode_runs(seq, homo_ids, het_ids, roh_ids):
 
     n_raw_states = n_homo
 
+
     #diploid to haploid dict
     D2H = np.zeros((n_homo + n_het + n_roh, 2), dtype="i")
     for i in range(n_homo):
@@ -27,7 +28,6 @@ def decode_runs(seq, homo_ids, het_ids, roh_ids):
             n_raw_states = het_ids[i][1] + 1
     for i in range(n_roh):
         D2H[i + n_homo + n_het] = roh_ids[i]
-
 
     # init list of ints, numba needs typing
     runs = [[(i, i, i) for i in range(0)] for i in range(n_raw_states)]  # run lengths
@@ -128,7 +128,7 @@ def post_trans(trans, emissions, beta, beta_prev, n):
     return beta / beta_prev / n * trans * emissions
 
 
-@njit
+#@njit
 def pred_sims_rep(
     trans,
     emissions,
@@ -179,9 +179,9 @@ def pred_sims_single(
     sims = []
 
             
-    homo_list = List(states.homo_ids) if len(states.homo_ids) else List.empty_list(int8)
-    het_list = List(states.het_ids) if len(states.het_ids) else List.empty_list(int8)
-    roh_list = List(states.roh_ids) if len(states.roh_ids) else List.empty_list(int8)
+    homo_list = List(states.homo_ids) if len(states.homo_ids) else List.empty_list(int64)
+    het_list = List(states.het_ids) if len(states.het_ids) else List.empty_list(int64)
+    roh_list = List(states.roh_ids) if len(states.roh_ids) else List.empty_list(int64)
     for it in range(n_sims):
         runs = pred_sims_rep(
             trans,
@@ -219,7 +219,6 @@ def pred_sims(
     n_sims=100,
     decode=True,
     keep_loc=False,
-    est_inbreeding=False,
 ):
     """simulate runs through the model using posterior parameter.
 
@@ -237,7 +236,6 @@ def pred_sims(
     n_sims: number of reps
     decode: whether diploid states are decoded into haploid ones
     keep_loc: whether location info should be kept
-    est_inbreeding: whether inbred states are permitted
 
     """
     output = []

@@ -565,10 +565,15 @@ def run_admixfrog(
             n=n,
             states=states,
             n_sims=n_post_replicates,
+            decode = not est["est_inbreeding"],
             keep_loc=keep_loc,
         )
         df_pred["chrom"] = [IX.diplo_chroms[i] for i in df_pred.chrom.values]
-        df_pred["state"] = [states[i] for i in df_pred.state.values]
+        if est['est_inbreeding']:
+            l = [*states.state_names]
+            df_pred["state"] = [l[i] for i in df_pred.state.values]
+        else:
+            df_pred["state"] = [states[i] for i in df_pred.state.values]
 
         if len(bhap) > 0:
             df_pred_hap = pred_sims(
@@ -579,7 +584,6 @@ def run_admixfrog(
                 n=nhap,
                 states=states,
                 n_sims=n_post_replicates,
-                est_inbreeding=est["est_inbreeding"],
                 keep_loc=keep_loc,
                 decode=False,
             )
