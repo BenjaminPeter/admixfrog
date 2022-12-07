@@ -10,6 +10,31 @@ def test_basic(script_runner):
     print(ret.stderr)
     assert ret.success
 
+def test_slug_input(script_runner):
+    """case where we generate input file"""
+    cmd = 'admixfrog-bam2 --bam data/oase_chr{CHROM}.bam '
+    cmd += ' --ref data/ref_A1240k.csv.xz --out data/Oase.sfs.in.xz '
+    cmd += ' --chroms 9,X --force-bam'
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(*args, cwd='tests')
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
+def test_slug_input_plus(script_runner):
+    """case where we run admixslug from bam"""
+    cmd = 'admixslug --bam data/oase_chr{CHROM}.bam '
+    cmd += ' --ref data/ref_A1240k.csv.xz --out res/test_sfs2 '
+    cmd += ' --chroms 9,X --force-bam --states AFR NEA'
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(*args, cwd='tests')
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
+
 def test_binning(script_runner):
     """test case 2 with binning"""
     cmd = 'admixslug --infile data/oase_chr9_sfs.in.xz --ref data/ref_A1240k.csv.xz '

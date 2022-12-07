@@ -180,5 +180,4 @@ def bam2():
     else:
         del args["vcfgt"]
         del args["target"]
-        del args["chroms"]
         process_bam2(**args)

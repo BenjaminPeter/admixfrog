@@ -208,12 +208,13 @@ def run_sfs():
                                  regenerate"""
                 )
             logging.info("creating input from bam file")
-            process_bam(
+            process_bam2(
                 outfile=target_pars["target_file"],
                 bamfile=target_pars["bamfile"],
                 ref=V["ref_files"][0],
                 deam_cutoff=target_pars["deam_cutoff"],
                 length_bin_size=target_pars["length_bin_size"],
+                chroms=reffile_pars["chroms"],
             )
         elif target_pars["vcfgt"] is not None and target_pars["target"] is not None:
             target_pars["target_file"] = V["outname"] + ".in.xz"

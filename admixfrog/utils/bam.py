@@ -245,6 +245,7 @@ def process_bam2(
     deam_cutoff,
     length_bin_size,
     random_read_sample=False,
+    chroms=None,
     **kwargs,
 ):
     """generate 2nd generation input file from bam-file
@@ -252,7 +253,9 @@ def process_bam2(
     chrom, pos, tref, talt, lib, len, deam, score
     """
     blocks = RefIter(ref)
-    sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks)
+    chroms = parse_chroms(chroms)
+    sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks, 
+                                                     chroms=chroms)
 
     default_filter.update(kwargs)
     logging.info("Filter is %s", default_filter)
