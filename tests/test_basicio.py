@@ -63,6 +63,17 @@ def test_run_from_bam_rename(script_runner):
     print(ret.stderr)
     assert ret.success
 
+def test_run_from_bam2_rename(script_runner):
+    cmd = 'admixfrog --bam tests/data/oase_chr9.bam --ref tests/data/ref_A1240k.csv.xz '
+    cmd += ' --out tests/res/test_bam22 --force-infile -b 100000 -P'
+    cmd += ' --states AFK ARC=NEA+DEN --cont-id AFK --bin-reads --len-bin-size 100'
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(*args)
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
 
 def test_run_from_bam_yaml(script_runner):
     cmd = 'admixfrog --bam data/oase_chr9.bam --ref data/ref_A1240k.csv.xz '

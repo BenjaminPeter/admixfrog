@@ -17,7 +17,7 @@ from .utils.vcf import (
 )
 from .utils.states import States
 from .utils.log import setup_log
-from .utils.bam import process_bam
+from .utils.bam import process_bam, process_bam2
 from .options import INFILE_OPTIONS, REFFILE_OPTIONS, GENO_OPTIONS
 from .options import ALGORITHM_OPTIONS
 from .options import add_output_options, add_target_file_options, add_rle_options
@@ -281,13 +281,27 @@ def run_frog():
                                  regenerate"""
                 )
             logging.info("creating input from bam file")
-            process_bam(
-                outfile=target_pars["target_file"],
-                bamfile=target_pars["bamfile"],
-                ref=V["ref_files"][0],
-                deam_cutoff=target_pars["deam_cutoff"],
-                length_bin_size=target_pars["length_bin_size"],
-            )
+            if algo_pars['bin_reads']:
+                outfile = target_pars.pop('target_file')
+                target = target_pars.pop('target')
+                del target_pars['force_target_file']
+                del target_pars['vcfgt']
+                process_bam2(
+                    outfile=outfile,
+                    ref=V["ref_files"][0],
+                    chroms=reffile_pars['chroms'],
+                    **target_pars
+                )
+                target_pars['target'] = target
+                target_pars['target_file'] = outfile
+            else:
+                process_bam(
+                    outfile=target_pars["target_file"],
+                    bamfile=target_pars["bamfile"],
+                    ref=V["ref_files"][0],
+                    deam_cutoff=target_pars["deam_cutoff"],
+                    length_bin_size=target_pars["length_bin_size"],
+                )
         elif target_pars["vcfgt"] is not None and target_pars["target"] is not None:
             target_pars["target_file"] = V["outname"] + ".in.xz"
             if (
