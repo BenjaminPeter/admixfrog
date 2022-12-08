@@ -1,6 +1,7 @@
 import logging
-from numba import njit, int64
+from numba import njit, uint8
 from numba.typed import List
+from numba.types import UniTuple
 import pandas as pd
 from collections import Counter
 import numpy as np
@@ -179,9 +180,9 @@ def pred_sims_single(
     sims = []
 
             
-    homo_list = List(states.homo_ids) if len(states.homo_ids) else List.empty_list(int64)
-    het_list = List(states.het_ids) if len(states.het_ids) else List.empty_list(int64)
-    roh_list = List(states.roh_ids) if len(states.roh_ids) else List.empty_list(int64)
+    homo_list = List(states.homo_ids) if len(states.homo_ids) else List.empty_list(uint8)
+    het_list = List(states.het_ids) if len(states.het_ids) else List.empty_list(UniTuple(uint8, 2))
+    roh_list = List(states.roh_ids) if len(states.roh_ids) else List.empty_list(uint8)
     for it in range(n_sims):
         runs = pred_sims_rep(
             trans,
@@ -190,8 +191,8 @@ def pred_sims_single(
             alpha0,
             n,
             homo_list, het_list, roh_list,
-            decode,
-            keep_loc
+            decode=decode,
+            keep_loc=keep_loc
         )
 
 
