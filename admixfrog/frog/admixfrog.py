@@ -5,7 +5,7 @@ import yaml
 import logging
 from collections import Counter, defaultdict
 from ..utils.io import load_read_data, load_ref, filter_ref
-from ..utils.io import write_bin_table, write_pars_table, write_cont_table
+from ..utils.io import write_bin_table, write_pars_table, write_cont_table_frog
 from ..utils.io import write_snp_table, write_est_runs, write_sim_runs
 from ..utils.utils import bins_from_bed, data2probs, init_pars, Pars
 from ..utils.utils import guess_sex

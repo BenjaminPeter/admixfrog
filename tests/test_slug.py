@@ -50,7 +50,7 @@ def test_slug_p_gt_diploid_flipped():
 def test_slug_p_gt_haploid():
     tau0 = np.arange(10) / 10.0
     res = np.empty((10, 3))
-    FLIPPED = np.zeros(1, dtype='bool')
+    FLIPPED = np.zeros_like(tau0, dtype='bool')
 
     p_gt_haploid(tau=tau0, SNP2SFS = np.arange(10, dtype=int), res=res,
                  FLIPPED=FLIPPED)
@@ -245,7 +245,7 @@ def test_delta_est():
 
 @pytest.mark.skip(reason="takes very long")
 def test_update_large():
-    """large random test dataset for perrrrformance testing
+    """large random test dataset for performance testing
 
     """
     n_obs = 1_000_000
