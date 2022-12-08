@@ -9,7 +9,7 @@ from ..gll.read_emissions2 import p_snps_given_gt
 from ..utils.input import load_read_data, load_ref, filter_ref
 from ..utils.output import write_pars_table
 from ..utils.output_slug import write_snp_table_slug, write_cont_table_slug
-from ..utils.output_slug import write_snp_table_slug2, write_sfs2, write_vcf
+from ..utils.output_slug import write_sfs2, write_vcf
 from ..utils.output_slug import write_f3_table, write_f4_table
 from ..utils.utils import data2probs, init_pars_sfs
 from ..utils.utils import guess_sex
@@ -191,7 +191,7 @@ def run_admixslug(
         )
 
     if output["output_snp"]:
-        df_snp = write_snp_table_slug2(
+        df_snp = write_snp_table_slug(
             df=df, data=data, posterior_gt=posterior_gt, outname=f"{outname}.snp.xz"
         )
 

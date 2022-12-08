@@ -52,21 +52,6 @@ def write_snp_table_slug(df, posterior_gt, data, outname=None):
     return snp_df
 
 
-def write_snp_table_slug2(df, posterior_gt, data, outname=None):
-    D = (
-        df.groupby(["chrom", "pos", "map", "ref", "alt"])
-        .agg({"tref": sum, "talt": sum})
-        .reset_index()
-    )
-
-    T = posterior_table_slug(pg=posterior_gt, data=data)
-    snp_df = pd.concat((D, T, pd.DataFrame(data.SNP2SFS, columns=["sfs"])), axis=1)
-    if outname is not None:
-        snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
-
-    return snp_df
-
-
 def write_vcf_header():
     s = """##fileformat=VCFv4.2\n"""
     s += '##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">\n'
