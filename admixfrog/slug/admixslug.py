@@ -8,7 +8,6 @@ from copy import deepcopy
 from ..gll.read_emissions2 import p_snps_given_gt
 from ..utils.io import load_read_data, load_ref, filter_ref
 from ..utils.io import write_bin_table, write_pars_table, write_cont_table
-from ..utils.io import write_snp_table, write_est_runs, write_sim_runs, write_sfs
 from ..utils.io import write_snp_table_slug, write_cont_table_slug
 from ..utils.io import write_snp_table_slug2, write_sfs2, write_vcf
 from ..utils.io import write_f3_table, write_f4_table
