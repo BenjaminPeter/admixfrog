@@ -6,11 +6,11 @@ from pprint import pprint
 from collections import Counter, defaultdict
 from copy import deepcopy
 from ..gll.read_emissions2 import p_snps_given_gt
-from ..utils.io import load_read_data, load_ref, filter_ref
-from ..utils.io import write_pars_table, 
-from ..utils.io import write_snp_table_slug, write_cont_table_slug
-from ..utils.io import write_snp_table_slug2, write_sfs2, write_vcf
-from ..utils.io import write_f3_table, write_f4_table
+from ..utils.input import load_read_data, load_ref, filter_ref
+from ..utils.output import write_pars_table
+from ..utils.output_slug import write_snp_table_slug, write_cont_table_slug
+from ..utils.output_slug import write_snp_table_slug2, write_sfs2, write_vcf
+from ..utils.output_slug import write_f3_table, write_f4_table
 from ..utils.utils import data2probs, init_pars_sfs
 from ..utils.utils import guess_sex
 from ..utils.states import States
@@ -85,11 +85,9 @@ def run_admixslug(
     if not est["est_contamination"] and init["c0"] == 0:
         cont_id = None
 
-    states = States.from_commandline(raw_states=states,
-                                     state_file=state_file,
-                                     ancestral=ancestral,
-                                     cont_id=cont_id)
-
+    states = States.from_commandline(
+        raw_states=states, state_file=state_file, ancestral=ancestral, cont_id=cont_id
+    )
 
     df, ix, sex, n_sites = load_admixslug_data_native(
         target_file=target_file,
@@ -118,7 +116,7 @@ def run_admixslug(
     pars = squarem(pars, data, controller)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
 
-    if controller.n_resamples > 0 or output['output_fstats']:
+    if controller.n_resamples > 0 or output["output_fstats"]:
         jk_pars_list = []
         jk_sfs = list()
 
@@ -235,7 +233,7 @@ def load_admixslug_data_native(
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
         high_cov_filter=filter.pop("filter_high_cov"),
-        make_bins=True
+        make_bins=True,
     )
 
     ref = load_ref(
@@ -274,13 +272,14 @@ def load_admixslug_data_native(
 
 def make_snp_ids(df):
     """integer id for each SNP with available data"""
+    df.reset_index("rg", inplace=True)
     snp_ids = df[~df.index.duplicated()].groupby(df.index.names).ngroup()
     snp_ids = snp_ids.rename("snp_id")
     snp_ids = pd.DataFrame(snp_ids)
     snp_ids.set_index("snp_id", append=True, inplace=True)
     df = snp_ids.join(df)
+    df.set_index("rg", inplace=True, append=True)
 
-    df.sort_index(inplace=True)
     return df
 
 

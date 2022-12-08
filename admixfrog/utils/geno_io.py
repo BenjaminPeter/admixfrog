@@ -7,7 +7,7 @@ import itertools
 import pandas as pd
 from collections.abc import Mapping
 from pprint import pprint
-from .io import filter_ref
+from .input import filter_ref
 import logging
 
 
@@ -64,7 +64,6 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
         names=["snp", "chrom", "map", "pos", "ref", "alt"],
     )
 
-
     # chromosome formatting
     snp.chrom = snp.chrom.astype(str)
     snp.loc[snp.chrom == "23", "chrom"] = "X"
@@ -77,7 +76,6 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     Y = pd.DataFrame(X[:, :n_ind, 0] + 2 * X[:, :n_ind, 1], columns=ix)
     Y.index = pd.MultiIndex.from_frame(snp[["chrom", "pos", "map", "ref", "alt"]])
     del X
-
 
     # set filtering for populations
     if pops is None:

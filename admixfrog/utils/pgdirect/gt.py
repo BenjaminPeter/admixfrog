@@ -81,7 +81,7 @@ class DiploidGT(GT):
         # self.record = None if record is None else record
 
     @lru_cache(maxsize=64)
-    def gt(self,  return_read=False,**kwargs):
+    def gt(self, return_read=False, **kwargs):
         if return_read:
             return Read(base=random.choice(self._gt))
         return self._gt
@@ -117,7 +117,7 @@ class HaploidGT(GT):
         super().__init__(gt, sample, chrom, pos)
         self._gt = unambiguous[self._gt]
 
-    def gt(self, return_read=False,**kwargs):
+    def gt(self, return_read=False, **kwargs):
         if return_read:
             return Read(base=self._gt)
         return self._gt
@@ -155,8 +155,8 @@ class ReadGT(GT):
         min_length=30,
         max_length=1000,
         minq=25,
-        minmapq=25
-           ):
+        minmapq=25,
+    ):
         if read.len < min_length or read.len > max_length:
             return False
         if read.bq < minq:
@@ -182,17 +182,11 @@ class ReadGT(GT):
         return [r for r in self._gt if self.qc(r, **kwargs)]
 
     @lru_cache(maxsize=64)
-    def gt(
-        self,
-        max_depth=400,
-        report_depth=False,
-        return_read=False,
-        **kwargs
-    ):
+    def gt(self, max_depth=400, report_depth=False, return_read=False, **kwargs):
         """assume random sampling for now
         self._gt is a list of Reads
         """
-        #print("READGT:: report_length", report_length)
+        # print("READGT:: report_length", report_length)
 
         NA = NA_READ if return_read else NA_
         r_iter = self.reads(**kwargs)
@@ -210,22 +204,21 @@ class ReadGT(GT):
         elif return_read:
             try:
                 rand_read = random.choice(r_iter)
-                return rand_read  #.base, rand_read.len, (*rand_read.deam), rand_read.pos_in_read
+                return rand_read  # .base, rand_read.len, (*rand_read.deam), rand_read.pos_in_read
             except IndexError:
-                return NA #-1, None, None, None
+                return NA  # -1, None, None, None
         else:
             try:
                 return random.choice(r_iter).base
             except IndexError:
                 return NA
 
-    def vcfgt(self, ref, alt, depth=True, coords=None,  **kwargs):
+    def vcfgt(self, ref, alt, depth=True, coords=None, **kwargs):
         if depth:
-            gt, d = self.gt(report_depth=depth,  **kwargs)
+            gt, d = self.gt(report_depth=depth, **kwargs)
         else:
             gt = self.gt(report_depth=depth, **kwargs)
 
-            
         if depth:
             if gt == NA:
                 return ".:0"
@@ -243,7 +236,6 @@ class ReadGT(GT):
 
             GT = "%d" % (gt.base != ref)
             return GT
-
 
 
 __all__ = ["GT", "GTNoData", "DiploidGT", "HaploidGT", "ReadGT"]

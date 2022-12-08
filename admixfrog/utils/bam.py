@@ -222,7 +222,9 @@ def process_bam(
     """generate input file from bam-file"""
     blocks = RefIter(ref)
     chroms = parse_chroms(chroms)
-    sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks, chroms=chroms)
+    sampleset = pg.CallBackSampleSet.from_file_names(
+        [bamfile], blocks=blocks, chroms=chroms
+    )
 
     default_filter.update(kwargs)
     logging.info("Filter is %s", default_filter)
@@ -254,8 +256,9 @@ def process_bam2(
     """
     blocks = RefIter(ref)
     chroms = parse_chroms(chroms)
-    sampleset = pg.CallBackSampleSet.from_file_names([bamfile], blocks=blocks, 
-                                                     chroms=chroms)
+    sampleset = pg.CallBackSampleSet.from_file_names(
+        [bamfile], blocks=blocks, chroms=chroms
+    )
 
     default_filter.update(kwargs)
     logging.info("Filter is %s", default_filter)

@@ -18,7 +18,7 @@ def norm(self):
 def update_ftau(old_F, old_tau, data, post_g, update_F=True):
     """updates the SFS parameters
 
-    tau represents the conditional SFS entry, i.e. what proportion of sites are 
+    tau represents the conditional SFS entry, i.e. what proportion of sites are
     derived in any particular SFS category
 
     F is the inbreeding coefficient, i.e. what proportion of sites coalesce

@@ -9,12 +9,11 @@ from math import ceil
 from .utils import rev_complement, Read
 
 
-
 class File(object):
     """Abstract File Handling Class
 
     Base class for handling streaming various genomic data sets.
-    Most likely, one of the derived :class:`VCFFile`, :class:`BamFile` or 
+    Most likely, one of the derived :class:`VCFFile`, :class:`BamFile` or
     :class:`FastaFile` will
     be used.
 
@@ -64,10 +63,7 @@ class File(object):
 
 
 class ComplexFile(File, ABC):
-    """Abstract class for jointly iterating bed file and data file
-
-
-    """
+    """Abstract class for jointly iterating bed file and data file"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,8 +84,7 @@ class ComplexFile(File, ABC):
 
     @abstractmethod
     def process_snp(self, snp_data):
-        """process one snp of data
-        """
+        """process one snp of data"""
         pass
 
     def _close_file(self):
@@ -122,7 +117,7 @@ class ComplexFile(File, ABC):
             # case 0: no data for chromosome
             if site is None:
                 yield self.no_data_default(target_chrom, target_pos)
-                #print("no chrom data", target_chrom, target_pos)
+                # print("no chrom data", target_chrom, target_pos)
                 continue
 
             # case 1: pos in bam not in target, advance bam
@@ -178,7 +173,7 @@ class VCFFile(ComplexFile):
         self._handle.subset_samples(sample_list)
         try:
             vcf = self._handle.fetch(contig=chrom)
-        except ValueError:  #chrom not found
+        except ValueError:  # chrom not found
             return iter([])
         return vcf
 
@@ -221,7 +216,7 @@ class BamFile(ComplexFile):
     ------
     note that pysam is ZERO-indexed; i.e. the positions are one less than
     what would be expected from e.g. running samtools pileup or checking
-    ucsc. 
+    ucsc.
 
     i.e. the first column of a bed file is what we need
 
@@ -277,13 +272,13 @@ class BamFile(ComplexFile):
     @staticmethod
     def cleanup_rg(rg):
         """simplified read-group
-        
+
         Parameters
         ----------
         rg : str
             read-group name to be simplified
-            
-        
+
+
         Returns
         -------
         simplified rg (underscore replaced by dash)
@@ -322,13 +317,13 @@ class BamFile(ComplexFile):
         particular position.
         For each read, it returns the tuple
         (rg, deam), base, len
-        where 
+        where
 
             - rg is the read group
             - deam is the deaination pattern
             - base is the particular base at this position
             - len is the total length of the read
-        
+
 
         Arguments
         ---------
@@ -370,15 +365,15 @@ class BamFile(ComplexFile):
         try:
             ref_base = ref_seq[pos_in_read].upper()
         except IndexError:
-            #print("no ref", ref_seq, pos_in_read, A.cigarstring)
-            #print("no re2", A.query_sequence, pos_in_read, A.cigarstring)
+            # print("no ref", ref_seq, pos_in_read, A.cigarstring)
+            # print("no re2", A.query_sequence, pos_in_read, A.cigarstring)
             return None
 
         try:
             read_group = BamFile.cleanup_rg(A.get_tag("RG"))
         except KeyError:
             try:
-                #guess RG from XI XJ tag, which in some bam files are p7/p5 ix
+                # guess RG from XI XJ tag, which in some bam files are p7/p5 ix
                 read_group = f'{A.get_tag("XI")}-{A.get_tag("XJ")}'
             except KeyError:
                 read_group = "NONE"
@@ -401,7 +396,7 @@ class BamFile(ComplexFile):
                 mapq,
                 A.is_reverse,
                 pos_in_read,
-                deam_full
+                deam_full,
             )
             return tpl
         else:
@@ -425,15 +420,22 @@ class BamFile(ComplexFile):
 
 
 class BamFileFilter(BamFile):
-    def __init__(self, outfile, min_length=0, minq=0, pos_in_read_cutoff=0,
-                 chroms=None,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        outfile,
+        min_length=0,
+        minq=0,
+        pos_in_read_cutoff=0,
+        chroms=None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         if chroms is None:
             bam = pysam.AlignmentFile(self.fname.format(CHROM="1"))
         else:
             bam = pysam.AlignmentFile(self.fname.format(CHROM=chroms[0]))
-        self.outfile = pysam.AlignmentFile(outfile, 'wb', template=bam)
+        self.outfile = pysam.AlignmentFile(outfile, "wb", template=bam)
         self.min_length = min_length
         self.minq = minq
         self.pos_in_read_cutoff = pos_in_read_cutoff
@@ -448,7 +450,7 @@ class BamFileFilter(BamFile):
                 cur_chrom = target_chrom
                 try:
                     read = next(reads)
-                except StopIteration: #no sites in bam
+                except StopIteration:  # no sites in bam
                     break
 
             # case 1: pos in bam not in target, advance bam
@@ -468,7 +470,6 @@ class BamFileFilter(BamFile):
                 # print("gt_iter", i, target_pos)
                 yield self.process_snp(read)
                 read = next(reads)
-                
 
     def process_snp(self, A):
         if "I" in A.cigarstring or "D" in A.cigarstring or "N" in A.cigarstring:
@@ -478,7 +479,7 @@ class BamFileFilter(BamFile):
         if A.mapping_quality < self.minq:
             return -2
         self.outfile.write(A)
-        return 1 
+        return 1
 
     def no_data_default(self, *args, **kwargs):
         return -3

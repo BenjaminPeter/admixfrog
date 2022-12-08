@@ -11,24 +11,24 @@ from .utils import posterior_table, posterior_table_slug
 
 
 def write_cont_table_frog(df, cont, error, tot_n_snps, outname=None):
-    df_libs = pd.DataFrame(cont.items(), columns=["lib", "cont"])
-    df_error = pd.DataFrame(error.items(), columns=["lib", "error"])
+    df_libs = pd.DataFrame(cont.items(), columns=["rg", "cont"])
+    df_error = pd.DataFrame(error.items(), columns=["rg", "error"])
     df_libs = df_libs.merge(df_error)
 
-    rgs, deams, len_bins = [], [], []
-    for l in df_libs.lib:
+    libs, deams, len_bins = [], [], []
+    for l in df_libs.rg:
         try:
-            rg, len_bin, deam = l.split("_")
+            lib, len_bin, deam = l.split("_")
         except ValueError:
-            rg, len_bin, deam = l, 0, "NA"
-        rgs.append(rg)
+            lib, len_bin, deam = l, 0, "NA"
+        libs.append(lib)
         deams.append(deam)
         len_bins.append(len_bin)
-    df_libs["rg"] = rgs
+    df_libs["lib"] = libs
     df_libs["len_bin"] = len_bins
     df_libs["deam"] = deams
 
-    CC = df.groupby(["lib"]).agg(({"tref": sum, "talt": sum})).reset_index()
+    CC = df.groupby(["rg"]).agg(({"tref": sum, "talt": sum})).reset_index()
     CC["n_reads"] = CC.tref + CC.talt
     del CC["tref"]
     del CC["talt"]
@@ -77,6 +77,7 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
     else:
         T = posterior_table(G, Z, IX)
         snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+        snp_df["random_read"] = snp_df["random_read"].astype(int)
 
     snp_df.sort_values(["chrom", "pos"], inplace=True)
     if outname is not None:
@@ -93,4 +94,3 @@ def write_est_runs(df, outname=None):
 def write_sim_runs(df, outname=None):
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
-

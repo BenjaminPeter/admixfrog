@@ -14,6 +14,31 @@ def test_basic(script_runner):
     print(ret.stderr)
     assert ret.success
 
+def test_autosomes(script_runner):
+    """test case 1"""
+    cmd = 'admixfrog --infile data/oase_test.in.xz --ref data/ref_A1240k_9X.csv.xz '
+    cmd += ' --out res/test_basic --seed 13 --force-infile  '
+    cmd += '--states AFR NEA -b 100000 -P --autosomes'
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(*args, cwd='tests')
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
+def test_twostates(script_runner):
+    """test case 1"""
+    cmd = 'admixfrog --infile data/oase_test.in.xz --ref data/ref_A1240k_9X.csv.xz '
+    cmd += ' --out res/test_basic --seed 13 --force-infile  '
+    cmd += '--states AFR NEA -b 100000 -P --homo-states AFR --het-states AFRNEA'
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(*args, cwd='tests')
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
+
 def test_snpmode(script_runner):
     """test case 1"""
     cmd = 'admixfrog --infile data/oase_test.in.xz --ref data/ref_A1240k_9X.csv.xz '

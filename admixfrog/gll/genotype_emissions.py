@@ -90,8 +90,8 @@ def update_snp_prob(
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
     """
-    cflat = np.array([cont[lib] for lib in P.lib])
-    eflat = np.array([error[lib] for lib in P.lib])
+    cflat = np.array([cont[rg] for rg in P.rg])
+    eflat = np.array([error[rg] for rg in P.rg])
 
     # get P(G | Z)
     # save in the same array as SNP - size is the same, and
@@ -131,7 +131,6 @@ def update_Ftau(F, tau, PG, P, IX, est_options):
         if est_options["est_tau"]:
             init.append(tau[i])
             bounds.append((-10, 20))
-
 
         prev = f(init)
         OO = minimize(f, init, bounds=bounds, method="L-BFGS-B")

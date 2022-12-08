@@ -9,7 +9,7 @@ import pdb
 
 class SampleSet(object):
     """
-    Represents a set of samples that are processed concurrently 
+    Represents a set of samples that are processed concurrently
     using common set of variants saved in pos
 
     This class is used to jointly iterate over several files.
@@ -21,10 +21,10 @@ class SampleSet(object):
        from pgdirect import *
        from pybedtools import BedTool
 
-    .. testcode:: 
+    .. testcode::
 
        bed = BedTool("data/sample.bed")
-       files = ["data/sample_{CHROM}.vcf.gz", "data/sample_spy.bam", 
+       files = ["data/sample_{CHROM}.vcf.gz", "data/sample_spy.bam",
            "data/chimp.fa.gz"]
        s = SampleSet.from_file_names(files, bed=bed, max_snps=10)
 
@@ -46,7 +46,7 @@ class SampleSet(object):
     samples : list<File>
         A list of File object this FileSet contains
     bed : bed file handle
-        An iterator over genomic positions to read. Can be constructed from a 
+        An iterator over genomic positions to read. Can be constructed from a
     ref : FastaFile
         Fasta File of desired reference allele
     mode : int
@@ -70,9 +70,9 @@ class SampleSet(object):
         end=100000000000000,
         mode=0,
     ):
-        #if type(bed) is BedTool:
+        # if type(bed) is BedTool:
         self.bed = bed
-        #else:
+        # else:
         #    self.bed = BedTool(bed)
         self.samples = samples
         if files is None:
@@ -109,13 +109,13 @@ class SampleSet(object):
         This is one of the ways a SampleSet object can be created. It takes in file names
         and returns all samples contained in this file. It's propbably the easiest to use,
         as no preliminary steps are necessary
-        
+
         Arguments
         ----------
         file_names : list<File>
             the names of all the files being loaded. By default, all samples are
             loaded
-        
+
         Returns
         -------
         sample_set : cls
@@ -135,12 +135,12 @@ class SampleSet(object):
     @classmethod
     def from_samples(cls, samples, *args, **kwargs):
         """generate SampleSet object containing specified samples
-        
+
         Args:
             samples (iter[Sample]) : samples to be contained in analysis
-            *args : Further 
+            *args : Further
             **kwargs : type
-        
+
         Returns
         -------
         sample_set : cls
@@ -168,17 +168,19 @@ class SampleSet(object):
             starting position
         end : int (default 10^10)
             ending position
-        
+
         Returns
         -------
         it : iterator
             iterator yielding tuple (chrom, pos) for each position to be parsed
         """
         if chrom is None:
-            if 'pos' in bed: # custom file with chrom pos
-                snp_iterator = zip(bed.chrom.astype(str), bed.pos-1)
+            if "pos" in bed:  # custom file with chrom pos
+                snp_iterator = zip(bed.chrom.astype(str), bed.pos - 1)
             else:
-                pos = (zip(itertools.cycle([b.chrom]), range(b.start, b.end)) for b in bed)
+                pos = (
+                    zip(itertools.cycle([b.chrom]), range(b.start, b.end)) for b in bed
+                )
                 snp_iterator = itertools.chain.from_iterable(pos)
         else:
             chrom = str(chrom)
@@ -212,8 +214,7 @@ class SampleSet(object):
         return sample in self.samples
 
     def gt(self, verbose=False):
-        """iterates over all genotypes in all samples
-        """
+        """iterates over all genotypes in all samples"""
         for i, ((chrom, pos), file_) in enumerate(
             zip(self.snp_iterator, self.file_iter)
         ):
@@ -228,16 +229,16 @@ class SampleSet(object):
 
 class BlockedSampleSet(SampleSet):
     """A SampleSet with output created in Blocks, i.e. sets of SNP or chromosome
-    
+
     .. testsetup::
 
        from pgdirect import *
        from pybedtools import BedTool
 
-    .. testcode:: 
+    .. testcode::
 
        bed = BedTool("data/sample.bed")
-       files = ["data/sample_{CHROM}.vcf.gz", "data/sample_spy.bam", 
+       files = ["data/sample_{CHROM}.vcf.gz", "data/sample_spy.bam",
            "data/chimp.fa.gz"]
        sblock = SingleBlocks(bed, max_snps=10)
        s = BlockedSampleSet.from_file_names(files, blocks=sblock)
@@ -275,9 +276,7 @@ class BlockedSampleSet(SampleSet):
 
 
 class CallBackSampleSet(BlockedSampleSet):
-    """a sample set object that allows multiple things be done on the fly
-
-    """
+    """a sample set object that allows multiple things be done on the fly"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

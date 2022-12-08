@@ -114,7 +114,6 @@ def write_vcf(df, data, posterior_gt, genotype_ll, sample_name="test", outname=N
             f.write(write_vcf_line(l, flipped))
 
 
-
 def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=["n_snps"])
 

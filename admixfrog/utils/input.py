@@ -27,7 +27,8 @@ def load_ref(
     label_states = list(states.state_dict.keys())
     EXT = ["_ref", "_alt"]
     D = dict(
-        ((k + e), (v + e)) for ((k, v), e) in itertools.product(states.state_dict.items(), EXT)
+        ((k + e), (v + e))
+        for ((k, v), e) in itertools.product(states.state_dict.items(), EXT)
     )
 
     if ancestral is not None:
@@ -95,9 +96,9 @@ def load_ref(
     ref = ref.rename(D, axis=1).groupby(level=0, axis=1).agg(sum)
 
     if autosomes_only:
-        ref = ref[ref.chrom != "X"]
-        ref = ref[ref.chrom != "Y"]
-        ref = ref[ref.chrom != "mt"]
+        ref = ref[ref.index.get_level_values("chrom") != "X"]
+        ref = ref[ref.index.get_level_values("chrom") != "Y"]
+        ref = ref[ref.index.get_level_values("chrom") != "mt"]
 
     return ref
 
@@ -262,9 +263,7 @@ def load_read_data(
         - len_bin: bin id for length (max 256 bins)
         - n_bin/n_exact (number of reads in each bin) or each category
     """
-    dtype_mandatory = dict(
-        chrom='object', pos=np.uint32, talt=np.uint8, tref=np.uint8
-    )
+    dtype_mandatory = dict(chrom="object", pos=np.uint32, talt=np.uint8, tref=np.uint8)
 
     dtype_optional = dict(
         lib=str, rg=str, score=int, deam=np.int16, len=np.uint8, dmgpos=bool
@@ -302,11 +301,13 @@ def load_read_data(
 
     if make_bins:
         ix = bin_reads(data, deam_bin_size, len_bin_size)
-        data = data[["rg", "tref", "talt"]].reset_index().set_index(["chrom", "pos", "rg"])
+        data = (
+            data[["rg", "tref", "talt"]].reset_index().set_index(["chrom", "pos", "rg"])
+        )
         data = data.groupby(data.index.names, observed=True).sum()
         return data, ix
     else:
-        return data
+        return data, None
 
 
 @njit
@@ -323,5 +324,3 @@ def nfp(chrom, pos, n_snps, filter_pos):
             prev_pos = pos[i]
 
     return kp
-
-

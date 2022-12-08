@@ -4,9 +4,11 @@ import itertools
 import yaml
 import logging
 from collections import Counter, defaultdict
-from ..utils.io import load_read_data, load_ref, filter_ref
-from ..utils.io import write_bin_table, write_pars_table, write_cont_table_frog
-from ..utils.io import write_snp_table, write_est_runs, write_sim_runs
+from ..utils.input import load_read_data, load_ref, filter_ref
+from ..utils.output import write_pars_table
+from ..utils.output_frog import write_bin_table, write_cont_table_frog
+from ..utils.output_frog import write_snp_table, write_est_runs, write_sim_runs
+from ..utils.output_slug import write_cont_table_slug
 from ..utils.utils import bins_from_bed, data2probs, init_pars, Pars
 from ..utils.utils import guess_sex
 from ..utils.states import States
@@ -242,40 +244,38 @@ def update_emission_stuff(
 
     return scaling
 
-def load_admixfrog_data_geno(geno_file,
-                             states,
-                             ancestral,
-                             filter=filter,
-                             target_ind=None,
-                             guess_ploidy=False,
-                             pos_mode=False
-                             ):
-        df = read_geno_ref(
-            fname=geno_file,
-            pops=states.state_dict,
-            target_ind=target_ind,
-            guess_ploidy=guess_ploidy,
-        )
-        df = filter_ref(df, states, ancestral=ancestral, **filter)
-        df["lib"] = "lib0"
-        if pos_mode:
-            df.reset_index("map", inplace=True)
-            df.map = df.index.get_level_values("pos")
-            df.set_index("map", append=True, inplace=True)
-    
-        cats = pd.unique(df.index.get_level_values('chrom'))
-        chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
 
-        if not df.index.is_unique:
-            dups = df.index.duplicated()
-            logging.warning(
-                f"\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m"
-            )
-            logging.warning(" ==> strongly consider re-filtering input file")
-            df = df[~dups]
-        return df
+def load_admixfrog_data_geno(
+    geno_file,
+    states,
+    ancestral,
+    filter=filter,
+    target_ind=None,
+    guess_ploidy=False,
+    pos_mode=False,
+):
+    df = read_geno_ref(
+        fname=geno_file,
+        pops=states.state_dict,
+        target_ind=target_ind,
+        guess_ploidy=guess_ploidy,
+    )
+    df = filter_ref(df, states, ancestral=ancestral, **filter)
+    df["rg"] = "rg0"
+    if pos_mode:
+        df.reset_index("map", inplace=True)
+        df.map = df.index.get_level_values("pos")
+        df.set_index("map", append=True, inplace=True)
 
+    cats = pd.unique(df.index.get_level_values("chrom"))
+    chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
 
+    if not df.index.is_unique:
+        dups = df.index.duplicated()
+        logging.warning(f"\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m")
+        logging.warning(" ==> strongly consider re-filtering input file")
+        df = df[~dups]
+    return df
 
 
 def load_admixfrog_data(
@@ -296,6 +296,9 @@ def load_admixfrog_data(
     map_col="map",
     fake_contamination=0,
     autosomes_only=False,
+    bin_reads=False,
+    deam_bin_size=100000,
+    len_bin_size=10000,
 ):
     """
     we have the following possible input files
@@ -307,30 +310,29 @@ def load_admixfrog_data(
 
     "1. only geno file"
     if ref_files is None and target_file is None and geno_file and target:
-        df = load_admixfrog_data_geno(geno_file=geno_file, 
-                                      states = states,
-                                      ancestral=ancestral,
-                                      filter=filter,
-                                      target_ind=target,
-                                      guess_ploidy=guess_ploidy,
-                                      pos_mode = pos_mode
-                                      )
+        df = load_admixfrog_data_geno(
+            geno_file=geno_file,
+            states=states,
+            ancestral=ancestral,
+            filter=filter,
+            target_ind=target,
+            guess_ploidy=guess_ploidy,
+            pos_mode=pos_mode,
+        )
+        ix = None
 
     elif ref_files and target_file and (geno_file is None) and (target is None):
         "2. standard input"
         hcf = filter.pop("filter_high_cov")
 
-        #load reference first
+        # load reference first
         ref = load_ref(
             ref_files, states, cont_id, ancestral, autosomes_only, map_col=map_col
         )
         ref = filter_ref(ref, states, ancestral=ancestral, **filter)
 
         if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-            data = load_read_data(
-                target_file,
-                make_bins=False
-            )
+            data, ix = load_read_data(target_file, make_bins=False)
             assert np.max(data.tref + data.talt) <= 2
             assert np.min(data.tref + data.talt) >= 0
             if not data.index.is_unique:
@@ -341,14 +343,16 @@ def load_admixfrog_data(
                 logging.warning(" ==> strongly consider re-filtering input file")
                 data = data[~dups]
         else:
-            data = load_read_data(
+            data, ix = load_read_data(
                 target_file,
                 split_lib,
                 downsample,
-                make_bins=False,
+                make_bins=bin_reads,
+                len_bin_size=len_bin_size,
+                deam_bin_size=deam_bin_size,
                 high_cov_filter=hcf,
             )
-            data = data[['lib', 'tref', 'talt']]
+            # data = data[["rg", "tref", "talt"]]
 
         # sexing stuff
         if sex is None:
@@ -375,14 +379,14 @@ def load_admixfrog_data(
     else:
         raise NotImplementedError("ambiguous input")
 
-    #sort by chromosome name. PANDAS is VERY DUMB WTF
-    cats = pd.unique(df.index.get_level_values('chrom'))
+    # sort by chromosome name. PANDAS is VERY DUMB WTF
+    cats = pd.unique(df.index.get_level_values("chrom"))
     chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
 
     df.index = df.index.set_levels(df.index.levels[0].astype(chrom_dtype), level=0)
     df.reset_index(inplace=True)
-    df.sort_values(['chrom', 'pos'], inplace=True)
-    df.set_index(['chrom', 'pos', 'ref', 'alt', 'map'], inplace=True)
+    df.sort_values(["chrom", "pos"], inplace=True)
+    df.set_index(["chrom", "pos", "ref", "alt", "map"], inplace=True)
 
     # get ids of unique snps
     snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=True).ngroup()
@@ -417,7 +421,7 @@ def load_admixfrog_data(
         df.tref += c_ref
         df.talt += c_alt
 
-    return df, sex, tot_n_snps
+    return df, ix, sex, tot_n_snps
 
 
 def run_admixfrog(
@@ -451,6 +455,9 @@ def run_admixfrog(
     est=EST_DEFAULT,
     fake_contamination=0.0,
     filter=defaultdict(lambda: None),
+    bin_reads=False,
+    deam_bin_size=50000,
+    len_bin_size=1000,
     **kwargs,
 ):
     """admixture fragment inference
@@ -469,18 +476,20 @@ def run_admixfrog(
     if (not est["est_contamination"] and init["c0"] == 0) or gt_mode:
         cont_id = None
 
-    states = States.from_commandline(raw_states=states,
-                                     state_file=state_file,
-                                     ancestral=ancestral,
-                                     cont_id=cont_id,
-                                     homo_states=homo_states,
-                                     het_states=het_states,
-                                     est_inbreeding=est['est_inbreeding'])
+    states = States.from_commandline(
+        raw_states=states,
+        state_file=state_file,
+        ancestral=ancestral,
+        cont_id=cont_id,
+        homo_states=homo_states,
+        het_states=het_states,
+        est_inbreeding=est["est_inbreeding"],
+    )
 
     # by default, bin size is scaled by 10^6 - could be changed
     bin_size = bin_size if pos_mode else bin_size * 1e-6
 
-    df, sex, tot_n_snps = load_admixfrog_data(
+    df, ix, sex, tot_n_snps = load_admixfrog_data(
         target_file=target_file,
         ref_files=ref_files,
         geno_file=geno_file,
@@ -498,6 +507,9 @@ def run_admixfrog(
         fake_contamination=fake_contamination,
         filter=filter,
         autosomes_only=autosomes_only,
+        bin_reads=bin_reads,
+        deam_bin_size=deam_bin_size,
+        len_bin_size=len_bin_size,
     )
     logging.info("done loading data")
 
@@ -533,9 +545,23 @@ def run_admixfrog(
         df_pars = write_pars_table(pars, outname=f"{outname}.pars.yaml")
 
     if output["output_cont"]:
-        df_cont = write_cont_table(
-            df, pars.cont, pars.error, tot_n_snps, outname=f"{outname}.cont.xz"
-        )
+        if ix is None:
+            df_cont = write_cont_table_frog(
+                df, pars.cont, pars.error, tot_n_snps, outname=f"{outname}.cont.xz"
+            )
+        else:
+            rgs = dict((l, i) for i, l in enumerate(IX.rgs))
+            cont = [pars.cont[k] for k in rgs.keys()]
+
+            df_cont = write_cont_table_slug(
+                ix,
+                rgs,
+                cont,
+                tot_n_snps,
+                se=None,
+                outname=f"{outname}.cont.xz",
+            )
+            ix.to_csv(f"{outname}.ix.xz", index=False, compression="xz")
 
     if output["output_bin"] or output["output_rle"]:
         viterbi_path = viterbi(pars.alpha0, pars.trans, emissions)
@@ -565,11 +591,11 @@ def run_admixfrog(
             n=n,
             states=states,
             n_sims=n_post_replicates,
-            decode = not est["est_inbreeding"],
+            decode=not est["est_inbreeding"],
             keep_loc=keep_loc,
         )
         df_pred["chrom"] = [IX.diplo_chroms[i] for i in df_pred.chrom.values]
-        if est['est_inbreeding']:
+        if est["est_inbreeding"]:
             l = [*states.state_names]
             df_pred["state"] = [l[i] for i in df_pred.state.values]
         else:
@@ -594,9 +620,9 @@ def run_admixfrog(
             df_pred = pd.concat((df_pred, df_pred_hap))
 
         if keep_loc:
-            df_pred = df_pred[['state', 'chrom', 'start', 'end', 'len', 'it']]
+            df_pred = df_pred[["state", "chrom", "start", "end", "len", "it"]]
         else:
-            df_pred = df_pred[['state', 'chrom', 'len', 'it']]
+            df_pred = df_pred[["state", "chrom", "len", "it"]]
 
         write_sim_runs(df_pred, outname=f"{outname}.res.xz")
         resampling_pars(df_pred).to_csv(

@@ -9,9 +9,9 @@ class Stat(Callback):
     """Stat
     generic Statistic
 
-    the intended use-case is the following. We would like to calculate a 
+    the intended use-case is the following. We would like to calculate a
     statistic over multiple genomes, from a variety of source files.
-    
+
     The following features are desirable:
     1. handle plink, vcf, bam and fasta files
     1. group multiple individuals into populations
@@ -96,8 +96,7 @@ class Dstat(Callback):
 
     def process_snp(self, block, snp):
         for quartet in itertools.product(*self.slots):
-            n = len(list(itertools.product(*(snp[ind].gt() for ind in
-                                             quartet))))
+            n = len(list(itertools.product(*(snp[ind].gt() for ind in quartet))))
 
             pattern = itertools.product(*(snp[ind].gt() for ind in quartet))
             for p in pattern:
@@ -107,11 +106,11 @@ class Dstat(Callback):
                     # if self.is_abba(p) or self.is_baba(p) or self.is_bbaa(p):
                     #    self.patterns[quartet, block, p] += 1
                     if self.is_abba(p):
-                        self.patterns[quartet, block, "ABBA"] += 1. / n
+                        self.patterns[quartet, block, "ABBA"] += 1.0 / n
                     elif self.is_baba(p):
-                        self.patterns[quartet, block, "BABA"] += 1. / n
+                        self.patterns[quartet, block, "BABA"] += 1.0 / n
                     elif self.is_bbaa(p):
-                        self.patterns[quartet, block, "BBAA"] += 1. / n
+                        self.patterns[quartet, block, "BBAA"] += 1.0 / n
 
     def has_data(snp, q):
         return all(snp[i] != NA for i in q)
@@ -128,6 +127,7 @@ class Dstat(Callback):
     def is_bbaa(p):
         return p[0] == p[1] and p[2] == p[3] and p[0] != p[2]
 
+
 class Dstatl(Dstat):
     def postprocess(self, sampleset):
         with open(self.outname, "w") as f:
@@ -137,51 +137,55 @@ class Dstatl(Dstat):
             line += ["block", "pattern", "n"]
             print(*line, sep=",", file=f)
 
-            for (quartet, block, length, deam, pattern), n in self.patterns.most_common():
-                #print(*quartet, *length,  *deam, block, pattern, n, sep=",")
-                print(*quartet, length,  *deam, block, pattern, n, sep=",", file=f)
+            for (
+                quartet,
+                block,
+                length,
+                deam,
+                pattern,
+            ), n in self.patterns.most_common():
+                # print(*quartet, *length,  *deam, block, pattern, n, sep=",")
+                print(*quartet, length, *deam, block, pattern, n, sep=",", file=f)
 
     def process_snp(self, block, snp):
         for quartet in itertools.product(*self.slots):
-            n = 1 #len(list(itertools.product(*(snp[ind].gt() for ind in
-                 #                            quartet))))
+            n = 1  # len(list(itertools.product(*(snp[ind].gt() for ind in
+            #                            quartet))))
 
-            #tmp_list = []
-            #for i, ind in enumerate(quartet):
+            # tmp_list = []
+            # for i, ind in enumerate(quartet):
             #    gt = snp[ind].gt(report_length=True)
             #    tmp_list.append(gt)
             #    if i == 2:
             #        print(snp[ind].reads())
 
-
-            tmp_list = [snp[ind].gt(return_read=True,
-                                    pos_in_read_cutoff=0,
-                                    min_length=0) for ind in quartet]
-
+            tmp_list = [
+                snp[ind].gt(return_read=True, pos_in_read_cutoff=0, min_length=0)
+                for ind in quartet
+            ]
 
             try:
-                p = tuple((gt.base for gt in tmp_list  ))
+                p = tuple((gt.base for gt in tmp_list))
             except Exception as e:
                 print(tmp_list)
                 raise
-            length = tuple((gt.len for gt in tmp_list  ))
-            deam = tuple(((*gt.deam, len(gt.deam_full)) for gt in
-                      tmp_list  ))
+            length = tuple((gt.len for gt in tmp_list))
+            deam = tuple(((*gt.deam, len(gt.deam_full)) for gt in tmp_list))
 
-            #for p, length, deam in zip(pattern, lengths, other):
-                # p = "".join(p)
+            # for p, length, deam in zip(pattern, lengths, other):
+            # p = "".join(p)
             if NA not in p:
                 # if self.is_abba(p) or self.is_baba(p) or self.is_bbaa(p):
                 #    self.patterns[quartet, block, p] += 1
                 qn = tuple(q.name for q in quartet)
                 if self.is_abba(p):
-                    self.patterns[qn, block, length[2], deam[2], "ABBA"] += 1. / n
+                    self.patterns[qn, block, length[2], deam[2], "ABBA"] += 1.0 / n
                 elif self.is_baba(p):
-                    self.patterns[qn, block, length[2], deam[2], "BABA"] += 1. / n
+                    self.patterns[qn, block, length[2], deam[2], "BABA"] += 1.0 / n
                 elif self.is_bbaa(p):
-                    self.patterns[qn, block, length[2], deam[2], "BBAA"] += 1. / n
-                else :
-                    self.patterns[qn, block, length[2], deam[2], "other"] += 1. / n
+                    self.patterns[qn, block, length[2], deam[2], "BBAA"] += 1.0 / n
+                else:
+                    self.patterns[qn, block, length[2], deam[2], "other"] += 1.0 / n
 
 
 __all__ = ["Stat", "Dstat", "Dstatl"]

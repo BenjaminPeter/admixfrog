@@ -12,7 +12,8 @@ EXT = "ref", "alt"
 
 
 def parse_chroms(arg):
-    if arg is None: return None
+    if arg is None:
+        return None
     chroms = []
     for s in arg.split(","):
         if "-" in s:
@@ -175,7 +176,7 @@ def vcf_to_ref(
                             slope = (R1[map_ids] - R0[map_ids]) / (
                                 R1[pos_id] - R0[pos_id]
                             )
-                            map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) 
+                            map_ = R0[map_ids] + slope * (row.pos - R0[pos_id])
                         elif row.pos > R1[pos_id]:
                             try:
                                 while row.pos > R1[pos_id]:
@@ -265,7 +266,7 @@ def vcf_to_sample(
                             allele_str = f"{alleles[0]},{alleles[ALT_INDEX]}"
 
                     if allele_str != "0,0":
-                        infile.write(f'{snp_str},{allele_str}\n')
+                        infile.write(f"{snp_str},{allele_str}\n")
             logging.debug(f"done processing {chrom}")
 
 

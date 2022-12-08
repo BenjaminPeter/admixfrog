@@ -4,9 +4,14 @@ import yaml
 
 class States(object):
     """class to track different states"""
+
     def __init__(
-        self, state_ids, homo_states=None, het_states=None, 
-        roh_states=None, est_inbreeding=False
+        self,
+        state_ids,
+        homo_states=None,
+        het_states=None,
+        roh_states=None,
+        est_inbreeding=False,
     ):
         """get info about which states to include"""
 
@@ -36,17 +41,18 @@ class States(object):
         self.est_inbreeding = est_inbreeding
 
     @classmethod
-    def from_commandline(cls, raw_states, state_file, ancestral, cont_id=None, *args, **kwargs):
+    def from_commandline(
+        cls, raw_states, state_file, ancestral, cont_id=None, *args, **kwargs
+    ):
 
         state_dict = cls.parse_state_string(
             raw_states + [ancestral, cont_id], state_file=state_file
         )
         state_dict2 = cls.parse_state_string(raw_states, state_file=state_file)
         states = list(dict(((x, None) for x in state_dict2.values())))
-        new_states =  cls(states, *args, **kwargs)
+        new_states = cls(states, *args, **kwargs)
         new_states.state_dict = state_dict
         return new_states
-
 
     @property
     def homo(self):
@@ -85,7 +91,6 @@ class States(object):
     def n_hap(self):
         return len(self.hap_ids)
 
-
     @property
     def homo_names(self):
         for i in self.homo:
@@ -99,15 +104,15 @@ class States(object):
     @property
     def roh_names(self):
         for i in self.roh:
-            yield f'h{self.states[i]}'
+            yield f"h{self.states[i]}"
 
     @property
     def hap_names(self):
         for i in self.hap:
             yield self.states[i]
 
-    #n state and state names do not contian haploid states, as I reuse the
-    #homozygous names
+    # n state and state names do not contian haploid states, as I reuse the
+    # homozygous names
     @property
     def n_states(self):
         return self.n_homo + self.n_het + self.n_roh

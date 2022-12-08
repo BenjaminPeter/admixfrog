@@ -12,9 +12,8 @@ from numba import njit
 from scipy.linalg import expm
 
 
-Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
-Probs2 = namedtuple(
-    "Probs", ("O", "N", "P_cont", "alpha", "beta", "lib", "alpha_hap", "beta_hap", "S")
+Probs = namedtuple(
+    "Probs", ("O", "N", "P_cont", "alpha", "beta", "rg", "alpha_hap", "beta_hap", "S")
 )
 Pars = namedtuple(
     "Pars",
@@ -77,14 +76,13 @@ def data2probs(
 
     snp_df = df[list(snp_ix_states)]
     snp_df = snp_df[~snp_df.index.get_level_values("snp_id").duplicated()]
-    # snp_df = df[list(snp_ix_states)].groupby(df.index.names).first()
     n_snps = len(snp_df.index.get_level_values("snp_id"))
 
     if not doalphabeta:
         if prior is None and cont_id is not None:
             ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
 
-        P = Probs2(
+        P = Probs(
             O=np.array(df.talt.values, np.uint8),
             N=np.array(df.tref.values + df.talt.values, np.uint8),
             P_cont=0.0
@@ -161,12 +159,16 @@ def data2probs(
             prior_anc_alt = snp_df[anc_alt] * ancestral_prior
             prior_anc_ref = snp_df[anc_ref] * ancestral_prior
 
-        alt_prior = snp_df[alt_ix].to_numpy() + np.array(prior_anc_alt)[:, np.newaxis] + prior
-        ref_prior = snp_df[ref_ix].to_numpy() + np.array(prior_anc_ref)[:, np.newaxis] + prior
+        alt_prior = (
+            snp_df[alt_ix].to_numpy() + np.array(prior_anc_alt)[:, np.newaxis] + prior
+        )
+        ref_prior = (
+            snp_df[ref_ix].to_numpy() + np.array(prior_anc_ref)[:, np.newaxis] + prior
+        )
         assert np.all(df.tref.values + df.talt.values < 256)
 
     # create named tuple for return
-    P = Probs2(
+    P = Probs(
         O=np.array(df.talt.values, np.uint8),
         N=np.array(df.tref.values + df.talt.values, np.uint8),
         P_cont=0.0
@@ -176,7 +178,7 @@ def data2probs(
         beta=ref_prior[IX.diploid_snps],
         alpha_hap=alt_prior[IX.haploid_snps],
         beta_hap=ref_prior[IX.haploid_snps],
-        lib=np.array(df.lib),
+        rg=np.array(df.rg),
         S=states,
     )
     return P
@@ -192,11 +194,11 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
         - IX.OBS2SNP [n_obs]: array giving snp for each obs
         - IX.OBS2BIN [n_obs]: array giving bin for each obs
         - IX.bin_sizes [n_chroms]: number of bins per chromosome
-        - IX.RG2OBS [n_libs] : [list] dict giving obs for each readgroup
-        - IX.libs : names of all libraries
+        - IX.RG2OBS [n_rgs] : [list] dict giving obs for each readgroup
+        - IX.rgs : names of all libraries
     """
     IX = _IX()
-    IX.libs = np.unique(df.lib)
+    IX.rgs = np.unique(df.rg)
 
     obsix = df.index.to_frame(index=False)
     snp = obsix.drop_duplicates()
@@ -303,7 +305,7 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     else:
         IX.diploid_snps = slice(0, 0)
 
-    IX.RG2OBS = dict((l, np.where(df.lib == l)[0]) for l in IX.libs)
+    IX.RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in IX.rgs)
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
 
     IX.n_chroms = len(chroms)
@@ -345,7 +347,6 @@ def get_haploid_stuff(snp, chroms, sex):
         haploid_snps = slice(0, 0)
 
     return haplo_chroms, haploid_snps
-
 
 
 def make_obs2sfs(snp_states, max_states=None, states=None):
@@ -472,7 +473,12 @@ def make_slug_reads_data(
     assert np.sum(df.talt) == np.sum(READS == 1)
     assert np.sum(df.tref) == np.sum(READS == 0)
 
-    snp = df[list(all_state_ix)].reset_index().drop_duplicates()
+    snp = (
+        df[list(all_state_ix)]
+        .reset_index("rg", drop=True)
+        .reset_index()
+        .drop_duplicates()
+    )
 
     if flip and ancestral is not None:
         sfs, SNP2SFS, FLIPPED = make_obs2sfs_folded(
@@ -781,4 +787,3 @@ def scale_mat3d(M):
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
-

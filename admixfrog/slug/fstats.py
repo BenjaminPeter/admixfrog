@@ -37,7 +37,6 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
                 if len(set((A, B, C, D))) == 4:
                     f4s.append(single_f4(pis, A, B, C, D))
 
-
     f4s = pd.concat(f4s).reset_index()
     return f3s, f4s, pis
 

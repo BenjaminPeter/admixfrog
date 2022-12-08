@@ -101,38 +101,3 @@ def update_geno_emissions_haploid(GT, P):
 def update_geno_emissions(GT, P, IX, *args, **kwargs):
     update_geno_emissions_diploid(GT[IX.diploid_snps], P, IX, *args, **kwargs)
     update_geno_emissions_haploid(GT[IX.haploid_snps], P)
-
-
-def update_geno_emissions_diploid_sfs(GT, P, IX, F, tau, n_states, est_inbreeding):
-    """P(G | tau, F) for diploid SNP.
-    compared to admixfrog model, we do not have a latent state Z
-    build table giving the probabilities of P(G | Z)
-    """
-    n_snps, n_homo_states = P.alpha.shape
-
-    GT[:] = 0.0
-    # P(G | Z)
-    for s in range(n_homo_states):
-        _p_gt_homo_sfs(s=s, P=P, F=F[s], tau=exp(tau[s]), res=GT[:, s, :])
-
-    for s1 in range(n_homo_states):
-        for s2 in range(s1 + 1, n_homo_states):
-            s += 1
-            _p_gt_het(
-                P.alpha[:, s1],
-                P.beta[:, s1],
-                P.alpha[:, s2],
-                P.beta[:, s2],
-                res=GT[:, s, :],
-            )
-
-    if est_inbreeding:
-        for i in range(n_homo_states):
-            _p_gt_hap(P.alpha[:, i], P.beta[:, i], res=GT[:, s + i + 1, :])
-
-    try:
-        assert np.allclose(np.sum(GT, 2), 1)
-    except AssertionError:
-        pdb.set_trace()
-
-    return GT

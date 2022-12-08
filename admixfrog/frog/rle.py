@@ -47,25 +47,25 @@ def get_rle(data, states, penalty=0.5):
     het_targets = [[s] for s in states.het_names]  # only heterozygous state
     homo_targets = [[s] for s in states.homo_names]  # only homozygous state
     state_targets = []  # all homo and heterozygous states with one sample
-    # inbred_targets = states.roh_names  # all inbred states
-    name_state = []
+    roh_targets = [[s] for s in states.roh_names]  # all inbred states
 
     for i, s in enumerate(states.states):
-        name_state.append(s)
         l = []
+        if s in states.homo_names:
+            l.append(s)
+        if "h{s}" in states.roh_names:
+            l.append(s)
         for (j1, j2), het_name in zip(states.het, states.het_names):
-            if f"h{states[i]}" in data.columns:
-                l.append(f"h{states[i]}")
             if i == j1 or i == j2:
                 l.append(het_name)
         state_targets.append(l)
 
-    targets = het_targets + state_targets + homo_targets  # + inbred_targets
-    names = [*states.het_names, *name_state, *states.homo_names]
+    targets = het_targets + state_targets + homo_targets + roh_targets
+    names = [*states.het_names, *states.states, *states.homo_names, *states.roh_names]
     types = ["het"] * states.n_het
     types += ["state"] * states.n_hap
     types += ["homo"] * states.n_homo
-    # types += ["inbred"] * states.n_roh
+    types += ["roh"] * states.n_roh
 
     res = []
 

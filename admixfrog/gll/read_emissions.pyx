@@ -50,23 +50,23 @@ def update_contamination(cont, error, P, PG, IX,
     """
     update emissions by maximizing contamination parameter
 
-    cont: dict of contamination rates (by library)
-    error: dict of contamination rates (by library)
+    cont: dict of contamination rates (by read group)
+    error: dict of contamination rates (by read group)
     P: data structure with reference data
     PG: Pr(G, Z | O)
 
     """
     delta = 0.
 
-    for i in range(len(IX.libs)):
-        lib = IX.libs[i]
-        f_ = IX.RG2OBS[lib]
-        assert all(lib == P.lib[f_])
+    for i in range(len(IX.rgs)):
+        rg = IX.rgs[i]
+        f_ = IX.RG2OBS[rg]
+        assert all(rg == P.rg[f_])
 
         def get_po_given_c_all(args):
             args = list(args)
-            C = args.pop(0) if est_options['est_contamination'] else cont[lib]
-            E = args.pop(0) if est_options['est_error'] else error[lib]
+            C = args.pop(0) if est_options['est_contamination'] else cont[rg]
+            E = args.pop(0) if est_options['est_error'] else error[rg]
 
             prob = get_po_given_c(c=C,
                                  e=E,
@@ -74,32 +74,32 @@ def update_contamination(cont, error, P, PG, IX,
                                  N=P.N,
                                  P_cont=P.P_cont,
                                  PG=PG,
-                                 rg2obs = IX.RG2OBS[lib],
+                                 rg2obs = IX.RG2OBS[rg],
                                  obs2snp = IX.OBS2SNP)
             return -prob
 
         init, bounds = [], []
         if est_options['est_contamination']:
-            init.append(cont[lib])
+            init.append(cont[rg])
             bounds.append((0, 1-1e-10))
         if est_options['est_error']:
-            init.append(error[lib])
+            init.append(error[rg])
             bounds.append((0.00001, .1))
 
         prev = get_po_given_c_all(init)
         OO =  minimize(get_po_given_c_all, init, bounds=bounds, method="L-BFGS-B")
         opt = OO.x.tolist()
 
-        old_c, old_e = cont[lib], error[lib]
+        old_c, old_e = cont[rg], error[rg]
         if est_options['est_contamination']:
-            cont[lib] = opt.pop(0)
+            cont[rg] = opt.pop(0)
 
         if est_options['est_error']:
-            error[lib] = opt.pop(0)
+            error[rg] = opt.pop(0)
 
-        log__ = "[%s|%s] \tc: [%.4f->%.4f]\t:" % (lib, len(f_), old_c, cont[lib])
-        log__ += "e: [%.4f->%.4f]:\t%.4f" % (old_e, error[lib], prev - OO.fun)
+        log__ = "[%s|%s] \tc: [%.4f->%.4f]\t:" % (rg, len(f_), old_c, cont[rg])
+        log__ += "e: [%.4f->%.4f]:\t%.4f" % (old_e, error[rg], prev - OO.fun)
         log_.info(log__)
-        delta += abs(cont[lib] - old_c) + abs(error[lib] - old_e)
+        delta += abs(cont[rg] - old_c) + abs(error[rg] - old_e)
 
     return delta
