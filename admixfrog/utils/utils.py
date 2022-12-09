@@ -12,33 +12,17 @@ from numba import njit
 from scipy.linalg import expm
 
 
-Probs = namedtuple("Probs", ("O", "N", "P_cont", "alpha", "beta", "lib"))
-Probs2 = namedtuple(
-    "Probs", ("O", "N", "P_cont", "alpha", "beta", "lib", "alpha_hap", "beta_hap")
+Probs = namedtuple(
+    "Probs", ("O", "N", "P_cont", "alpha", "beta", "rg", "alpha_hap", "beta_hap", "S")
 )
 Pars = namedtuple(
-    "Pars", ("alpha0", "trans_mat", "cont", "error", "F", "tau", "gamma_names", "sex")
-)  # for returning from varios functions
-ParsHD = namedtuple(
-    "ParsHD",
-    (
-        "alpha0",
-        "alpha0_hap",
-        "trans",
-        "trans_hap",
-        "cont",
-        "error",
-        "F",
-        "tau",
-        "gamma_names",
-        "sex",
-    ),
+    "Pars",
+    ("alpha0", "alpha0_hap", "trans", "trans_hap", "cont", "error", "F", "tau", "sex"),
 )  # for returning from varios functions
 
 
 class _IX:
-    """class to be filled with various indices
-    """
+    """class to be filled with various indices"""
 
     def __init__(self):
         pass
@@ -47,7 +31,7 @@ class _IX:
 def data2probs(
     df,
     IX,
-    state_ids,
+    states,
     cont_id=None,
     prior=None,
     cont_prior=(1e-8, 1e-8),
@@ -64,6 +48,7 @@ def data2probs(
     lib[n_obs] : the library /read group of the observation
     alpha[n_snps, n_states] : the reference allele beta-prior
     beta[n_snps, n_states] : the alt allele beta-prior
+    S : States object with all states
 
 
     input:
@@ -77,8 +62,8 @@ def data2probs(
     doalphabeta: for e.g. SFS mode, alpha and beta don't need to be calcuated
     """
 
-    alt_ix = ["%s_alt" % s for s in state_ids]
-    ref_ix = ["%s_ref" % s for s in state_ids]
+    alt_ix = ["%s_alt" % s for s in states]
+    ref_ix = ["%s_ref" % s for s in states]
     snp_ix_states = set(alt_ix + ref_ix)
     ca, cb = cont_prior
 
@@ -91,15 +76,13 @@ def data2probs(
 
     snp_df = df[list(snp_ix_states)]
     snp_df = snp_df[~snp_df.index.get_level_values("snp_id").duplicated()]
-    # snp_df = df[list(snp_ix_states)].groupby(df.index.names).first()
     n_snps = len(snp_df.index.get_level_values("snp_id"))
-    n_states = len(state_ids)
 
     if not doalphabeta:
         if prior is None and cont_id is not None:
             ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
 
-        P = Probs2(
+        P = Probs(
             O=np.array(df.talt.values, np.uint8),
             N=np.array(df.tref.values + df.talt.values, np.uint8),
             P_cont=0.0
@@ -112,17 +95,18 @@ def data2probs(
             alpha_hap=[],
             beta_hap=[],
             lib=np.array(df.lib),
+            S=states,
         )
         return P
 
     if prior is None:  # empirical bayes, estimate from data
-        alt_prior = np.empty((n_snps, n_states))
-        ref_prior = np.empty((n_snps, n_states))
+        alt_prior = np.empty((n_snps, states.n_raw_states))
+        ref_prior = np.empty((n_snps, states.n_raw_states))
         if cont_id is not None:
             ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
 
         if ancestral is None:
-            for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, state_ids)):
+            for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, states)):
                 pa, pb = empirical_bayes_prior(snp_df[a], snp_df[b])
                 logging.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
                 alt_prior[:, i] = snp_df[a] + pa
@@ -136,7 +120,7 @@ def data2probs(
             ref_is_der, alt_is_der = alt_is_anc, ref_is_anc
             anc_is_unknown = (1 - alt_is_anc) * (1 - ref_is_anc) == 1
 
-            for i, (alt_col, ref_col, s) in enumerate(zip(alt_ix, ref_ix, state_ids)):
+            for i, (alt_col, ref_col, s) in enumerate(zip(alt_ix, ref_ix, states)):
 
                 # 1. set up base entries based on observed counts
                 alt_prior[:, i] = snp_df[alt_col]
@@ -175,12 +159,16 @@ def data2probs(
             prior_anc_alt = snp_df[anc_alt] * ancestral_prior
             prior_anc_ref = snp_df[anc_ref] * ancestral_prior
 
-        alt_prior = snp_df[alt_ix].to_numpy() + prior_anc_alt[:, np.newaxis] + prior
-        ref_prior = snp_df[ref_ix].to_numpy() + prior_anc_ref[:, np.newaxis] + prior
+        alt_prior = (
+            snp_df[alt_ix].to_numpy() + np.array(prior_anc_alt)[:, np.newaxis] + prior
+        )
+        ref_prior = (
+            snp_df[ref_ix].to_numpy() + np.array(prior_anc_ref)[:, np.newaxis] + prior
+        )
         assert np.all(df.tref.values + df.talt.values < 256)
 
     # create named tuple for return
-    P = Probs2(
+    P = Probs(
         O=np.array(df.talt.values, np.uint8),
         N=np.array(df.tref.values + df.talt.values, np.uint8),
         P_cont=0.0
@@ -190,7 +178,8 @@ def data2probs(
         beta=ref_prior[IX.diploid_snps],
         alpha_hap=alt_prior[IX.haploid_snps],
         beta_hap=ref_prior[IX.haploid_snps],
-        lib=np.array(df.lib),
+        rg=np.array(df.rg),
+        S=states,
     )
     return P
 
@@ -205,11 +194,11 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
         - IX.OBS2SNP [n_obs]: array giving snp for each obs
         - IX.OBS2BIN [n_obs]: array giving bin for each obs
         - IX.bin_sizes [n_chroms]: number of bins per chromosome
-        - IX.RG2OBS [n_libs] : [list] dict giving obs for each readgroup
-        - IX.libs : names of all libraries
+        - IX.RG2OBS [n_rgs] : [list] dict giving obs for each readgroup
+        - IX.rgs : names of all libraries
     """
     IX = _IX()
-    IX.libs = np.unique(df.lib)
+    IX.rgs = np.unique(df.rg)
 
     obsix = df.index.to_frame(index=False)
     snp = obsix.drop_duplicates()
@@ -316,7 +305,7 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     else:
         IX.diploid_snps = slice(0, 0)
 
-    IX.RG2OBS = dict((l, np.where(df.lib == l)[0]) for l in IX.libs)
+    IX.RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in IX.rgs)
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
 
     IX.n_chroms = len(chroms)
@@ -360,20 +349,6 @@ def get_haploid_stuff(snp, chroms, sex):
     return haplo_chroms, haploid_snps
 
 
-def make_obs2rg(v_lib):
-    libs = np.unique(v_lib)
-    libs = dict((l, i) for i, l in enumerate(libs))
-    OBS2RG = np.array([libs[i] for i in v_lib], dtype=np.uint16)
-    return libs, OBS2RG
-
-
-def make_reads2rg(v_lib):
-    libs = np.unique(v_lib)
-    libs = dict((l, i) for i, l in enumerate(libs))
-    READS2RG = np.array([libs[i] for i in v_lib], dtype=np.uint16)
-    return libs, READS2RG
-
-
 def make_obs2sfs(snp_states, max_states=None, states=None):
     # create dict [sfs] - > column
     if max_states is None:
@@ -408,7 +383,7 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, state
     2. make dict[state] : index for all possible indices
     4. use dict to create SNP2SFS
 
-    
+
     """
 
     """1. create FLIPPED, which is true for SNP that need to be flipped"""
@@ -451,68 +426,6 @@ def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, state
     return sfs, SNP2SFS, FLIPPED
 
 
-def make_slug_data(df, states, ancestral=None, cont_id=None, sex=None):
-    """ create a SlugData object with the following attributes:
-    N: np.ndarray  # number of reads [O x 1]
-    O: np.ndarray  # number of obs [O x 1]
-    psi: np.ndarray  # freq of contaminant [L x 1]
-
-    OBS2RG: np.ndarray  # which obs is in which rg [O x 1]
-    OBS2SNP: np.ndarray  # which obs belongs to which locus [O x 1]
-    SNP2SFS: np.ndarray  # which snp belongs to which sfs entry [L x 1]
-
-    haploid_snps : Any = None
-
-    states : Any = None
-    rgs : Any = None
-    chroms : Any = None
-    """
-    ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
-    sfs_state_ix = alt_ix + ref_ix  # states used in sfs
-    all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral
-    sfs_state_flipped = [
-        v.replace("alt", "ref") if "alt" in v else v.replace("ref", "alt")
-        for v in sfs_state_ix
-    ]
-
-    if cont_id is not None:
-        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
-        all_state_ix.update([cont_ref, cont_alt])
-    if ancestral is not None:
-        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
-        all_state_ix.update([anc_ref, anc_alt])
-
-    rgs, OBS2RG = make_obs2rg(df.rg)
-
-    snp = df[list(all_state_ix)].reset_index().drop_duplicates()
-
-    chroms = pd.unique(snp.chrom)
-    haplo_chroms, haplo_snps = get_haploid_stuff(snp, chroms, sex)
-
-    if cont_id is None:
-        psi = np.zeros_like(SNP2SFS)
-    else:
-        psi = snp[cont_alt] / (snp[cont_alt] + snp[cont_ref] + 1e-100)
-
-    data = SlugData(
-        ALT=df.talt.to_numpy(),
-        REF=df.tref.to_numpy(),
-        psi=psi,
-        OBS2RG=OBS2RG,
-        OBS2SNP=df.index.get_level_values("snp_id").to_numpy(),
-        SNP2SFS=SNP2SFS,
-        haploid_snps=haplo_snps,
-        states=sfs_state_ix,
-        rgs=rgs,
-        sex=sex,
-        chroms=chroms,
-        haplo_chroms=haplo_chroms,
-    )
-
-    logging.debug("done creating data")
-    return data, sfs
-
-
 @njit
 def make_full_df(df, n_reads):
     READS = np.empty(n_reads, np.uint8)
@@ -538,8 +451,7 @@ def make_full_df(df, n_reads):
 def make_slug_reads_data(
     df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True
 ):
-    """ create a SlugReads object with the following attributes:
-    """
+    """create a SlugReads object with the following attributes:"""
     ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
     sfs_state_ix = alt_ix + ref_ix  # states used in sfs
     all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral
@@ -561,7 +473,12 @@ def make_slug_reads_data(
     assert np.sum(df.talt) == np.sum(READS == 1)
     assert np.sum(df.tref) == np.sum(READS == 0)
 
-    snp = df[list(all_state_ix)].reset_index().drop_duplicates()
+    snp = (
+        df[list(all_state_ix)]
+        .reset_index("rg", drop=True)
+        .reset_index()
+        .drop_duplicates()
+    )
 
     if flip and ancestral is not None:
         sfs, SNP2SFS, FLIPPED = make_obs2sfs_folded(
@@ -599,8 +516,7 @@ def make_slug_reads_data(
 
 
 def init_ftau(n_states, F0=0.5, tau0=0):
-    """initializes F and tau, which exist for each homozygous state
-    """
+    """initializes F and tau, which exist for each homozygous state"""
     try:
         if len(F0) == n_states:
             F = F0
@@ -704,15 +620,15 @@ def trans_mat_hap_to_dip(tmat):
 
 
 def init_pars(
-    state_ids,
+    states,
+    homo_ids=None,
+    het_ids=None,
     sex=None,
     F0=0.001,
     tau0=1,
     e0=1e-2,
     c0=1e-2,
-    est_inbreeding=False,
     init_guess=None,
-    do_hap=True,
     transition_matrix=None,
     bin_size=1.0,
     **kwargs,
@@ -722,21 +638,7 @@ def init_pars(
     returns a pars object
     """
 
-    homo = [s for s in state_ids]
-    het = []
-    hap = ["h%s" % s for s in homo]
-
-    for i, s in enumerate(state_ids):
-        for s2 in state_ids[i + 1 :]:
-            het.append(s + s2)
-    gamma_names = homo + het
-    if est_inbreeding:
-        gamma_names.extend(hap)
-
-    n_states = len(gamma_names)
-    n_homo = len(homo)
-    n_het = len(het)
-    n_hap = len(hap)
+    n_states, n_hap = states.n_states, states.n_hap
 
     alpha0 = np.array([1 / n_states] * n_states)
     alpha0_hap = np.array([1 / n_hap] * n_hap)
@@ -749,49 +651,37 @@ def init_pars(
         np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
 
         if init_guess is not None:
-            guess = [i for i, n in enumerate(gamma_names) if n in init_guess]
+            guess = [i for i, n in enumerate(states.state_names) if n in init_guess]
             logging.info("starting with guess %s " % guess)
             trans_mat[:, guess] = trans_mat[:, guess] + 1
             trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
     else:
         trans_mat_hap = pd.read_csv(transition_matrix, header=None).to_numpy()
         trans_mat = trans_mat_hap_to_dip(trans_mat_hap)
-        print(f"BS:{bin_size}")
-        print(trans_mat)
-        print(trans_mat_hap)
         trans_mat_hap = expm(trans_mat_hap * bin_size)
         trans_mat = expm(trans_mat * bin_size)
-        print(trans_mat)
-        print(trans_mat_hap)
 
     cont, error = init_ce(c0, e0)
-    F, tau = init_ftau(n_homo, F0, tau0)
+    F, tau = init_ftau(states.n_homo, F0, tau0)
 
-    if do_hap:
-        return ParsHD(
-            alpha0,
-            alpha0_hap,
-            trans_mat,
-            trans_mat_hap,
-            cont,
-            error,
-            F,
-            tau,
-            gamma_names,
-            sex=sex,
-        )
-    else:
-        return Pars(alpha0, trans_mat, cont, error, F, tau, gamma_names, sex=sex)
+    return Pars(
+        alpha0,
+        alpha0_hap,
+        trans_mat,
+        trans_mat_hap,
+        cont,
+        error,
+        F,
+        tau,
+        sex=sex,
+    )
 
 
 def posterior_table(pg, Z, IX, est_inbreeding=False):
     freq = np.array([0, 1, 2, 0, 1]) if est_inbreeding else np.arange(3)
     PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
     mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
-    try:
-        random = np.random.binomial(1, np.clip(mu, 0, 1))
-    except ValueError:
-        breakpoint()
+    random = np.random.binomial(1, np.clip(mu, 0, 1))
     PG = np.log10(PG + 1e-40)
     PG = np.minimum(0.0, PG)
     return pd.DataFrame(
@@ -815,8 +705,7 @@ def posterior_table_slug(pg, data, gtll=None):
 
 
 def empirical_bayes_prior(der, anc, known_anc=False):
-    """using beta-binomial plug-in estimator
-    """
+    """using beta-binomial plug-in estimator"""
 
     n = anc + der
     f = np.nanmean(der / n) if known_anc else 0.5
@@ -837,9 +726,9 @@ def empirical_bayes_prior(der, anc, known_anc=False):
 
 def guess_sex(ref, data, sex_ratio_threshold=0.75):
     """
-        guessing the sex of individuals by comparing heterogametic chromosomes.
-        By convention, all chromosomes are assumed to be diploid unless they start
-        with an `X` or `Z` or `h`
+    guessing the sex of individuals by comparing heterogametic chromosomes.
+    By convention, all chromosomes are assumed to be diploid unless they start
+    with an `X` or `Z` or `h`
     """
     ref["heterogametic"] = [
         v[0] in "XZxzh" for v in ref.index.get_level_values("chrom")
@@ -898,53 +787,3 @@ def scale_mat3d(M):
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
-
-
-def parse_state_string(states, ext=[""], operator="+", state_file=None):
-    """parse shortcut parse strings
-
-    the basic way states are defined is as 
-        --states AFR NEA DEN
-
-    this assmues the columns AFR, NEA and DEN are known and present in the reference
-    We can rename and merge stuff here using the following syntax
-
-    -- states AFR=YRI+SAN NEA=VIN DEN=Denisova2
-
-    return rename dict for reference
-    
-    """
-    ext2 = ["_ref", "_alt"]
-    d1 = [s.split("=") for s in states if s is not None]
-    d2 = [(s if len(s) > 1 else (s[0], s[0])) for s in d1]
-    state_dict = dict(
-        (f"{k}{ext_}", f"{i}{ext_}")
-        for i, j in d2
-        for k in j.split(operator)
-        for ext_ in ext
-    )
-    if state_file is not None:
-        """logic here is:
-            - yaml file contains some groupings (i.e. assign all
-            Yorubans to YRI, all San to SAN
-            - state_dict contains further groupings / renaming / filtering
-                i.e. AFR=YRI+SAN
-            - stuff not in state_dict will not be required
-
-            therefore:
-            1. load yaml
-            2. get all required target pops from state_dict
-            3. add all expansions replacements
-        """
-        Y = yaml.load(open(state_file), Loader=yaml.BaseLoader)
-        # D = dict((v_, k) for (k,v) in Y.items() for v_ in v)
-        s2 = dict()
-
-        for state, label in state_dict.items():
-            if state in Y:
-                for ind in Y[state]:
-                    s2[ind] = label
-            else:
-                s2[state] = label
-        state_dict = s2
-    return state_dict

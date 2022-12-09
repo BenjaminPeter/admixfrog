@@ -77,14 +77,15 @@ def run_sfs():
     parser.add_argument(
         "--seed", help="random number generator seed for resampling", default=None
     )
-    parser.add_argument(
-        "--bin-reads",
-        default=False,
-        action="store_true",
-        help="""Input file has info for binning reads. If false,
-                        reads are grouped by the `lib` column. Otherwise, it
-                        uses a deam and length column to bin itself""",
-    )
+    #removed for now, as it is default and requierd
+    #parser.add_argument(
+    #    "--bin-reads",
+    #    default=False,
+    #    action="store_true",
+    #    help="""Input file has info for binning reads. If false,
+    #                    reads are grouped by the `lib` column. Otherwise, it
+    #                    uses a deam and length column to bin itself""",
+    #)
 
     add_target_file_options(parser)
     add_estimation_options_slug(parser)
@@ -146,7 +147,7 @@ def run_sfs():
     setup_log(filename=f"{args.outname}.log")
 
     logging.info(
-        "running admixfrog %s with the following arguments:\n%s ",
+        "running admixslug %s with the following arguments:\n%s ",
         __version__,
         pformat(V),
     )
@@ -161,7 +162,7 @@ def run_sfs():
             logging.info("reading geno file \n %s", pformat(geno_pars))
         elif reffile_pars["vcf_ref"] is not None:
             logging.info(
-                "creating admixfrog reference file from vcf\n %s", pformat(reffile_pars)
+                "creating admixslug reference file from vcf\n %s", pformat(reffile_pars)
             )
             V["ref_files"] = [V["outname"] + ".ref.xz"]
             if isfile(V["ref_files"][0]) and not reffile_pars["force_ref"]:
@@ -207,12 +208,13 @@ def run_sfs():
                                  regenerate"""
                 )
             logging.info("creating input from bam file")
-            process_bam(
+            process_bam2(
                 outfile=target_pars["target_file"],
                 bamfile=target_pars["bamfile"],
                 ref=V["ref_files"][0],
                 deam_cutoff=target_pars["deam_cutoff"],
                 length_bin_size=target_pars["length_bin_size"],
+                chroms=reffile_pars["chroms"],
             )
         elif target_pars["vcfgt"] is not None and target_pars["target"] is not None:
             target_pars["target_file"] = V["outname"] + ".in.xz"

@@ -23,7 +23,7 @@ def test_slug_p_gt_diploid():
 
     assert np.allclose(res - pred, 0)
 
-    return res, res - pred
+    #return res, res - pred
 
 def test_slug_p_gt_diploid_flipped():
     tau0 = 0.4
@@ -44,13 +44,13 @@ def test_slug_p_gt_diploid_flipped():
     pred = np.vstack((pred0, pred1, pred2, pred2[::-1]))
 
     assert np.allclose(res - pred, 0)
-    return res, res - pred
+    #return res, res - pred
 
 
 def test_slug_p_gt_haploid():
     tau0 = np.arange(10) / 10.0
     res = np.empty((10, 3))
-    FLIPPED = np.zeros(1, dtype='bool')
+    FLIPPED = np.zeros_like(tau0, dtype='bool')
 
     p_gt_haploid(tau=tau0, SNP2SFS = np.arange(10, dtype=int), res=res,
                  FLIPPED=FLIPPED)
@@ -139,7 +139,7 @@ def test_data1():
     )
 
 
-    return pars0, data
+    #return pars0, data
 
 def test_error_est():
     """simple test dataset for ensuring algorithm is correct
@@ -241,11 +241,11 @@ def test_delta_est():
     assert .64 < pars.tau[1] < .65
     assert pars.F[0] == 0
     assert .3 < pars.F[1] < .4
-    return pars
+    #return pars
 
 @pytest.mark.skip(reason="takes very long")
 def test_update_large():
-    """large random test dataset for perrrrformance testing
+    """large random test dataset for performance testing
 
     """
     n_obs = 1_000_000
@@ -312,6 +312,6 @@ def test_update_large():
                                 n_iter=1000,
                                 ll_tol = 1e-4)
     em(pars, data, controller)
-    return pars
+    #return pars
 
 

@@ -15,8 +15,9 @@ from .utils.vcf import (
     load_random_read_samples,
     vcf_to_sample,
 )
+from .utils.states import States
 from .utils.log import setup_log
-from .utils.bam import process_bam
+from .utils.bam import process_bam, process_bam2
 from .options import INFILE_OPTIONS, REFFILE_OPTIONS, GENO_OPTIONS
 from .options import ALGORITHM_OPTIONS
 from .options import add_output_options, add_target_file_options, add_rle_options
@@ -40,12 +41,12 @@ def do_rle():
 
     dtype_ = dict(chrom="category")
     data = pd.read_csv(args.target_file, dtype=dtype_)
-    data.chrom.cat.reorder_categories(pd.unique(data.chrom), inplace=True)
-    states = list(data.columns)[6:]
+    states = list(data.columns)[7:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
+    homo = States(homo)
 
     rle = get_rle(data, homo, args.run_penalty)
-    rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
+    rle.to_csv(args.outfile, float_format="%.6f", index=False)
 
 
 def run_frog():
@@ -128,7 +129,7 @@ def run_frog():
         "--filter-highcov",
         type=float,
         default=0.001,
-        help="""remove SNP with highest coverage (default 0.001, i.e. 0.1%% of SNP are removed)""",
+        help="""remove percentage of SNP with highest coverage (default 0.001, i.e. 0.1%% of SNP are removed)""",
     )
     parser.add_argument(
         "--male",
@@ -276,17 +277,31 @@ def run_frog():
                 and not target_pars["force_target_file"]
             ):
                 raise ValueError(
-                    """target_file exists. Use this or set --force-target-file to 
+                    """target_file exists. Set --force-target-file to 
                                  regenerate"""
                 )
             logging.info("creating input from bam file")
-            process_bam(
-                outfile=target_pars["target_file"],
-                bamfile=target_pars["bamfile"],
-                ref=V["ref_files"][0],
-                deam_cutoff=target_pars["deam_cutoff"],
-                length_bin_size=target_pars["length_bin_size"],
-            )
+            if algo_pars['bin_reads']:
+                outfile = target_pars.pop('target_file')
+                target = target_pars.pop('target')
+                del target_pars['force_target_file']
+                del target_pars['vcfgt']
+                process_bam2(
+                    outfile=outfile,
+                    ref=V["ref_files"][0],
+                    chroms=reffile_pars['chroms'],
+                    **target_pars
+                )
+                target_pars['target'] = target
+                target_pars['target_file'] = outfile
+            else:
+                process_bam(
+                    outfile=target_pars["target_file"],
+                    bamfile=target_pars["bamfile"],
+                    ref=V["ref_files"][0],
+                    deam_cutoff=target_pars["deam_cutoff"],
+                    length_bin_size=target_pars["length_bin_size"],
+                )
         elif target_pars["vcfgt"] is not None and target_pars["target"] is not None:
             target_pars["target_file"] = V["outname"] + ".in.xz"
             if (
@@ -294,7 +309,7 @@ def run_frog():
                 and not target_pars["force_target_file"]
             ):
                 raise ValueError(
-                    """target_file exists. Use this or set --force-target_file to 
+                    """target_file exists. Set --force-target_file to 
                                  regenerate"""
                 )
             logging.info("creating input from bam file")

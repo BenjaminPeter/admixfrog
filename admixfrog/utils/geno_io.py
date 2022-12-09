@@ -7,13 +7,8 @@ import itertools
 import pandas as pd
 from collections.abc import Mapping
 from pprint import pprint
-
-try:
-    from .utils import parse_state_string
-    from .io import filter_ref
-except (ImportError, ModuleNotFoundError):
-    from utils import parse_state_string
-    from io import filter_ref
+from .input import filter_ref
+import logging
 
 
 def row_length(n_ind):
@@ -32,7 +27,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
         - missing data is thus stored as '3', and will need to
             be handled
 
-    fname: reich-lab format without extensions: requires 
+    fname: reich-lab format without extensions: requires
             {fname}.ind/.geno/.snp to be present
     pops: filter for populations to be used
         supported are:
@@ -49,7 +44,6 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
 
     with open(f"{fname}.geno", "rb") as f:
         head = f.read(48).strip(b"\x00").split()
-        print(head)
         assert head[0] == b"GENO"
         n_ind, n_snp = int(head[1]), int(head[2])
         hash_ind, hash_snp = head[3:]
@@ -75,9 +69,6 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     snp.loc[snp.chrom == "23", "chrom"] = "X"
     snp.loc[snp.chrom == "24", "chrom"] = "Y"
     snp.loc[snp.chrom == "90", "chrom"] = "mt"
-    chrom_order = pd.unique(snp.chrom)
-    snp.chrom = snp.chrom.astype("category")
-    snp.chrom.cat.reorder_categories(chrom_order, inplace=True)
     snp.map *= 100  # from Morgan to cM
 
     ix = pd.MultiIndex.from_frame(ind[["pop", "sex", "id"]])
@@ -89,13 +80,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     # set filtering for populations
     if pops is None:
         pops = {d: d for d in Y.columns.unique(level="pop")}
-    elif isinstance(pops, str):
-        pops = parse_state_string([pops])
-    elif isinstance(pops, Mapping):
-        pass
-    else:
-        pops = parse_state_string(pops)
-    pprint(pops)
+    logging.debug(pprint(pops))
     assert isinstance(pops, Mapping)
 
     if target_ind is not None:
@@ -108,7 +93,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     Y.rename(pops, axis=1, inplace=True)
 
     if pops is not None:
-        Y = Y[set(pops.values())]
+        Y = Y[list(set(pops.values()))]
 
     if guess_ploidy:
         ploidy = Y.agg(lambda x: np.max(x * (x < 3)))
@@ -124,7 +109,7 @@ def ref_alt(Y, copy=False):
 
     Notes:
         - still a bit experimental
-        - will flip alleles inplace (i.e. input array Y WILL BE CHANGED 
+        - will flip alleles inplace (i.e. input array Y WILL BE CHANGED
             unless copy=True is set)
         - recognizes `Y` and `mt` as haploid
         - recognizes `X` as haploid if sex is male
@@ -141,7 +126,7 @@ def ref_alt(Y, copy=False):
     ref = Y.groupby(lambda x: x, level=0, axis=1).agg(ref_count)
     ref.rename(columns=lambda x: f"{x}_ref", inplace=True)
 
-    CHROMS = Y.index.get_level_values("chrom").categories
+    CHROMS = pd.unique(Y.index.get_level_values("chrom"))
     AUTOSOMES = [c for c in CHROMS if c not in ["mt", "Y", "X"]]
 
     # no transform Y s.t. we get non-ref counts
@@ -170,7 +155,7 @@ def ref_alt(Y, copy=False):
 
 
 def ref_count(x):
-    """count number of reference alleles """
+    """count number of reference alleles"""
     v = np.sum(x * (x < 3), axis=1)
     return v
 

@@ -1,49 +1,47 @@
 import logging
-from numba import njit
+from numba import njit, uint8
+from numba.typed import List
+from numba.types import UniTuple
 import pandas as pd
 from collections import Counter
 import numpy as np
 from random import random, seed
 
 
-@njit  # ('i8(i8, i8)')
-def get_hap_from_diploid(n_states, n_homo, est_inbreeding=False):
-    n_states = n_states + n_homo if est_inbreeding else n_states
-    het2homo = np.zeros((n_states, 2), np.uint8)
-    for s in range(n_homo):
-        het2homo[s] = s
-    for s1 in range(n_homo):
-        for s2 in range(s1 + 1, n_homo):
-            s += 1
-            het2homo[s] = [s1, s2]
-    if est_inbreeding:
-        for i in range(n_homo):
-            s += 1
-            het2homo[s] = -i
-
-    return het2homo
-
-
 @njit
-def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
-    D2H = get_hap_from_diploid(n_homo + n_het, n_homo, est_inbreeding)
-    # print(D2H)
+def decode_runs(seq, homo_ids, het_ids, roh_ids, n_raw_states):
+    n_homo = len(homo_ids)
+    n_het = len(het_ids)
+    n_roh = len(roh_ids)
+
+    # diploid to haploid dict
+    D2H = np.zeros((n_homo + n_het + n_roh, 2), dtype="i")
+    for i in range(n_homo):
+        D2H[i] = homo_ids[i]
+    for i in range(n_het):
+        D2H[i + n_homo] = het_ids[i]
+        if het_ids[i][0] > n_raw_states:
+            n_raw_states = het_ids[i][0] + 1
+        if het_ids[i][1] > n_raw_states:
+            n_raw_states = het_ids[i][1] + 1
+    for i in range(n_roh):
+        D2H[i + n_homo + n_het] = roh_ids[i]
 
     # init list of ints, numba needs typing
-    runs = [[(i, i, i) for i in range(0)] for i in range(n_homo)]  # run lengths
-    # else:
-    #    runs = [[i for i in range(0)] for i in range(n_homo)] #run lengths
+    runs = [[(i, i, i) for i in range(0)] for i in range(n_raw_states)]  # run lengths
+
     for i in range(len(seq)):
-        # print(r1, r2, l1, l2)
+        # init for very first bin:
         if i == 0:
-            r1, r2 = D2H[seq[0]]
-            l1, l2 = 1, 1
+            r1, r2 = D2H[seq[0]]  # init ID of the two runs
+            l1, l2 = 1, 1  # lengths start at 1
         else:
-            c1, c2 = D2H[seq[i]]
-            # match
+            c1, c2 = D2H[seq[i]]  # the "continuing states"
+
+            # match, extending both
             if (c1 == r1 and c2 == r2) or (c1 == r2 and c2 == r1):
-                # print(i, "Extending both")
                 l1, l2 = l1 + 1, l2 + 1
+
             # one strand ends
             elif (
                 (c1 == r1 and c2 != r2)
@@ -51,41 +49,43 @@ def decode_runs(seq, n_homo, n_het, est_inbreeding=False):
                 or (c2 == r1 and c1 != r2)
                 or (c2 == r2 and c1 != r1)
             ):
-                if r1 == r2:  # homo to het
-                    if random() < 0.5:
-                        # print(i, "match r1==r2, A")
+                # first case: we were homozygous before. Therefore, we are now
+                # het. We end one strand randomly and write
+                if r1 == r2:
+                    if random() < 0.5:  # ending r1
                         runs[r1].append((l1, i - l1, i))
-                        r1 = c2 if r1 == c1 else c1  # ne run with non-matching
+                        r1 = c2 if r1 == c1 else c1  # new run with non-matching
                         l1, l2 = 1, l2 + 1
-                    else:
-                        # print(i, "match r1==r2, B")
+                    else:  # ending r2
                         runs[r2].append((l2, i - l2, i))
-                        r2 = c2 if r2 == c1 else c1  # ne run with non-matching
+                        r2 = c2 if r2 == c1 else c1  # new run with non-matching
                         l1, l2 = l1 + 1, 1
-                else:  # het to homo or AB -> AC or AB -> CB
-                    if r1 == c1 and r2 != c2:
+                else:  # we were heterozygous before
+                    """cases are het to homo or AB -> AC or AB -> CB"""
+                    if r1 == c1 and r2 != c2:  # AB -> AC. End r2, keep r1
                         runs[r2].append((l2, i - l2, i))
-                        r1, r2, l1, l2 = c1, c2, l1 + 1, 1
-                    elif r1 == c2 and r2 != c1:
+                        r1, r2, l1, l2 = r1, c2, l1 + 1, 1
+                    elif r1 == c2 and r2 != c1:  # AB -> CA. End r2, switch r1, r2
                         runs[r2].append((l2, i - l2, i))
                         r1, r2, l1, l2 = c2, c1, l1 + 1, 1
-                    elif r2 == c2 and r1 != c2:
+                    elif r1 != c1 and r2 == c2:  # AB -> CB. End r1, keep r2
                         runs[r1].append((l1, i - l1, i))
-                        r1, r2, l1, l2 = c1, c2, 1, l2 + 1
-                    elif r2 == c1 and r1 != c2:
+                        r1, r2, l1, l2 = c1, r2, 1, l2 + 1
+                    elif r1 != c2 and r2 == c1:  # AB -> BC. End r1, switch r1, r2
                         runs[r1].append((l1, i - l1, i))
                         r1, r2, l1, l2 = c2, c1, 1, l2 + 1
                     else:
-                        print("not handled case", r1, r2, c1, c2, seq[i])
+                        raise ValueError("not handled decode case")
 
-            # both strands end
+            # both strands end, write results and reset to 0
             elif c1 != r1 and c1 != r2 and c2 != r1 and c2 != r2:
-                # print(i, "change both", r1, r2, c1, c2)
                 runs[r1].append((l1, i - l1, i))
                 runs[r2].append((l2, i - l2, i))
                 r1, r2, l1, l2 = c1, c2, 1, 1
             else:
-                print("not handled case", r1, r2, c1, c2, seq[i])
+                raise ValueError("not handled decode case")
+
+    # finalize
     runs[r1].append((l1, i - l1, i))
     runs[r2].append((l2, i - l2, i))
     return runs
@@ -122,10 +122,7 @@ def nb_choice(n, p):
 
 @njit
 def post_trans(trans, emissions, beta, beta_prev, n):
-    x = beta / beta_prev / n * trans * emissions
-    # if not np.isclose(np.sum(x), 1):
-    #    raise ValueError("error in posterior transition")
-    return x
+    return beta / beta_prev / n * trans * emissions
 
 
 @njit
@@ -135,9 +132,11 @@ def pred_sims_rep(
     beta,
     alpha0,
     n,
-    n_homo,
+    homo_ids,
+    het_ids,
+    roh_ids,
+    n_raw_states,
     decode=True,
-    est_inbreeding=False,
     keep_loc=False,
 ):
     n_steps, n_states = emissions.shape
@@ -155,11 +154,13 @@ def pred_sims_rep(
                 n=n[i],
             )
             state = nb_choice(n_states, p)
-            seq[i] = state
+        seq[i] = state
     if decode:
-        runs = decode_runs(seq, n_homo, n_states - n_homo, est_inbreeding)
+        runs = decode_runs(seq, homo_ids, het_ids, roh_ids, n_raw_states)
     else:
-        runs = decode_runs_single(seq, n_states=np.max(seq) + 1)
+        runs = decode_runs_single(
+            seq, n_states=len(homo_ids) + len(het_ids) + len(roh_ids)
+        )
     return runs
 
 
@@ -169,17 +170,37 @@ def pred_sims_single(
     beta,
     alpha0,
     n,
-    n_homo,
+    states,
     n_sims=100,
     decode=True,
-    est_inbreeding=False,
     keep_loc=False,
 ):
     sims = []
+
+    homo_list = (
+        List(states.homo_ids) if len(states.homo_ids) else List.empty_list(uint8)
+    )
+    het_list = (
+        List(states.het_ids)
+        if len(states.het_ids)
+        else List.empty_list(UniTuple(uint8, 2))
+    )
+    roh_list = List(states.roh_ids) if len(states.roh_ids) else List.empty_list(uint8)
     for it in range(n_sims):
         runs = pred_sims_rep(
-            trans, emissions, beta, alpha0, n, n_homo, decode, est_inbreeding, keep_loc
+            trans,
+            emissions,
+            beta,
+            alpha0,
+            n,
+            homo_list,
+            het_list,
+            roh_list,
+            n_raw_states=states.n_raw_states,
+            decode=decode,
+            keep_loc=keep_loc,
         )
+
         for i, run in enumerate(runs):
             if keep_loc:
                 df = pd.DataFrame(run, columns=("len", "start", "end"))
@@ -190,7 +211,8 @@ def pred_sims_single(
             df["state"] = i
             df["it"] = it
             sims.append(df)
-    return pd.concat(sims)
+    sims = pd.concat(sims)
+    return sims
 
 
 def pred_sims(
@@ -199,16 +221,15 @@ def pred_sims(
     beta,
     alpha0,
     n,
-    n_homo,
+    states,
     n_sims=100,
     decode=True,
     keep_loc=False,
-    est_inbreeding=False,
 ):
     """simulate runs through the model using posterior parameter.
 
     uses the algorithm of Nielsen, Skov et al. to generate track-length
-    distribution. 
+    distribution.
 
     Parameters
     =====
@@ -217,18 +238,15 @@ def pred_sims(
     beta: list of result of bwd-algorithm
     alpha0: initial probability
     n : list of normalizing factors from fwd-algorithm
-    n_homo: number of homozygous states
+    states : state object
     n_sims: number of reps
     decode: whether diploid states are decoded into haploid ones
     keep_loc: whether location info should be kept
-    est_inbreeding: whether inbred states are permitted
 
     """
     output = []
     for i, (e, b, n_) in enumerate(zip(emissions, beta, n)):
-        df = pred_sims_single(
-            trans, e, b, alpha0, n_, n_homo, n_sims, decode, est_inbreeding, keep_loc
-        )
+        df = pred_sims_single(trans, e, b, alpha0, n_, states, n_sims, decode, keep_loc)
         df["chrom"] = i
         output.append(df)
         logging.info("Posterior Simulating chromosome %s" % i)
@@ -236,7 +254,6 @@ def pred_sims(
 
 
 def resampling_pars(tbl):
-    # breakpoint()
     in_state = tbl[["state", "it", "len"]].groupby(["state", "it"]).sum()
     tot = tbl[["it", "len"]].groupby(["it"]).sum()
     Z = in_state / tot

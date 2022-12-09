@@ -4,7 +4,7 @@ from .gt import ReadGT, DiploidGT, HaploidGT, GTNoData
 
 class Sample(object):
     """
-    represents a single individual 
+    represents a single individual
     this class has two main purposes. First, it allows setting up populations.
     Second, it defines how stuff is sampled
     """
@@ -60,8 +60,7 @@ class Sample(object):
 
     @property
     def outname(self):
-        """name is the output name of the sample, that is mutable.
-        """
+        """name is the output name of the sample, that is mutable."""
         return self._outname
 
     @outname.setter
@@ -98,12 +97,12 @@ class Sample(object):
 
 
 class SampleWithSubsamples(Sample):
-    """
+    """ """
 
-
-    """
-
-    def __init__(self, sample, ):
+    def __init__(
+        self,
+        sample,
+    ):
         self.sample = sample
 
     @property
@@ -116,10 +115,7 @@ class SampleWithSubsamples(Sample):
 
 
 class Population:
-    """group individuals in a population for calculations
-
-
-    """
+    """group individuals in a population for calculations"""
 
     def __init__(self, samples=[], subpopulations=[], name=None, **kwargs):
         self._samples = samples
@@ -166,5 +162,3 @@ class Population:
 
 
 __all__ = ["Sample", "SampleWithSubsamples", "Population"]
-
-

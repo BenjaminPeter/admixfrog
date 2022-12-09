@@ -7,6 +7,8 @@ POP_OPTIONS = [
     "ref_files",
     "sex",
     "states",
+    "het_steates",
+    "homo_states",
     "state_file",
     "random_read_samples" "ancestral",
 ]
@@ -57,6 +59,10 @@ ALGORITHM_OPTIONS = [
     "ancestral_prior",
     "split_lib",
     "scale_probs",
+    "max_cov", 
+    "bin_reads",
+    "len_bin_size",
+    "deam_bin_size",
 ]
 
 ALGORITHM_OPTIONS_SLUG = [
@@ -87,10 +93,24 @@ def add_pop_options(parser, states_only=False):
         """,
     )
     parser.add_argument(
+        "--het-states",
+        nargs="*",
+        default=None,
+        help="""Exact het states to be given. If missing or empty, will use all possible het states
+        """,
+    )
+    parser.add_argument(
+        "--homo-states",
+        nargs="*",
+        default=None,
+        help="""Which homozygous states to include. If missing or empty, use all homozygous states
+        """,
+    )
+    parser.add_argument(
         "--state-file",
         "--pop-file",
         default=None,
-        help="""Population assignments (yaml format)""",
+        help="""Population assignments (yaml format). Doesn't currently support het/homo states""",
     )
     parser.add_argument(
         "--random-read-samples",
@@ -704,6 +724,31 @@ def add_base_options(P):
         help="""dont scale emission probabilities so that the max is 1""",
     )
 
+    parser.add_argument(
+        "--bin-reads",
+        default=False,
+        action="store_true",
+        help="""Set flag whether reads should be binned
+        by the program (when input file is created with admixfrog-bam2) or in the preprocessing step (when run using admixfrog-bam)
+        """,
+    )
+
+    parser.add_argument(
+        "--deam-bin-size",
+        "--deam-bin",
+        type=int,
+        default=-1,
+        help="bin size for deamination, has no effect unless --bin-reads is set",
+    )
+
+    parser.add_argument(
+        "--len-bin-size",
+        "--len-bin",
+        type=int,
+        default=50000,
+        help="bin size for read length, has no effect unless --bin-reads is set",
+    )
+
 
 def add_base_options_slug(P):
     parser = P.add_argument_group("options that control the algorithm behavior")
@@ -763,7 +808,7 @@ def add_base_options_slug(P):
         "--len-bin",
         type=int,
         default=50000,
-        help="bin size for deamination",
+        help="bin size for read length",
     )
 
     parser.add_argument(

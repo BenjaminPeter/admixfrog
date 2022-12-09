@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 
 
-def calc_fstats(sfs, pop_list=None, name='XXX'):
+def calc_fstats(sfs, pop_list=None, name="XXX"):
     """should calculate a table with all f3/f4 between source states and target"""
+    breakpoint()
     SAMPLE_NAME = name
     freqs, pops = sfs_to_freq(sfs)
 
@@ -28,15 +29,20 @@ def calc_fstats(sfs, pop_list=None, name='XXX'):
     f3s = pd.concat(f3s).reset_index()
 
     # f4s without target
-    for A, B in itertools.combinations(pops, 2):
-        for C, D in itertools.combinations(pops, 2):
-            if len(set((A, B, C, D))) == 4:
-                f4s.append(single_f4(pis, A, B, C, D))
+    if len(pops >= 4):
+        for A, B in itertools.combinations(pops, 2):
+            for C, D in itertools.combinations(pops, 2):
+                if len(set((A, B, C, D))) == 4:
+                    f4s.append(single_f4(pis, A, B, C, D))
+
+    # f4s with target
     A = f"{SAMPLE_NAME}"
-    for B in pops:
-        for C, D in itertools.combinations(pops, 2):
-            if len(set((A, B, C, D))) == 4:
-                f4s.append(single_f4(pis, A, B, C, D))
+    if len(pops >= 4):
+        for B in pops:
+            for C, D in itertools.combinations(pops, 2):
+                if len(set((A, B, C, D))) == 4:
+                    f4s.append(single_f4(pis, A, B, C, D))
+
     f4s = pd.concat(f4s).reset_index()
     return f3s, f4s, pis
 
@@ -46,6 +52,7 @@ def sfs_to_freq(sfs, ref_freq=False):
 
     by default, alt allele frequency is calculated, ref_freq gives inverse
     """
+    breakpoint()
     sfs = deepcopy(sfs)
     pops = [p[:-4] for p in sfs.columns if p.endswith("_alt")]
     for pop in pops:
@@ -76,14 +83,17 @@ def f_calc_pi_within(pop):
 
     return f
 
-def f_jk_sd(stat='f3'):
+
+def f_jk_sd(stat="f3"):
     def f(df):
         n = df.shape[0]
         m = np.mean(df[stat])
-        return np.sqrt( (n-1)/n * np.sum( (m - df[stat]) ** 2))
+        return np.sqrt((n - 1) / n * np.sum((m - df[stat]) ** 2))
+
     return f
 
-def freq_to_pi(freqs, pops, SAMPLE_NAME='XXX'):
+
+def freq_to_pi(freqs, pops, SAMPLE_NAME="XXX"):
     df = pd.DataFrame()
     fg = freqs.groupby("rep")
 
@@ -118,25 +128,25 @@ def single_f4(pis, A, B, C, D):
     return f4
 
 
-
 def summarize_f3(df):
-    f3s = summarize_f(df, stat='f3', pops=['X', 'A', 'B'])
-    f = f3s[['X', 'B', 'A', 'f3', 'sd']]
+    f3s = summarize_f(df, stat="f3", pops=["X", "A", "B"])
+    f = f3s[["X", "B", "A", "f3", "sd"]]
     f.columns = f3s.columns
     return pd.concat((f3s, f))
 
+
 def summarize_f4(df):
-    f4s=  summarize_f(df, stat='f4', pops=['A', 'B', 'C', 'D'])
-    f = f4s[['A', 'B', 'D', 'C', 'f4', 'sd']]
+    f4s = summarize_f(df, stat="f4", pops=["A", "B", "C", "D"])
+    f = f4s[["A", "B", "D", "C", "f4", "sd"]]
     f.columns = f4s.columns
-    f['f4'] = -f['f4']
+    f["f4"] = -f["f4"]
     return pd.concat((f4s, f))
 
-def summarize_f(df, stat='f3', pops=['X', 'A', 'B']):
+
+def summarize_f(df, stat="f3", pops=["X", "A", "B"]):
     fg = df.groupby(pops)
     m = fg[stat].mean()
-    m.name=stat
+    m.name = stat
     sd = fg.apply(f_jk_sd(stat))
-    sd.name='sd'
+    sd.name = "sd"
     return pd.concat((m, sd), axis=1).reset_index(drop=False)
-

@@ -10,7 +10,7 @@ We fit a hidden Markov Model across the genome, with the hidden states being all
 combinations of ancestry between one or two sources.
 
 ## Installation
-Requires `python3.7+`
+Requires `python3.8+`
 Install dependencies:
 ```
 pip install cython scipy  --upgrade

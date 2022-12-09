@@ -12,6 +12,8 @@ EXT = "ref", "alt"
 
 
 def parse_chroms(arg):
+    if arg is None:
+        return None
     chroms = []
     for s in arg.split(","):
         if "-" in s:
@@ -89,7 +91,7 @@ def vcf_to_ref(
                     sample2pop[sample].append(pop)
 
     samples = sample2pop.keys()
-    pops = set(pop for s, v in sample2pop.items() for pop in v)
+    pops = sorted(set(pop for s, v in sample2pop.items() for pop in v))
     pprint(sample2pop)
     pprint(pops)
 
@@ -161,7 +163,7 @@ def vcf_to_ref(
                     D = defaultdict(int)
                     # rec stuff
                     if rec_file is None:
-                        map_ = row.pos * rec_rate
+                        map_ = row.pos * rec_rate * 100
                         ref.write(
                             f"{row.chrom},{row.pos},{row.ref},{row.alts[alt_ix]},{map_},"
                         )
@@ -174,9 +176,7 @@ def vcf_to_ref(
                             slope = (R1[map_ids] - R0[map_ids]) / (
                                 R1[pos_id] - R0[pos_id]
                             )
-                            map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) / (
-                                R1[pos_id] - R0[pos_id]
-                            )
+                            map_ = R0[map_ids] + slope * (row.pos - R0[pos_id])
                         elif row.pos > R1[pos_id]:
                             try:
                                 while row.pos > R1[pos_id]:
@@ -189,9 +189,7 @@ def vcf_to_ref(
                                 slope = (R1[map_ids] - R0[map_ids]) / (
                                     R1[pos_id] - R0[pos_id]
                                 )
-                                map_ = R0[map_ids] + slope * (row.pos - R0[pos_id]) / (
-                                    R1[pos_id] - R0[pos_id]
-                                )
+                                map_ = R0[map_ids] + slope * (row.pos - R0[pos_id])
 
                         ref.write(
                             f"{row.chrom},{row.pos},{row.ref},{row.alts[alt_ix]},"
@@ -248,27 +246,27 @@ def vcf_to_sample(
                             ref_row = ref_local[ref_local.pos == row.pos]
                             ref_alt = ref_row.alt.values
                             ALT_INDEX = np.where(ref_alt == row.alleles)[0].item()
-                        # logging.debug(f"{row.chrom}:{row.pos} in ref")
                     else:
-                        # logging.debug(f"{row.chrom}:{row.pos} not in ref, skipping")
                         continue
 
-                    infile.write(f"{row.chrom},{row.pos},")
+                    snp_str = f"{row.chrom},{row.pos}"
 
                     sample_data = row.samples
                     for s in sample_data:
                         if random_read:
                             allele = sample_data[s]["GT"][0]
                             if allele == 0:
-                                infile.write("1,0\n")
+                                allele_str = "1,0"
                             elif allele == ALT_INDEX:
-                                infile.write("0,1\n")
+                                allele_str = "0,1"
                             else:
-                                infile.write("0,0\n")
+                                allele_str = "0,0"
                         else:
                             alleles = Counter(sample_data[s]["GT"])
-                            # breakpoint()
-                            infile.write(f"{alleles[0]},{alleles[ALT_INDEX]}\n")
+                            allele_str = f"{alleles[0]},{alleles[ALT_INDEX]}"
+
+                    if allele_str != "0,0":
+                        infile.write(f"{snp_str},{allele_str}\n")
             logging.debug(f"done processing {chrom}")
 
 

@@ -15,15 +15,15 @@ VCF_ROWDP = "{chrom}\t{pos}\t{chrom}_{pos}\t{ref}\t{alt}\t.\t.\t.\tGT:DP"
 class SNP(object):
     def __init__(self, coords, data, anc=None):
         """__init__
-            Parameters
-            ----------
-            dataset : [removed] SampleSet | maybe just pass Structure object
-                Sample set that stores all possible individual samples
-            coords : str , int, [ref] [alt]
-                Chromosome and position of SNP
-            anc : :Sample:
-                the sample reflecting the ancestral allele
-            -------
+        Parameters
+        ----------
+        dataset : [removed] SampleSet | maybe just pass Structure object
+            Sample set that stores all possible individual samples
+        coords : str , int, [ref] [alt]
+            Chromosome and position of SNP
+        anc : :Sample:
+            the sample reflecting the ancestral allele
+        -------
         """
         self.has_ref = len(coords) == 4
         self.coords = coords
@@ -44,14 +44,14 @@ class SNP(object):
     @property
     @cache(maxsize=1)
     def freq_tot(self):
-        return  Counter(self._data[s] for s in self._data)
+        return Counter(self._data[s] for s in self._data)
 
     @property
     @cache(maxsize=1)
     def freq(self):
         return Counter(
-                self._data[s].gt() for s in self._data if self._data[s].gt() != NA
-            )
+            self._data[s].gt() for s in self._data if self._data[s].gt() != NA
+        )
 
     @property
     def n_missing(self):
@@ -91,8 +91,7 @@ class SNP(object):
         return None
 
     def __iter__(self):
-        """iterate over (sample, gt)
-        """
+        """iterate over (sample, gt)"""
         return iter(self._data.items())
 
     def __getitem__(self, item):
@@ -109,7 +108,6 @@ class SNP(object):
             reads.extend(r)
 
         return reads
-            
 
     def to_vcfrecord(self, samples, depth=True, **kwargs):
         # VCF_ROW = '{chrom}\t{pos}\t{chrom}_{pos}\t{ref}\t{alt}\t.\t.\t.\tGT:DP\t'
@@ -142,7 +140,6 @@ class SNP(object):
             return row + "\n"
         else:
             return ""
-
 
 
 __all__ = ["SNP"]

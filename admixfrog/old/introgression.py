@@ -6,15 +6,15 @@ from scipy.stats import binom
 from scipy.optimize import minimize
 from .hmm import get_emissions_cy, split_freqs, update_contamination_cy
 from .fwd_bwd import viterbi, fwd_bwd_algorithm, update_transitions
-from .baum_welch import  get_emissions_py, baum_welch
+from .baum_welch import get_emissions_py, baum_welch
 
-#np.set_printoptions(suppress=True, precision=4)
+# np.set_printoptions(suppress=True, precision=4)
 pbinom = binom.pmf
 Freqs = namedtuple("Freqs", ("O", "N", "P_cont", "P", "lib"))
 
+
 def get_emissions(*args, **kwargs):
     return get_emissions_cy(*args, **kwargs)
-
 
 
 def data2freqs(data, state_ids, cont_id, do_hets=True):
@@ -37,6 +37,7 @@ def data2freqs(data, state_ids, cont_id, do_hets=True):
     )
 
     return f
+
 
 def bins_from_bed(bed, data, bin_size):
     chroms = np.unique(bed.chrom)
@@ -69,6 +70,7 @@ def bins_from_bed(bed, data, bin_size):
     data_bin = np.vstack(data_loc)
     return bins, data_bin
 
+
 def run_hmm(
     infile,
     bedfile,
@@ -80,7 +82,7 @@ def run_hmm(
     do_hets=True,
     **kwargs
 ):
-    """ run baum welch to find introgressed tracts
+    """run baum welch to find introgressed tracts
     infile formatting:
         - chrom, map: genomic coordinates
         - tref, talt: number of ref, alt reads
@@ -92,7 +94,7 @@ def run_hmm(
     data = data[data.chrom != "X"]
     data = data[data.chrom != "Y"]
     print(data.shape, file=sys.stderr)
-    data = data[np.logical_or(data[cont_id] <= F_MAX, data[cont_id] >= 1. - F_MAX)]
+    data = data[np.logical_or(data[cont_id] <= F_MAX, data[cont_id] >= 1.0 - F_MAX)]
     print(data.shape, file=sys.stderr)
     print(F_MAX, file=sys.stderr)
     data.chrom = data.chrom.astype(int)
@@ -102,14 +104,14 @@ def run_hmm(
     cols = ["chrom", "pos", "map", "lib", "ref", "alt"] + states
     data = data[cols]
     data = data.dropna()
-    q = np.quantile(data.ref + data.alt, .99)
+    q = np.quantile(data.ref + data.alt, 0.99)
     data = data[data.ref + data.alt <= q]
 
     if "lib" not in data or (not split_lib):
         data = data.groupby(
             ("chrom", "pos", "NEA", "DEN", "AFR", "PAN"), as_index=False
         ).agg({"ref": sum, "alt": sum})
-        q = np.quantile(data.ref + data.alt, .999)
+        q = np.quantile(data.ref + data.alt, 0.999)
         data = data[data.ref + data.alt <= q]
         data["lib"] = "lib0"
 
@@ -162,17 +164,20 @@ def run_hmm(
         **kwargs
     )
 
-    viterbi_path = viterbi(pars,alpha_0, trans_mat, emissions)
+    viterbi_path = viterbi(pars, alpha_0, trans_mat, emissions)
     V = np.array(gamma_names)[np.hstack(viterbi_path)]
     viterbi_df = pd.Series(V, name="viterbi")
-    df = pd.DataFrame(Z, columns = gamma_names)
+    df = pd.DataFrame(Z, columns=gamma_names)
     CC = Counter(IX.SNP2BIN)
-    snp = pd.DataFrame([CC[i] for i in range(len(df))], columns = ["n_snps"])
+    snp = pd.DataFrame([CC[i] for i in range(len(df))], columns=["n_snps"])
     df = pd.concat((pd.DataFrame(bins), viterbi_df, snp, df), axis=1)
 
-    D = data.groupby(["chrom", "pos", "map"]).agg({"tref": sum, "talt": sum}).reset_index()
+    D = (
+        data.groupby(["chrom", "pos", "map"])
+        .agg({"tref": sum, "talt": sum})
+        .reset_index()
+    )
     T = posterior_table(pg, Z, IX)
     snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
-    
 
     return df, snp_df, ll, pars

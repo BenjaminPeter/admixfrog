@@ -1,5 +1,6 @@
 .*
 *cpp
+*c
 *html
 *so
 build/
@@ -10,4 +11,5 @@ __pycache__/
 *synctex.gz
 *bbl
 *blg
+tests/res
 

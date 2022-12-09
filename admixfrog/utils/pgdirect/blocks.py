@@ -12,7 +12,7 @@ class Blocks(ABC):
     The :class:`Blocks`-class is used to handle
 
         - which sites are to be read (from bed-file)
-        - how sites are grouped into blocks for processing of data. 
+        - how sites are grouped into blocks for processing of data.
 
     This can be used
     for e.g. calculating a statistic in a sliding window,
@@ -26,13 +26,13 @@ class Blocks(ABC):
 
        from pgdirect.blocks import *
 
-    .. testcode:: 
+    .. testcode::
 
        blocks = SNPBlocks("data/sample.bed", block_size=2, max_snps=7)
        for block, (chrom, pos) in blocks:
            print("chr%s:%s is in block %s" %(chrom, pos, block))
 
-    .. testoutput:: 
+    .. testoutput::
 
        chr1:567136 is in block 0
        chr1:752565 is in block 0
@@ -57,22 +57,22 @@ class Blocks(ABC):
             whether sites are in the target position
         - :class:`SingleBlocks` : Each site is its own block
         - :class:`ChromBlocks` : Each chromosome is its own block
-    
+
     Args:
-        bed (:obj:`pybedtools.bed`): a bed handle that contains all 
+        bed (:obj:`pybedtools.bed`): a bed handle that contains all
             positions to be processed
         chroms (iterable of :obj:`str`, optional) : The chromosome to be handled.
             Defaults to human autosomes ('1' ... '22')
-        starts (:obj:`dict` of int, optional) : 
+        starts (:obj:`dict` of int, optional) :
             The start positions for each chromosome. Defaults to 0
-        ends  (:obj:`dict` of int, optional) : 
+        ends  (:obj:`dict` of int, optional) :
             The end positions for each chromosome. Defaults to 10^12
-        snp_alleles (bool) : 
+        snp_alleles (bool) :
             if snp alleles are stored in columns 4/5, they can be iterated over.
             for longer fragments this assumes that entry 4, 5 are strings with the ref/alt sequence
             (default True)
         max_snps (int) : Maximum number of SNP to be read
-            
+
     """
 
     def __init__(
@@ -117,10 +117,9 @@ class BedBlocks(Blocks):
         if type(file) is not BedTool:
             self.file = BedTool(file)
 
-
     def blocks(self):
         """Joint iterator over all sites and the corresponding block id.
-        
+
         Yields
         -------
         tuple (block, (chrom, pos, ref, alt)) of genomic coordinates and block assigned
@@ -134,11 +133,10 @@ class BedBlocks(Blocks):
         else:
             return itertools.islice(zip(block_ids, snp_positions), self.max_snps)
 
-
     def _get_snps_interval(self):
         """iterate over positions of a single interval in bed files
 
-        Yields: 
+        Yields:
             (chrom, pos) : The chromosome and position of the next site
         """
         for b in self.bed:
@@ -154,20 +152,21 @@ class BedBlocks(Blocks):
                     yield pos
         return
 
+
 class SNPBlocks(BedBlocks):
     """Genome-wide blocking
-    
+
     .. testsetup:: *
 
        from pgdirect.blocks import *
 
-    .. testcode:: 
+    .. testcode::
 
        blocks = SNPBlocks("data/sample.bed", block_size=2, max_snps=7)
        for block, (chrom, pos) in blocks:
            print("chr%s:%s is in block %s" %(chrom, pos, block))
 
-    .. testoutput:: 
+    .. testoutput::
 
        chr1:567136 is in block 0
        chr1:752565 is in block 0
@@ -176,8 +175,8 @@ class SNPBlocks(BedBlocks):
        chr1:777121 is in block 1
        chr11:300363 is in block 2
        chr11:306790 is in block 2
-    
-    
+
+
     """
 
     def __init__(self, *args, block_size, **kwargs):
@@ -188,7 +187,7 @@ class SNPBlocks(BedBlocks):
         """_count_chrom
 
         counts the number of callable bases per chromosome
-        
+
         Parameters
         ----------
         bed : pybedtools.bed
@@ -197,7 +196,7 @@ class SNPBlocks(BedBlocks):
             absolute start of interval
         end : type
             absolute end of interval
-        
+
         Yields
         -------
         chromosome id for each site
@@ -259,14 +258,14 @@ class BPBlocks(BedBlocks):
        from pybedtools import BedTool
        from pgdirect.blocks import *
 
-    .. testcode:: 
+    .. testcode::
 
-       blocks = BPBlocks(BedTool("data/sample.bed"), 
+       blocks = BPBlocks(BedTool("data/sample.bed"),
            block_size=100000, max_snps=7)
        for block, (chrom, pos) in blocks:
            print("chr%s:%s is in block %s" %(chrom, pos, block))
 
-    .. testoutput:: 
+    .. testoutput::
 
        chr1:567136 is in block 0
        chr1:752565 is in block 1
@@ -289,7 +288,7 @@ class BPBlocks(BedBlocks):
         """count_chrom
 
         gets min and max position per chrom
-        
+
         Parameters
         ----------
         bed : pybedtools.bed
@@ -298,7 +297,7 @@ class BPBlocks(BedBlocks):
             absolute start of interval
         end : type
             absolute end of interval
-        
+
         Yields
         -------
         chromosome id for each site
@@ -360,13 +359,13 @@ class NoBlocks(BedBlocks):
        from pybedtools import BedTool
        from pgdirect.blocks import *
 
-    .. testcode:: 
+    .. testcode::
 
        blocks = NoBlocks(BedTool("data/sample.bed"), max_snps=7)
        for block, (chrom, pos) in blocks:
            print("chr%s:%s is in block %s" %(chrom, pos, block))
 
-    .. testoutput:: 
+    .. testoutput::
 
        chr1:567136 is in block 0
        chr1:752565 is in block 0
@@ -391,13 +390,13 @@ class SingleBlocks(BedBlocks):
        from pybedtools import BedTool
        from pgdirect.blocks import *
 
-    .. testcode:: 
+    .. testcode::
 
        blocks = SingleBlocks(BedTool("data/sample.bed"), max_snps=7)
        for block, (chrom, pos) in blocks:
            print("chr%s:%s is in block %s" %(chrom, pos, block))
 
-    .. testoutput:: 
+    .. testoutput::
 
        chr1:567136 is in block 0
        chr1:752565 is in block 1
@@ -427,13 +426,13 @@ class ChromBlocks(BedBlocks):
 
        from pgdirect.blocks import *
 
-    .. testcode:: 
+    .. testcode::
 
        blocks = ChromBlocks("data/sample.bed", max_snps=7)
        for block, (chrom, pos) in blocks:
            print("chr%s:%s is in block %s" %(chrom, pos, block))
 
-    .. testoutput:: 
+    .. testoutput::
 
        chr1:567136 is in block 1
        chr1:752565 is in block 1
@@ -442,7 +441,7 @@ class ChromBlocks(BedBlocks):
        chr1:777121 is in block 1
        chr11:300363 is in block 11
        chr11:306790 is in block 11
-        
+
     """
 
     def block_range(self):

@@ -28,11 +28,14 @@ SAMPLING = IntEnum(
 
 NA = "N"
 
-#Read = namedtuple("Read", ("RG", "deam", "base", "len", "bq", "is_reverse", "pos_in_read", "deam_full"))
-#Read.__new__.__defaults__ = ("", (-1, -1), NA, -1, 0, False, -1, [])
-#NA_READ = Read("", (-1, -1), NA, -1, 0, False, -1, [])
+# Read = namedtuple("Read", ("RG", "deam", "base", "len", "bq", "is_reverse", "pos_in_read", "deam_full"))
+# Read.__new__.__defaults__ = ("", (-1, -1), NA, -1, 0, False, -1, [])
+# NA_READ = Read("", (-1, -1), NA, -1, 0, False, -1, [])
 
-Read = namedtuple("Read", ("RG", "deam", "base", "len", "bq", "mq", "is_reverse", "pos_in_read", "deam_full"))
+Read = namedtuple(
+    "Read",
+    ("RG", "deam", "base", "len", "bq", "mq", "is_reverse", "pos_in_read", "deam_full"),
+)
 Read.__new__.__defaults__ = ("", (-1, -1), NA, -1, 0, 0, False, -1, [])
 NA_READ = Read("", (-1, -1), NA, -1, 0, 0, False, -1, [])
 

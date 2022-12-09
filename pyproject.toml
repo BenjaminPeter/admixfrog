@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "admixfrog"
+version = "0.0.0"
+description = "Local Ancestry Inference for low-coverage ancient DNA data"
+authors = ["benjamin_peter <benjamin_peter@eva.mpg.de>"]
+license = "BSD"
+readme = "README.md"
+build = "build.py"
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+pandas = ">=1.5"
+numba = ">=0.42"
+numpy = ">=1.0"
+scipy = ">=1.1"
+pybedtools = ">=0.7.10"
+pysam = ">=0.15.0"
+pyyaml = ">=5.0"
+cython = ">=0.29"
+setuptools = ">=59"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.2.0"
+pytest-console-scripts = "*"
+pytest-coverage = "^0.0"
+
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+bump = false
+pattern  = "^(?P<base>\\d+\\.\\d+\\.\\d+)(-?((?P<stage>[a-zA-Z]+)\\.?(?P<revision>\\d+)?))?"
+
+
+[build-system]
+requires = ["poetry-core>=1.2.0", 
+    "poetry-dynamic-versioning", 
+    "setuptools", 
+    "cython>=0.29",
+    "scipy>=1.1"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry.scripts]
+admixfrog = 'admixfrog:run_frog'
+admixfrog-bam = 'admixfrog:bam'
+admixfrog-bam2 = 'admixfrog:bam2'
+admixfrog-rle = 'admixfrog:do_rle'
+admixfrog-profile = 'admixfrog:profile_frog'
+admixslug-profile = 'admixfrog:profile_slug'
+admixfrog-ref = 'admixfrog:do_ref'
+admixslug = 'admixfrog:run_sfs'
