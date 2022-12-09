@@ -561,7 +561,7 @@ def run_admixfrog(
                 se=None,
                 outname=f"{outname}.cont.xz",
             )
-            ix.to_csv(f"{outname}.ix.xz", index=False, compression="xz")
+            ix.to_csv(f"{outname}.ix.xz", index=False)
 
     if output["output_bin"] or output["output_rle"]:
         viterbi_path = viterbi(pars.alpha0, pars.trans, emissions)
@@ -626,7 +626,7 @@ def run_admixfrog(
 
         write_sim_runs(df_pred, outname=f"{outname}.res.xz")
         resampling_pars(df_pred).to_csv(
-            f"{outname}.res2.xz", compression="xz", index=True, float_format="%.6f"
+            f"{outname}.res2.xz", index=True, float_format="%.6f"
         )
 
     return

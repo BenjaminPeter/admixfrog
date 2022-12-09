@@ -38,7 +38,7 @@ def write_cont_table_frog(df, cont, error, tot_n_snps, outname=None):
     df_libs["tot_n_snps"] = tot_n_snps
 
     if outname is not None:
-        df_libs.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        df_libs.to_csv(outname, float_format="%.6f", index=False)
 
     return df_libs
 
@@ -50,7 +50,7 @@ def write_bin_table(Z, bins, viterbi_df, gamma_names, IX, outname=None):
     df_bin = pd.concat((pd.DataFrame(bins), viterbi_df, snp, df_bin), axis=1)
 
     if outname is not None:
-        df_bin.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        df_bin.to_csv(outname, float_format="%.6f", index=False)
 
     return df_bin
 
@@ -81,16 +81,16 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
 
     snp_df.sort_values(["chrom", "pos"], inplace=True)
     if outname is not None:
-        snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        snp_df.to_csv(outname, float_format="%.6f", index=False)
 
     return snp_df
 
 
 def write_est_runs(df, outname=None):
     if outname is not None:
-        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        df.to_csv(outname, float_format="%.6f", index=False)
 
 
 def write_sim_runs(df, outname=None):
     if outname is not None:
-        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        df.to_csv(outname, float_format="%.6f", index=False)

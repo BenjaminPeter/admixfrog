@@ -46,7 +46,7 @@ def do_rle():
     homo = States(homo)
 
     rle = get_rle(data, homo, args.run_penalty)
-    rle.to_csv(args.outfile, float_format="%.6f", index=False, compression="xz")
+    rle.to_csv(args.outfile, float_format="%.6f", index=False)
 
 
 def run_frog():

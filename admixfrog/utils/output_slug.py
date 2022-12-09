@@ -31,7 +31,7 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
 
     if outname is not None:
         df.reset_index().to_csv(
-            outname, float_format="%.6f", index=False, compression="xz"
+            outname, float_format="%.6f", index=False
         )
 
     return df
@@ -47,7 +47,7 @@ def write_snp_table_slug(df, posterior_gt, data, outname=None):
     T = posterior_table_slug(pg=posterior_gt, data=data)
     snp_df = pd.concat((D, T, pd.DataFrame(data.SNP2SFS, columns=["sfs"])), axis=1)
     if outname is not None:
-        snp_df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        snp_df.to_csv(outname, float_format="%.6f", index=False)
 
     return snp_df
 
@@ -147,7 +147,7 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
         sfs_df["h_F"] = np.clip(F + 1.96 * se_F, 0, 1)
 
     if outname is not None:
-        sfs_df.to_csv(outname, float_format="%5f", index=False, compression="xz")
+        sfs_df.to_csv(outname, float_format="%5f", index=False)
 
     return sfs_df
 
@@ -155,12 +155,12 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
 def write_f3_table(df, outname=None):
     df = df[["X", "A", "B", "f3", "rep"]]
     if outname is not None:
-        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        df.to_csv(outname, float_format="%.6f", index=False)
     return df
 
 
 def write_f4_table(df, outname=None):
     df = df[["A", "B", "C", "D", "f4", "rep"]]
     if outname is not None:
-        df.to_csv(outname, float_format="%.6f", index=False, compression="xz")
+        df.to_csv(outname, float_format="%.6f", index=False)
     return df
