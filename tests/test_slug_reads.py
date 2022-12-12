@@ -1,4 +1,4 @@
-from admixfrog.slug.classes import SlugData, SlugController
+from admixfrog.utils.classes import SlugData, SlugController
 from admixfrog.utils.pars import SlugPars
 from admixfrog.slug.emissions import *
 from admixfrog.slug.em import *
