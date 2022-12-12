@@ -151,7 +151,7 @@ def data2probs(
     P = FrogData(
         O=np.array(df.talt.values, np.uint8),
         N=np.array(df.tref.values + df.talt.values, np.uint8),
-        psi=None
+        psi=np.array(0.)
         if cont_id is None
         else np.array((df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)),
         alpha=alt_prior[IX.diploid_snps],

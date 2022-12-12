@@ -19,8 +19,7 @@ def p_reads_given_gt_gllmode(O, N, Pcont, c, error, n_obs):
     per read group
 
     """
-    n_gt = 3
-    read_emissions = np.ones((n_obs, n_gt))
+    read_emissions = np.ones((n_obs, 3), float)
     for g in range(3):
         p = c * Pcont + (1 - c) * g / 2
         p = p * (1 - error) + (1 - p) * error

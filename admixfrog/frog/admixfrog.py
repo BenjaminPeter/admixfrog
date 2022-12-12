@@ -537,12 +537,11 @@ def run_admixfrog(
             )
         else:
             rgs = dict((l, i) for i, l in enumerate(P.rgs))
-            cont = [pars.cont[k] for k in rgs.keys()]
 
             df_cont = write_cont_table_slug(
                 ix,
                 rgs,
-                cont,
+                pars.cont,
                 tot_n_snps,
                 se=None,
                 outname=f"{outname}.cont.xz",
