@@ -1,6 +1,6 @@
-from admixfrog.slug.classes import *
-from admixfrog.slug.emissions_reads import *
-from admixfrog.slug.em_reads import *
+from admixfrog.slug.classes import SlugData, SlugPars, SlugController
+from admixfrog.slug.emissions import *
+from admixfrog.slug.em import *
 import numpy as np
 import pytest 
 
@@ -9,7 +9,7 @@ def test_error_est():
 
     one RG with only endo (all ref) and one RG with only cont ( all 1)
     """
-    data = SlugReads(
+    data = SlugData(
         READS = [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1],
         psi = [1],
         READ2RG = [0] * 6 + [1] * 5,
@@ -17,7 +17,7 @@ def test_error_est():
         FLIPPED = [False],
         SNP2SFS = [0])
 
-    pars = SlugParsSquare(
+    pars = SlugPars(
         cont = [0, 1],
         tau = [0],
         F = [0],
@@ -25,14 +25,14 @@ def test_error_est():
         b = 0.001
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
     print( f'll : {pars.prev_ll} -> {pars.ll}')
     assert pars.e == 0.5
     assert pars.b == 0.8
 
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     assert pars.prev_ll == pars.ll
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
@@ -42,7 +42,7 @@ def test_cont_est():
 
     one RG with only endo (all ref) and one RG with only cont ( all 1)
     """
-    data = SlugReads(
+    data = SlugData(
         READS = [0, 0, 0, 0, 
                  0, 0, 0, 1,
                  1, 1, 1, 1],
@@ -61,12 +61,12 @@ def test_cont_est():
     )
     controller = SlugController(update_eb=False,  update_ftau=False,
                                 update_cont=True)
-    pars = update_pars_reads(pars, data, controller)
+    pars = update_pars(pars, data, controller)
     assert pars.cont[0] == 0
     assert pars.cont[2] == 1
     assert pars.cont[1] == 0.25
     print(f'C = {pars.cont}')
-    ll = calc_full_ll_reads(data, pars)
+    ll = calc_full_ll(data, pars)
     assert pars.ll  > pars.prev_ll
     print( f'll : {pars.ll} -> {ll}')
 
@@ -76,7 +76,7 @@ def test_ftau_est_hap():
 
     one RG with only endo (all ref) and one RG with only cont ( all 1)
     """
-    data = SlugReads(
+    data = SlugData(
         READS = [0, 0, 0, 0, 
                  0, 0, 0, 1,
                  1, 1, 1, 1,
@@ -95,9 +95,9 @@ def test_ftau_est_hap():
         e = 0.00,
         b = 0.00
     )
-    ll0 = calc_full_ll_reads(data, pars)
+    ll0 = calc_full_ll(data, pars)
     controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
@@ -114,7 +114,7 @@ def test_ftau_est():
 
     one RG with only endo (all ref) and one RG with only cont ( all 1)
     """
-    data = SlugReads(
+    data = SlugData(
         READS = [0, 0, 0, 0, 
                  0, 0, 0, 1,
                  1, 1, 1, 1,
@@ -132,9 +132,9 @@ def test_ftau_est():
         e = 0.00,
         b = 0.00
     )
-    ll0 = calc_full_ll_reads(data, pars)
+    ll0 = calc_full_ll(data, pars)
     controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
@@ -168,12 +168,12 @@ def test_delta_est():
         b = 0.00
     )
     controller = SlugController(update_eb=False,  update_ftau=False, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
     print(f'tau = {pars.tau}')
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print( f'll : {pars.prev_ll} -> {pars.ll}')
     assert .25 < pars.tau[0] < .26
     assert .64 < pars.tau[1] < .65
@@ -225,14 +225,14 @@ def test_update_large():
 
     np.set_printoptions(suppress=True,precision = 3)
 
-    data = SlugReads(
+    data = SlugData(
         READS = O,
         psi = psi,
         READ2RG = READ2RG,
         READ2SNP = READ2SNP,
         FLIPPED = FLIPPED,
         SNP2SFS = SNP2SFS)
-    pars = SlugParsSquare(
+    pars = SlugPars(
         cont = np.repeat(0.5, n_rgs),
         tau = np.repeat(.4, n_sfs),
         F = np.repeat(.5, n_sfs),

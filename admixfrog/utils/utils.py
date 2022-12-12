@@ -5,8 +5,7 @@ import pandas as pd
 import yaml
 from ..slug.classes import (
     SlugData,
-    SlugParsSquare,
-    SlugReads,
+    SlugPars,
 )
 from numba import njit
 from scipy.linalg import expm
@@ -448,7 +447,7 @@ def make_full_df(df, n_reads):
     return READS, READ2RG, READ2SNP
 
 
-def make_slug_reads_data(
+def make_slug_data(
     df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True
 ):
     """create a SlugReads object with the following attributes:"""
@@ -496,7 +495,7 @@ def make_slug_reads_data(
     else:
         psi = snp[cont_alt] / (snp[cont_alt] + snp[cont_ref] + 1e-100)
 
-    data = SlugReads(
+    data = SlugData(
         READS=READS,
         READ2RG=READ2RG,
         READ2SNP=READ2SNP,
@@ -548,7 +547,7 @@ def init_ce(c0=0.01, e0=0.001):
 def init_pars_sfs(n_sfs, n_rgs, F0, tau0, e0, c0, **kwargs):
     cont, error = init_ce(c0, e0)
     F, tau = init_ftau(n_sfs, F0, tau0)
-    pars = SlugParsSquare(
+    pars = SlugPars(
         cont=np.zeros(n_rgs) + c0,
         tau=np.zeros(n_sfs) + tau0,
         F=np.zeros(n_sfs) + F0,

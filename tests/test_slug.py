@@ -1,6 +1,6 @@
-from admixfrog.slug.classes import *
-from admixfrog.slug.emissions_reads import *
-from admixfrog.slug.em_reads import *
+from admixfrog.slug.classes import SlugData, SlugPars, SlugController
+from admixfrog.slug.emissions import *
+from admixfrog.slug.em import *
 import numpy as np
 import pytest 
 
@@ -117,35 +117,12 @@ def test_slug_fwd_p_x2():
     assert 0.4 < res[0, 1]  < 0.5
     assert 0.03 < res[4, 1]  < 0.04 
 
-def test_data1():
-    """simple test dataset for ensuring algorithm is correct
-
-    a single SNP with one derived allele
-    """
-    data = SlugData(
-        REF = [0, 9, 1],
-        ALT = [4, 1, 0],
-        psi = [0],
-        OBS2RG = [0, 1, 2],
-        OBS2SNP = [0, 0, 0],
-        SNP2SFS = [0])
-
-    pars0 = SlugParsSquare(
-        cont = [0, 0.5, 1],
-        tau = [0],
-        F = [0],
-        e = 0,
-        b= 0
-    )
-
-
-    #return pars0, data
 
 def test_error_est():
     """simple test dataset for ensuring algorithm is correct
 
     """
-    data = SlugReads(
+    data = SlugData(
         READS = [0, 0, 0, 0, 1, 1, 1, 1],
         psi = [1.],
         READ2RG = [0, 0,0,0, 1, 1, 0, 0],
@@ -153,7 +130,7 @@ def test_error_est():
         FLIPPED = np.zeros(1, dtype='bool'),
         SNP2SFS = [0])
 
-    pars = SlugParsSquare(
+    pars = SlugPars(
         cont = [0, 1],
         tau = [0],
         F = [0],
@@ -161,13 +138,13 @@ def test_error_est():
         b = 0.001
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
     assert pars.e == 1/3.
     assert pars.b == 0
 
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     assert pars.prev_ll <= pars.ll
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
@@ -178,7 +155,7 @@ def test_cont_est():
 
     one RG with only endo (all ref) and one RG with only cont ( all 1)
     """
-    reads = SlugReads(
+    reads = SlugData(
         READS = [0,0,0,0,0,0,1,1,0,0, 1,1],
         psi = [1],
         READ2RG = [0,0,0,0,0,0,1,1,1,1, 2, 2],
@@ -196,12 +173,12 @@ def test_cont_est():
     )
     controller = SlugController(update_eb=False,  update_ftau=False,
                                 update_cont=True)
-    pars = update_pars_reads(pars, reads, controller)
+    pars = update_pars(pars, reads, controller)
     assert pars.cont[0] == 0
     assert pars.cont[2] == 1
     assert pars.cont[1] == 0.5
     print(f'C = {pars.cont}')
-    ll = calc_full_ll_reads(reads, pars)
+    ll = calc_full_ll(reads, pars)
     assert pars.ll  <= ll
     print( f'll : {pars.ll} -> {ll}')
 
@@ -230,12 +207,12 @@ def test_delta_est():
         b = 0.00
     )
     controller = SlugController(update_eb=False,  update_ftau=False, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
     print(f'tau = {pars.tau}')
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print( f'll : {pars.prev_ll} -> {pars.ll}')
     assert .25 < pars.tau[0] < .26
     assert .64 < pars.tau[1] < .65

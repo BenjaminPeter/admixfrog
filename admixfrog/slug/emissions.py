@@ -276,7 +276,7 @@ def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
     return post_c
 
 
-def calc_full_ll_reads(data, pars):
+def calc_full_ll(data, pars):
     fwd_g = fwd_p_g(data, pars)
     bwd_x = bwd_p_o_given_x(data.READS, e=pars.e, b=pars.b)  # Pr(O_lrj | G_lrj)
     bwd_g1 = bwd_p_one_o_given_g(

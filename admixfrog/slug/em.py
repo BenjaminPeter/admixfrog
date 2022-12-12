@@ -1,12 +1,12 @@
 from numba import njit
 import numpy as np
 from copy import deepcopy
-from .emissions_reads import fwd_p_g
-from .emissions_reads import bwd_p_o_given_x
-from .emissions_reads import bwd_p_one_o_given_g, bwd_p_all_o_given_g
-from .emissions_reads import fwd_p_x, fwd_p_x_cont, message_fwd_p_x_nocont
-from .emissions_reads import posterior_g, posterior_x, posterior_c
-from .emissions_reads import full_posterior_genotypes, calc_ll, calc_full_ll_reads
+from .emissions import fwd_p_g
+from .emissions import bwd_p_o_given_x
+from .emissions import bwd_p_one_o_given_g, bwd_p_all_o_given_g
+from .emissions import fwd_p_x, fwd_p_x_cont, message_fwd_p_x_nocont
+from .emissions import posterior_g, posterior_x, posterior_c
+from .emissions import full_posterior_genotypes, calc_ll, calc_full_ll
 from ..utils.log import log_
 
 
@@ -111,7 +111,7 @@ def update_eb(post_x, R, two_errors=False):
     return e, b
 
 
-def update_pars_reads(pars, data, controller):
+def update_pars(pars, data, controller):
     """update all parameters; 1 EM step"""
     O = controller
 
@@ -137,7 +137,6 @@ def update_pars_reads(pars, data, controller):
 
     post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
     post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
-    from .emissions_reads import fwd_p_x
 
     fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
     post_g = posterior_g(bwd_g, fwd_g)
@@ -160,7 +159,7 @@ def update_pars_reads(pars, data, controller):
         pars.e, pars.b = update_eb(post_x, data.READS, two_errors=O.update_bias)
 
     if O.do_ll:
-        pars.ll, pars.prev_ll = calc_full_ll_reads(data, pars), pars.ll
+        pars.ll, pars.prev_ll = calc_full_ll(data, pars), pars.ll
 
     return pars
 
@@ -175,13 +174,13 @@ def squarem(pars0, data, controller):
     pars = pars0
 
     for i in range(controller.n_iter):
-        pars1 = update_pars_reads(pars, data, controller)
+        pars1 = update_pars(pars, data, controller)
         Δp1 = pars1 - pars
         if norm(Δp1) < EPS:  #  or pars1.ll - pars1.prev_ll < EPS:
             pars = pars1
             break
 
-        pars2 = update_pars_reads(pars1, data, controller)
+        pars2 = update_pars(pars1, data, controller)
         Δp2 = pars2 - pars1
         if norm(Δp2) < EPS or pars2.ll - pars1.ll < EPS:
             pars = pars2
@@ -202,7 +201,7 @@ def squarem(pars0, data, controller):
             pars_sq.pars[pars_sq.pars < 0] = EPS
             pars_sq.pars[pars_sq.pars > 1] = 1 - EPS
 
-        pars_sq = update_pars_reads(pars_sq, data, controller)
+        pars_sq = update_pars(pars_sq, data, controller)
 
         log_.info(
             f"LLs p0 {pars.ll:.4f} | p1 {pars1.ll-pars.ll:.4f} | p2 {pars2.ll-pars1.ll:.4f} | psq {pars_sq.ll-pars2.ll:.4f}"
@@ -231,7 +230,7 @@ def squarem(pars0, data, controller):
 
 def em(pars, data, controller):
     for i in range(controller.n_iter):
-        update_pars_reads(pars, data, controller)
+        update_pars(pars, data, controller)
         s = f"iter {i}: ll: {pars.ll:4f} | Δll : {pars.delta_ll:4f} | e={pars.e[0]:.4f} | b={pars.b[0]:.4f}"
         s += f" | Δc : {pars.delta_cont:.4f} | Δtau : {pars.delta_tau:.4f} | ΔF : {pars.delta_F:.4f}"
         log_._info(s)
