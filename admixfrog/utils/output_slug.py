@@ -30,9 +30,7 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
         df["h_cont"] = np.clip(cont + 1.96 * se, 0, 1)
 
     if outname is not None:
-        df.reset_index().to_csv(
-            outname, float_format="%.6f", index=False
-        )
+        df.reset_index().to_csv(outname, float_format="%.6f", index=False)
 
     return df
 

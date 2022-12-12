@@ -2,17 +2,11 @@
 #cython: language_level=3
 #cython: infer_types=True
 
-import pandas as pd
 import numpy as np
-cimport scipy.special.cython_special as scs
 cimport cython
 from libc.math cimport pow, log, exp
-from libc.stdio cimport printf
-from scipy.optimize import minimize, minimize_scalar
-from scipy.special import betaln
-from scipy.stats import binom
+from scipy.optimize import minimize
 from ..utils.log import log_
-
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -24,82 +18,74 @@ cdef double get_po_given_c(
     char [:] N,
     double [:] P_cont,
     double [:, :, :] PG,
-    long [:] rg2obs,
-    long [:] obs2snp
     ) :
     cdef int i, s, g,
     cdef long n_obs, n_states, 
-    cdef int obs, snp
     cdef double p,  ll = 0.
 
-    n_obs = len(rg2obs) 
+    n_obs = len(O) 
     n_states = PG.shape[1]
     for i in range(n_obs):
-        obs = rg2obs[i]
-        snp = obs2snp[obs]
         for g in range(3):
-            p = c * P_cont[obs] + (1.-c) * g / 2.
+            p = c * P_cont[i] + (1.-c) * g / 2.
             p = p * (1-e) + (1-p) * e
-            p = O[obs] * log(p) + (N[obs] - O[obs]) * log(1-p)
+            p = O[i] * log(p) + (N[i] - O[i]) * log(1-p)
             for s in range(n_states):
-                ll += PG[snp, s, g] * p
+                ll += PG[i, s, g] * p
     return ll
 
-def update_contamination(cont, error, P, PG, IX,
+def update_contamination(cont, error, P, PG,
                          est_options):
     """
     update emissions by maximizing contamination parameter
 
-    cont: dict of contamination rates (by read group)
-    error: dict of contamination rates (by read group)
+    cont: array with contamination rates (for each read group)
+    error: array with contamination rates (for each read group)
     P: data structure with reference data
     PG: Pr(G, Z | O)
 
     """
     delta = 0.
 
-    for i in range(len(IX.rgs)):
-        rg = IX.rgs[i]
-        f_ = IX.RG2OBS[rg]
-        assert all(rg == P.rg[f_])
+    for rg, i in P.rgs.items():
+        f_ = P.OBS2RG == i
+        log_.debug(np.sum(f_))
 
         def get_po_given_c_all(args):
             args = list(args)
-            C = args.pop(0) if est_options['est_contamination'] else cont[rg]
-            E = args.pop(0) if est_options['est_error'] else error[rg]
+            C = args.pop(0) if est_options['est_contamination'] else cont[i]
+            E = args.pop(0) if est_options['est_error'] else error[i]
 
             prob = get_po_given_c(c=C,
                                  e=E,
-                                 O=P.O,
-                                 N=P.N,
-                                 P_cont=P.P_cont,
-                                 PG=PG,
-                                 rg2obs = IX.RG2OBS[rg],
-                                 obs2snp = IX.OBS2SNP)
+                                 O=P.O[f_],
+                                 N=P.N[f_],
+                                 P_cont=P.psi[f_],
+                                 PG=PG[P.OBS2SNP[f_]])
             return -prob
 
         init, bounds = [], []
         if est_options['est_contamination']:
-            init.append(cont[rg])
+            init.append(cont[i])
             bounds.append((0, 1-1e-10))
         if est_options['est_error']:
-            init.append(error[rg])
+            init.append(error[i])
             bounds.append((0.00001, .1))
 
         prev = get_po_given_c_all(init)
         OO =  minimize(get_po_given_c_all, init, bounds=bounds, method="L-BFGS-B")
         opt = OO.x.tolist()
 
-        old_c, old_e = cont[rg], error[rg]
+        old_c, old_e = cont[i], error[i]
         if est_options['est_contamination']:
-            cont[rg] = opt.pop(0)
+            cont[i] = opt.pop(0)
 
         if est_options['est_error']:
-            error[rg] = opt.pop(0)
+            error[i] = opt.pop(0)
 
-        log__ = "[%s|%s] \tc: [%.4f->%.4f]\t:" % (rg, len(f_), old_c, cont[rg])
-        log__ += "e: [%.4f->%.4f]:\t%.4f" % (old_e, error[rg], prev - OO.fun)
+        log__ = "[%s|%s] \tc: [%.4f->%.4f]\t:" % (rg, np.sum(f_), old_c, cont[i])
+        log__ += "e: [%.4f->%.4f]:\t%.4f" % (old_e, error[i], prev - OO.fun)
         log_.info(log__)
-        delta += abs(cont[rg] - old_c) + abs(error[rg] - old_e)
+        delta += abs(cont[i] - old_c) + abs(error[i] - old_e)
 
     return delta

@@ -281,19 +281,19 @@ def run_frog():
                                  regenerate"""
                 )
             logging.info("creating input from bam file")
-            if algo_pars['bin_reads']:
-                outfile = target_pars.pop('target_file')
-                target = target_pars.pop('target')
-                del target_pars['force_target_file']
-                del target_pars['vcfgt']
+            if algo_pars["bin_reads"]:
+                outfile = target_pars.pop("target_file")
+                target = target_pars.pop("target")
+                del target_pars["force_target_file"]
+                del target_pars["vcfgt"]
                 process_bam2(
                     outfile=outfile,
                     ref=V["ref_files"][0],
-                    chroms=reffile_pars['chroms'],
-                    **target_pars
+                    chroms=reffile_pars["chroms"],
+                    **target_pars,
                 )
-                target_pars['target'] = target
-                target_pars['target_file'] = outfile
+                target_pars["target"] = target
+                target_pars["target_file"] = outfile
             else:
                 process_bam(
                     outfile=target_pars["target_file"],

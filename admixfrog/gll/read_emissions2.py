@@ -57,9 +57,9 @@ def read2snp_emissions(read_emissions, n_snps, ix):
     return snp_emissions
 
 
-def p_snps_given_gt(P, c, error, IX, gt_mode=False):
+def p_snps_given_gt(P, c, error, gt_mode=False):
     """calculates probabilty of observed read data given genotype"""
     read_emissions = p_reads_given_gt(
-        P.O, P.N, P.P_cont, c, error, IX.n_obs, gt_mode=gt_mode
+        P.O, P.N, P.psi, c, error, P.n_obs, gt_mode=gt_mode
     )
-    return read2snp_emissions(read_emissions, IX.n_snps, IX.OBS2SNP)
+    return read2snp_emissions(read_emissions, P.n_snps, P.OBS2SNP)

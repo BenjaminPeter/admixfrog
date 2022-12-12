@@ -4,88 +4,6 @@ from typing import Any
 from scipy.special import logit, expit
 
 
-class SlugPars(object):
-    """Parameters inferred by admixslug"""
-
-    def __init__(self, cont, tau, F, e, b):
-        self.par_names = ['cont', 'tau', 'F', 'e', 'b']
-
-        lcs = locals()
-        self.slices = dict()
-        i = 0
-        for par in self.par_names:
-            try:
-                new_i = i + len(lcs[par])
-            except TypeError:
-                new_i = i + 1
-            self.slices[par] = slice(i, new_i)
-            i = new_i
-
-        self._pars = np.empty(i)
-        for par in self.par_names:
-            self._pars[ self.slices[par] ] = lcs[par]
-
-        self.ll = np.NINF
-
-        self.ll = np.NINF
-
-        self.prev = np.zeros_like(self._pars)
-        self.prev_ll = np.NINF
-
-    def __setattr__(self, name, value):
-        if name == 'par_names': 
-            object.__setattr__(self, name, value)
-        elif name in self.par_names:
-            self._pars[self.slices[name]] = value
-        elif name.startswith('prev_') and name != 'prev_ll':
-            self.prev[self.slices[name[5:]]] = value
-        else: 
-            object.__setattr__(self, name, value)
-
-    def __getattr__(self, name):
-        if name =='par_names':
-            return super().__getattr__(name)
-        elif name in self.par_names:
-            return self._pars[self.slices[name]]
-        elif name.startswith('prev_') and name != 'prev_ll':
-            return self.prev[self.slices[name[5:]]] 
-        elif name.startswith('delta_'):
-            name = name[6:]
-            if name == 'll':
-                return self.ll - self.prev_ll
-            ix = self.slices[name]
-            return np.sum(np.abs(self.prev[ix] - self._pars[ix]))
-        else:
-            return super().__getattribute__(name)
-
-
-    def __sub__(self, other):
-        return self.pars - other.pars
-
-    @property
-    def norm(self):
-        return np.sqrt(np.sum(np.power(self._pars, 2)))
-
-    @property
-    def pars(self):
-        return self._pars
-
-    @property
-    def n_sfs(self):
-        return len(self.F)
-
-    @property
-    def n_rgs(self):
-        return len(self.cont)
-
-    @property
-    def n_pars(self):
-        return len(self._pars)
-
-    @property
-    def delta_ll(self):
-        return self.ll - self.prev_ll
-
 @dataclass(frozen=True)
 class SlugData:
     """container for immutable data"""
@@ -175,6 +93,7 @@ class SlugData:
 @dataclass
 class SlugController:
     """class for options for the admixslug em"""
+
     do_ll: bool = True
     update_eb: bool = True
     update_ftau: bool = True
@@ -190,3 +109,74 @@ class SlugController:
     squarem_max: float = 1.0
     squarem_mstep: float = 2.0
     n_resamples: int = 10
+
+
+@dataclass(frozen=True)
+class FrogData:
+    """container for immutable data"""
+
+    O: np.ndarray  # number of non-reference alleles [R x 1]
+    N: np.ndarray  # number of alleles [R x 1]
+
+    psi: np.ndarray  # freq of contaminant [L x 1]
+
+    alpha: np.ndarray  # alpha parameter for each SNP [L x 1]
+    beta: np.ndarray  # beta parameter for each SNP [L x 1]
+    alpha_hap: np.ndarray  # alpha parameter for each haploid SNP [L_h x 1]
+    beta_hap: np.ndarray  # beta parameter for each haploid SNP [L_h x 1]
+
+    OBS2RG: np.ndarray  # which read is in which rg [R x 1]
+    OBS2SNP: np.ndarray  # which read belongs to which locus [R x 1]
+    SNP2BIN: np.ndarray  # which snp belongs to which sfs entry [L x 1]
+    n_bins: int
+
+    bin_sizes: list
+
+    states: Any = None  # the bins
+    rgs: Any = None  # the read group names used
+    chroms: Any = None  # the chromosome names used
+    haplo_chroms: Any = None  # names of haploid chromosomes
+    diplo_chroms: Any = None  # names of diploid chromosomes
+    haploid_snps: Any = None  # which snp are haploid
+    diploid_snps: Any = None  # which snp are diploid
+    sex: str = "m"
+
+    def __post_init__(self):
+        assert len(self.OBS2RG) == len(self.OBS2SNP)
+        # assert len(self.psi) == len(self.SNP2BIN)
+        super().__setattr__("psi", np.array(self.psi))
+        super().__setattr__("OBS2RG", np.array(self.OBS2RG))
+        super().__setattr__("OBS2SNP", np.array(self.OBS2SNP))
+        super().__setattr__("SNP2BIN", np.array(self.SNP2BIN))
+        # give option to set n_sfs and n_rgs manually for resampling which may toss out some..
+        self.psi.flags.writeable = False
+        self.OBS2RG.flags.writeable = False
+        self.OBS2SNP.flags.writeable = False
+        self.SNP2BIN.flags.writeable = False
+
+    @property
+    def n_rgs(self):
+        return len(self.rgs)
+
+    @property
+    def n_snps(self):
+        return len(self.SNP2BIN)
+
+    @property
+    def n_obs(self):
+        return len(self.OBS2SNP)
+
+    @property
+    def n_reads(self):
+        return sum(self.N)
+
+    @property
+    def OBS2BIN(self):
+        return self.SNP2BIN[self.OBS2SNP]
+
+    pass
+
+
+@dataclass
+class FrogController:
+    pass

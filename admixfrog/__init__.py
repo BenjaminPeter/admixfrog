@@ -6,5 +6,3 @@ from .interface_frog import profile as profile_frog
 from .interface_slug import profile as profile_slug
 
 __version__ = get_distribution(__name__).version
-
-

@@ -3,10 +3,8 @@ from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
 import yaml
-from ..slug.classes import (
-    SlugData,
-    SlugPars,
-)
+from .classes import SlugData, FrogData
+from .pars import FrogPars, SlugPars
 from numba import njit
 from scipy.linalg import expm
 
@@ -14,10 +12,6 @@ from scipy.linalg import expm
 Probs = namedtuple(
     "Probs", ("O", "N", "P_cont", "alpha", "beta", "rg", "alpha_hap", "beta_hap", "S")
 )
-Pars = namedtuple(
-    "Pars",
-    ("alpha0", "alpha0_hap", "trans", "trans_hap", "cont", "error", "F", "tau", "sex"),
-)  # for returning from varios functions
 
 
 class _IX:
@@ -78,25 +72,7 @@ def data2probs(
     n_snps = len(snp_df.index.get_level_values("snp_id"))
 
     if not doalphabeta:
-        if prior is None and cont_id is not None:
-            ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
-
-        P = Probs(
-            O=np.array(df.talt.values, np.uint8),
-            N=np.array(df.tref.values + df.talt.values, np.uint8),
-            P_cont=0.0
-            if cont_id is None
-            else np.array(
-                (df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)
-            ),
-            alpha=[],
-            beta=[],
-            alpha_hap=[],
-            beta_hap=[],
-            lib=np.array(df.lib),
-            S=states,
-        )
-        return P
+        raise NotImplementedError()
 
     if prior is None:  # empirical bayes, estimate from data
         alt_prior = np.empty((n_snps, states.n_raw_states))
@@ -166,19 +142,35 @@ def data2probs(
         )
         assert np.all(df.tref.values + df.talt.values < 256)
 
-    # create named tuple for return
-    P = Probs(
+    OBS2RG = np.empty_like(IX.OBS2SNP, dtype=np.uint16)
+    rgs = dict((v, i) for i, v in enumerate(IX.rgs))
+
+    for rg, i in rgs.items():
+        OBS2RG[IX.RG2OBS[rg]] = i
+
+    P = FrogData(
         O=np.array(df.talt.values, np.uint8),
         N=np.array(df.tref.values + df.talt.values, np.uint8),
-        P_cont=0.0
+        psi=None
         if cont_id is None
         else np.array((df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)),
         alpha=alt_prior[IX.diploid_snps],
         beta=ref_prior[IX.diploid_snps],
         alpha_hap=alt_prior[IX.haploid_snps],
         beta_hap=ref_prior[IX.haploid_snps],
-        rg=np.array(df.rg),
-        S=states,
+        states=states,
+        n_bins=IX.n_bins,
+        bin_sizes=IX.bin_sizes,
+        rgs=rgs,
+        OBS2RG=OBS2RG,
+        OBS2SNP=IX.OBS2SNP,
+        SNP2BIN=IX.SNP2BIN,
+        chroms=IX.chroms,
+        haplo_chroms=IX.haplo_chroms,
+        diplo_chroms=IX.diplo_chroms,
+        haploid_snps=IX.haploid_snps,
+        diploid_snps=IX.diploid_snps,
+        sex=IX.sex,
     )
     return P
 
@@ -312,10 +304,12 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     IX.n_snps = len(IX.SNP2BIN)
     IX.n_obs = len(IX.OBS2SNP)
     IX.n_reads = np.sum(df.tref + df.talt)
+    IX.n_rgs = len(IX.RG2OBS)
 
     IX.chroms = chroms
     IX.haplo_chroms = haplo_chroms
     IX.diplo_chroms = diplo_chroms
+    IX.sex = sex
 
     logging.debug("done creating bins")
     return bins, IX
@@ -514,47 +508,69 @@ def make_slug_data(
     return data, sfs
 
 
-def init_ftau(n_states, F0=0.5, tau0=0):
-    """initializes F and tau, which exist for each homozygous state"""
-    try:
-        if len(F0) == n_states:
-            F = F0
-        elif len(F0) == 1:
-            F = F0 * n_states
-        else:
-            F = [F0]
-    except TypeError:
-        F = [F0] * n_states
-    try:
-        if len(tau0) == n_states:
-            tau = tau0
-        elif len(F0) == 1:
-            tau = tau0 * n_states
-        else:
-            tau = [tau0]
-    except TypeError:
-        tau = [tau0] * n_states
-
-    return np.array(F), np.array(tau)
-
-
-def init_ce(c0=0.01, e0=0.001):
-    cont = defaultdict(lambda: c0)
-    error = defaultdict(lambda: e0)
-    return cont, error
-
-
 def init_pars_sfs(n_sfs, n_rgs, F0, tau0, e0, c0, **kwargs):
-    cont, error = init_ce(c0, e0)
-    F, tau = init_ftau(n_sfs, F0, tau0)
     pars = SlugPars(
         cont=np.zeros(n_rgs) + c0,
         tau=np.zeros(n_sfs) + tau0,
         F=np.zeros(n_sfs) + F0,
-        e=e0,
-        b=e0,
+        e=np.zeros(1) + e0,
+        b=np.zeros(1) + e0,
     )
     return pars
+
+
+def init_pars(
+    states,
+    n_rgs,
+    homo_ids=None,
+    het_ids=None,
+    F0=0.001,
+    tau0=1,
+    e0=1e-2,
+    c0=1e-2,
+    init_guess=None,
+    transition_matrix=None,
+    bin_size=1.0,
+    **kwargs,
+):
+    """initialize parameters
+
+    returns a pars object
+    """
+
+    n_states, n_hap = states.n_states, states.n_hap
+
+    alpha0 = np.ones(n_states) / n_states
+    alpha0_hap = np.ones(n_hap) / n_hap
+
+    if transition_matrix is None:
+        trans_mat = np.zeros((n_states, n_states)) + 2e-2
+        trans_mat_hap = np.zeros((n_hap, n_hap)) + 2e-2
+
+        np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
+        np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
+
+        if init_guess is not None:
+            guess = [i for i, n in enumerate(states.state_names) if n in init_guess]
+            logging.info("starting with guess %s " % guess)
+            trans_mat[:, guess] = trans_mat[:, guess] + 1
+            trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
+    else:
+        trans_mat_hap = pd.read_csv(transition_matrix, header=None).to_numpy()
+        trans_mat = trans_mat_hap_to_dip(trans_mat_hap)
+        trans_mat_hap = expm(trans_mat_hap * bin_size)
+        trans_mat = expm(trans_mat * bin_size)
+
+    return FrogPars(
+        alpha0=alpha0,
+        alpha0_hap=alpha0_hap,
+        trans=trans_mat,
+        trans_hap=trans_mat_hap,
+        cont=np.zeros(n_rgs) + c0,
+        error=np.zeros(n_rgs) + e0,
+        F=np.zeros(states.n_homo) + F0,
+        tau=np.zeros(states.n_homo) + tau0,
+    )
 
 
 def trans_mat_hap_to_dip(tmat):
@@ -618,67 +634,9 @@ def trans_mat_hap_to_dip(tmat):
     return tmat2
 
 
-def init_pars(
-    states,
-    homo_ids=None,
-    het_ids=None,
-    sex=None,
-    F0=0.001,
-    tau0=1,
-    e0=1e-2,
-    c0=1e-2,
-    init_guess=None,
-    transition_matrix=None,
-    bin_size=1.0,
-    **kwargs,
-):
-    """initialize parameters
-
-    returns a pars object
-    """
-
-    n_states, n_hap = states.n_states, states.n_hap
-
-    alpha0 = np.array([1 / n_states] * n_states)
-    alpha0_hap = np.array([1 / n_hap] * n_hap)
-
-    if transition_matrix is None:
-        trans_mat = np.zeros((n_states, n_states)) + 2e-2
-        trans_mat_hap = np.zeros((n_hap, n_hap)) + 2e-2
-
-        np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
-        np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
-
-        if init_guess is not None:
-            guess = [i for i, n in enumerate(states.state_names) if n in init_guess]
-            logging.info("starting with guess %s " % guess)
-            trans_mat[:, guess] = trans_mat[:, guess] + 1
-            trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
-    else:
-        trans_mat_hap = pd.read_csv(transition_matrix, header=None).to_numpy()
-        trans_mat = trans_mat_hap_to_dip(trans_mat_hap)
-        trans_mat_hap = expm(trans_mat_hap * bin_size)
-        trans_mat = expm(trans_mat * bin_size)
-
-    cont, error = init_ce(c0, e0)
-    F, tau = init_ftau(states.n_homo, F0, tau0)
-
-    return Pars(
-        alpha0,
-        alpha0_hap,
-        trans_mat,
-        trans_mat_hap,
-        cont,
-        error,
-        F,
-        tau,
-        sex=sex,
-    )
-
-
-def posterior_table(pg, Z, IX, est_inbreeding=False):
+def posterior_table(pg, Z, P, est_inbreeding=False):
     freq = np.array([0, 1, 2, 0, 1]) if est_inbreeding else np.arange(3)
-    PG = np.sum(Z[IX.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
+    PG = np.sum(Z[P.SNP2BIN][:, :, np.newaxis] * pg, 1)  # genotype probs
     mu = np.sum(PG * freq, 1)[:, np.newaxis] / 2
     random = np.random.binomial(1, np.clip(mu, 0, 1))
     PG = np.log10(PG + 1e-40)

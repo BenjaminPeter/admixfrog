@@ -26,7 +26,6 @@ from .options import add_pop_options, add_base_options_slug
 from .options import add_output_options_slug, add_estimation_options_slug
 
 
-
 def run_sfs():
     parser = argparse.ArgumentParser(
         description="Infer sfs and contamination from low-coverage and contaminated genomes"
@@ -77,15 +76,15 @@ def run_sfs():
     parser.add_argument(
         "--seed", help="random number generator seed for resampling", default=None
     )
-    #removed for now, as it is default and requierd
-    #parser.add_argument(
+    # removed for now, as it is default and requierd
+    # parser.add_argument(
     #    "--bin-reads",
     #    default=False,
     #    action="store_true",
     #    help="""Input file has info for binning reads. If false,
     #                    reads are grouped by the `lib` column. Otherwise, it
     #                    uses a deam and length column to bin itself""",
-    #)
+    # )
 
     add_target_file_options(parser)
     add_estimation_options_slug(parser)
@@ -241,8 +240,10 @@ def run_sfs():
                 "no sample defined (set either --target-file --bam --vcfgt or --gfile must be set"
             )
 
-    if target_pars['target'] is None:
-        target_pars['target'] = os.path.basename(target_pars['target_file']).split("_")[0]
+    if target_pars["target"] is None:
+        target_pars["target"] = os.path.basename(target_pars["target_file"]).split("_")[
+            0
+        ]
 
     from . import __version__
 

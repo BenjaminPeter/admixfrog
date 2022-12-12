@@ -59,7 +59,7 @@ ALGORITHM_OPTIONS = [
     "ancestral_prior",
     "split_lib",
     "scale_probs",
-    "max_cov", 
+    "max_cov",
     "bin_reads",
     "len_bin_size",
     "deam_bin_size",

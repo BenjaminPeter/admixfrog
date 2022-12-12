@@ -10,10 +10,8 @@ import itertools
 from .utils import posterior_table, posterior_table_slug
 
 
-def write_cont_table_frog(df, cont, error, tot_n_snps, outname=None):
-    df_libs = pd.DataFrame(cont.items(), columns=["rg", "cont"])
-    df_error = pd.DataFrame(error.items(), columns=["rg", "error"])
-    df_libs = df_libs.merge(df_error)
+def write_cont_table_frog(df, rgs, cont, error, tot_n_snps, outname=None):
+    df_libs = pd.DataFrame(zip(rgs, cont, error), columns=["rg", "cont", "error"])
 
     libs, deams, len_bins = [], [], []
     for l in df_libs.rg:
@@ -43,9 +41,9 @@ def write_cont_table_frog(df, cont, error, tot_n_snps, outname=None):
     return df_libs
 
 
-def write_bin_table(Z, bins, viterbi_df, gamma_names, IX, outname=None):
+def write_bin_table(Z, bins, viterbi_df, gamma_names, P, outname=None):
     df_bin = pd.DataFrame(Z, columns=gamma_names)
-    CC = Counter(IX.SNP2BIN)
+    CC = Counter(P.SNP2BIN)
     snp = pd.DataFrame([CC[i] for i in range(len(df_bin))], columns=["n_snps"])
     df_bin = pd.concat((pd.DataFrame(bins), viterbi_df, snp, df_bin), axis=1)
 
@@ -55,7 +53,7 @@ def write_bin_table(Z, bins, viterbi_df, gamma_names, IX, outname=None):
     return df_bin
 
 
-def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
+def write_snp_table(data, G, Z, P, gt_mode=False, outname=None):
     D = (
         data.reset_index(drop=False)
         .groupby("snp_id")
@@ -72,11 +70,11 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
     )
 
     if gt_mode:
-        snp_df = pd.concat((D, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+        snp_df = pd.concat((D, pd.DataFrame(P.SNP2BIN, columns=["bin"])), axis=1)
         snp_df = snp_df[["chrom", "pos", "map", "snp_id", "bin", "tref", "talt"]]
     else:
-        T = posterior_table(G, Z, IX)
-        snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
+        T = posterior_table(G, Z, P)
+        snp_df = pd.concat((D, T, pd.DataFrame(P.SNP2BIN, columns=["bin"])), axis=1)
         snp_df["random_read"] = snp_df["random_read"].astype(int)
 
     snp_df.sort_values(["chrom", "pos"], inplace=True)

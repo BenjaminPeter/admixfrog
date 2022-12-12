@@ -26,7 +26,7 @@ def snp2bin2(e_out, e_in, ix, weight):
             e_out[row] += e_in[i] * weight[i] - weight[i]
 
 
-def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250, scale_probs=True):
+def update_emissions(E, SNP, P, bad_bin_cutoff=1e-250, scale_probs=True):
     """main function to calculate emission probabilities for each bin
     P(O | Z) = 1/S  \\ sum_G P(O, G | Z)
 
@@ -34,7 +34,7 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250, scale_probs=True):
     snp_emissions = np.sum(SNP, 2)
 
     E[:] = 1  # reset
-    snp2bin(E, snp_emissions, IX.SNP2BIN)
+    snp2bin(E, snp_emissions, P.SNP2BIN)
     log_.debug("mean emission %s" % np.mean(E))
 
     bad_bins = np.sum(E, 1) < bad_bin_cutoff
@@ -46,7 +46,7 @@ def update_emissions(E, SNP, P, IX, bad_bin_cutoff=1e-250, scale_probs=True):
     return log_scaling
 
 
-def update_post_geno(PG, SNP, Z, IX):
+def update_post_geno(PG, SNP, Z, P):
     """
     calculate P(G, Z | O), the probability of genotype given
     observations and hidden states Z.
@@ -62,7 +62,7 @@ def update_post_geno(PG, SNP, Z, IX):
     Z[n_bin x n_states]: P(Z | O')
 
     """
-    PG[:] = Z[IX.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z)
+    PG[:] = Z[P.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z)
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
     PG[np.isnan(PG)] = 0.0
     np.clip(PG, 0, 1, out=PG)
@@ -77,11 +77,7 @@ def update_post_geno(PG, SNP, Z, IX):
 def update_snp_prob(
     SNP,
     P,
-    IX,
-    cont,
-    error,
-    F,
-    tau,
+    pars,
     est_inbreeding=False,
     gt_mode=False,
     scale_probs=True,
@@ -90,20 +86,20 @@ def update_snp_prob(
     calculate P(O, G |Z) = P(O | G) P(G | Z)
 
     """
-    cflat = np.array([cont[rg] for rg in P.rg])
-    eflat = np.array([error[rg] for rg in P.rg])
+    cflat = pars.cont[P.OBS2RG]
+    eflat = pars.error[P.OBS2RG]
 
     # get P(G | Z)
     # save in the same array as SNP - size is the same, and
     # we do not need to allocate more memory
     update_geno_emissions(
-        SNP, P, IX, F, tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding
+        SNP, P, pars.F, pars.tau, n_states=SNP.shape[1], est_inbreeding=est_inbreeding
     )
 
-    assert np.allclose(np.sum(SNP[IX.diploid_snps], 2), 1)
+    assert np.allclose(np.sum(SNP[P.diploid_snps], 2), 1)
 
     # get P(O | G)
-    ll_snp = p_snps_given_gt(P, cflat, eflat, IX, gt_mode)
+    ll_snp = p_snps_given_gt(P, cflat, eflat, gt_mode)
 
     SNP *= ll_snp[:, np.newaxis, :]
     log_scaling = scale_mat3d(SNP) if scale_probs else 0
@@ -111,15 +107,15 @@ def update_snp_prob(
     return log_scaling
 
 
-def update_Ftau(F, tau, PG, P, IX, est_options):
+def update_Ftau(F, tau, PG, P, est_options):
     delta = 0.0
-    for i, s in enumerate(P.S.homo_ids):
+    for i, s in enumerate(P.states.homo_ids):
 
         def f(args):
             args = list(args)
             F = args.pop(0) if est_options["est_F"] else F[i]
             tau_ = exp(args.pop(0)) if est_options["est_tau"] else exp(tau[i])
-            x = np.log(_p_gt_homo(s, P, F, tau_) + 1e-10) * PG[IX.diploid_snps, i, :]
+            x = np.log(_p_gt_homo(s, P, F, tau_) + 1e-10) * PG[P.diploid_snps, i, :]
             if np.isnan(np.sum(x)):
                 raise ValueError("nan in likelihood")
             return -np.sum(x)

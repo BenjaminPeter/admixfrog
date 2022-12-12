@@ -54,7 +54,7 @@ def _p_gt_hap(a1, b1, res=None):
     return gt
 
 
-def update_geno_emissions_diploid(GT, P, IX, F, tau, n_states, est_inbreeding):
+def update_geno_emissions_diploid(GT, P, F, tau, n_states, est_inbreeding):
     """P(G | Z) for diploid SNP.
     build table giving the probabilities of P(G | Z)
     """
@@ -63,21 +63,21 @@ def update_geno_emissions_diploid(GT, P, IX, F, tau, n_states, est_inbreeding):
 
     GT[:] = 0.0
     # P(G | Z)
-    for i, s in enumerate(P.S.homo_ids):
+    for i, s in enumerate(P.states.homo_ids):
         _p_gt_homo(s=s, P=P, F=F[i], tau=exp(tau[i]), res=GT[:, i, :])
 
-    for i, (s1, s2) in enumerate(P.S.het_ids):
+    for i, (s1, s2) in enumerate(P.states.het_ids):
         _p_gt_het(
             P.alpha[:, s1],
             P.beta[:, s1],
             P.alpha[:, s2],
             P.beta[:, s2],
-            res=GT[:, i + P.S.n_homo, :],
+            res=GT[:, i + P.states.n_homo, :],
         )
 
     if est_inbreeding:
-        n_non_inbred = P.S.n_homo + P.S.n_het
-        for i, s in enumerate(P.S.homo_ids):
+        n_non_inbred = P.states.n_homo + P.states.n_het
+        for i, s in enumerate(P.states.homo_ids):
             _p_gt_hap(P.alpha[:, s], P.beta[:, s], res=GT[:, i + n_non_inbred, :])
 
     assert np.allclose(np.sum(GT, 2), 1)
@@ -91,13 +91,13 @@ def update_geno_emissions_haploid(GT, P):
 
     GT[:] = 0.0
     # P(G | Z)
-    for i in range(P.S.n_hap):
+    for i in range(P.states.n_hap):
         _p_gt_hap(P.alpha_hap[:, i], P.beta_hap[:, i], res=GT[:, i, :])
 
-    assert np.allclose(np.sum(GT[:, : P.S.n_hap], 2), 1)
+    assert np.allclose(np.sum(GT[:, : P.states.n_hap], 2), 1)
     return GT
 
 
-def update_geno_emissions(GT, P, IX, *args, **kwargs):
-    update_geno_emissions_diploid(GT[IX.diploid_snps], P, IX, *args, **kwargs)
-    update_geno_emissions_haploid(GT[IX.haploid_snps], P)
+def update_geno_emissions(GT, P, *args, **kwargs):
+    update_geno_emissions_diploid(GT[P.diploid_snps], P, *args, **kwargs)
+    update_geno_emissions_haploid(GT[P.haploid_snps], P)

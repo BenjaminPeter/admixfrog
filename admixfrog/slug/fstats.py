@@ -13,18 +13,18 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
     f3s, f4s = [], []
     if pop_list is not None:  # only calc subset of stats
         pops = list(set(pops).intersection(pop_list))
-    if 'rep' not in freqs:
-        freqs['rep'] = 0.
-    if 'n_snps' not in freqs:
-        freqs['n_snps'] = 1
-    if 'tau' not in freqs:
-        freqs['tau'] = np.nan
+    if "rep" not in freqs:
+        freqs["rep"] = 0.0
+    if "n_snps" not in freqs:
+        freqs["n_snps"] = 1
+    if "tau" not in freqs:
+        freqs["tau"] = np.nan
     pis = freq_to_pi(freqs, pops, SAMPLE_NAME)
 
     # f3s
     for X in pops + [f"{SAMPLE_NAME}"]:
         for A, B in itertools.combinations(pops + [f"{SAMPLE_NAME}"], 2):
-           if A != X and B != X:
+            if A != X and B != X:
                 f3s.append(single_f3(pis, X, A, B))
     f3s = pd.concat(f3s).reset_index()
 
@@ -67,12 +67,12 @@ def sfs_to_freq(sfs, ref_freq=False):
 def f_calc_pi(pop1, pop2):
     def f(df):
         pi = df[pop1] * (1 - df[pop2]) + df[pop2] * (1 - df[pop1])
-        #return np.average(pi, weights=df.n_snps)
+        # return np.average(pi, weights=df.n_snps)
         nans = np.isnan(pi)
         if np.all(nans):
             return np.nan
         return np.average(pi[~nans], weights=df.n_snps[~nans])
-        #return np.mean(pi * df['n_snps']) / np.mean(df['n_snps'])
+        # return np.mean(pi * df['n_snps']) / np.mean(df['n_snps'])
 
     return f
 
