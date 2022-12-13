@@ -95,12 +95,22 @@ def fwd_bwd_algorithm(alpha0, emissions, trans, gamma=None):
         g[:] = a * b
     return alpha, beta, n
 
+
 def fwd_bwd_algorithm2(pars, X):
     """inmemory version of forward-backward algorithm"""
-    fwd_algorithm(alpha0=pars.alpha0, emissions=X.emissions, trans=pars.trans,
-                  alpha=X.alpha, n=X.n)
-    beta = bwd_algorithm(emissions=X.emissions,  trans=pars.trans,
-                         beta=X.beta, n=X.n,)
+    fwd_algorithm(
+        alpha0=pars.alpha0,
+        emissions=X.emissions,
+        trans=pars.trans,
+        alpha=X.alpha,
+        n=X.n,
+    )
+    beta = bwd_algorithm(
+        emissions=X.emissions,
+        trans=pars.trans,
+        beta=X.beta,
+        n=X.n,
+    )
     for a, b, g in zip(X.alpha, X.beta, X.gamma):
         g[:] = a * b
 
@@ -137,9 +147,7 @@ def viterbi_single_obs(alpha0, trans, emissions):
     return path
 
 
-def update_transitions(
-    pars, X, O
-):
+def update_transitions(pars, X, O):
     old_trans = pars.trans
     # if no diploid / haploid data, do not update
     if len(X.alpha) == 0:

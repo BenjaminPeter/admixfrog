@@ -68,7 +68,6 @@ def update_post_geno(X, P):
     PG[np.isnan(PG)] = 0.0
     np.clip(PG, 0, 1, out=PG)
 
-
     assert np.all(PG >= 0)
     assert np.all(PG <= 1)
     assert np.allclose(np.sum(PG, (1, 2)), 1)

@@ -151,7 +151,7 @@ def data2probs(
     P = FrogData(
         O=np.array(df.talt.values, np.uint8),
         N=np.array(df.tref.values + df.talt.values, np.uint8),
-        psi=np.array(0.)
+        psi=np.array(0.0)
         if cont_id is None
         else np.array((df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)),
         alpha=alt_prior[IX.diploid_snps],
@@ -745,6 +745,7 @@ def scale_mat3d(M):
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
 
+
 def filter_ref(
     ref,
     states,
@@ -804,6 +805,7 @@ def filter_ref(
         ref = ref[kp]
 
     return ref
+
 
 @njit
 def nfp(chrom, pos, n_snps, filter_pos):

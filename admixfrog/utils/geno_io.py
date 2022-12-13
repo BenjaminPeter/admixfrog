@@ -164,4 +164,3 @@ def ref_count(x):
 def read_geno_ref(*args, **kwargs):
     Y = read_geno(*args, **kwargs)
     return ref_alt(Y)
-

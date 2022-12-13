@@ -222,7 +222,10 @@ def run_admixfrog(
         **init,
     )
 
+    # set up latent variables
     X = FrogX(P)
+
+    # set up options
     O = FrogOptions(**est, gt_mode=gt_mode)
 
     # initialize emissions latent variable
@@ -241,7 +244,7 @@ def run_admixfrog(
     logging.info("s-scaling: %s", s_scaling)
     X.scaling = e_scaling + s_scaling
 
-    # run accelerted EM
+    # run accelerated EM
     pars = squarem(pars, data=P, latents=X, controller=O, updater=bw_one_iter)
 
     # final update of latent variables

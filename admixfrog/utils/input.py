@@ -103,7 +103,6 @@ def load_ref(
     return ref
 
 
-
 def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
     if bin_size == -1:
         """case when we only want deam in first 3 pos vs everything else"""
@@ -426,5 +425,3 @@ def load_admixfrog_data(
         df.talt += c_alt
 
     return df, ix, sex, tot_n_snps
-
-

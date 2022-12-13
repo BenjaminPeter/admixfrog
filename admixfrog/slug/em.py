@@ -10,7 +10,6 @@ from .emissions import full_posterior_genotypes, calc_ll, calc_full_ll
 from ..utils.log import log_
 
 
-
 def update_ftau(old_F, old_tau, data, post_g, update_F=True):
     """updates the SFS parameters
 
