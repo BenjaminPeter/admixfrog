@@ -20,8 +20,9 @@ from ..gll.read_emissions import update_contamination
 from ..utils.geno_io import read_geno_ref, read_geno
 from ..utils.classes import SlugController
 from ..utils.utils import make_slug_data
-from .em import em, squarem
+from ..utils.squarem import squarem
 from .emissions import full_posterior_genotypes
+from .em import update_pars
 from .fstats import calc_fstats, summarize_f3, summarize_f4
 
 EST_DEFAULT = dict(
@@ -112,8 +113,7 @@ def run_admixslug(
     pars = init_pars_sfs(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
-    # posterior_gt = em(pars, data, controller)
-    pars = squarem(pars, data, controller)
+    pars = squarem(pars, data, controller, update_pars)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
 
     if controller.n_resamples > 0 or output["output_fstats"]:
@@ -122,7 +122,7 @@ def run_admixslug(
 
         for i in range(controller.n_resamples):
             jk_data = data.jackknife_sample(i, controller.n_resamples)
-            jk_pars = squarem(pars0, jk_data, controller)
+            jk_pars = squarem(pars0, jk_data, controller, update_pars)
             jk_pars_list.append(jk_pars)
 
             if output["output_jk_sfs"] or output["output_fstats"]:

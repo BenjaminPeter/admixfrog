@@ -1,13 +1,13 @@
 import logging
 import yaml
-from numba import njit
-from collections import Counter
+from collections import Counter, defaultdict
 from scipy.stats import binom
 import pandas as pd
 import numpy as np
 import itertools
-
+from ..utils.geno_io import read_geno_ref, read_geno
 from .utils import posterior_table, posterior_table_slug
+from .utils import guess_sex, filter_ref
 
 
 def load_ref(
@@ -103,66 +103,6 @@ def load_ref(
     return ref
 
 
-def filter_ref(
-    ref,
-    states,
-    ancestral=None,
-    cont=None,
-    filter_delta=None,
-    filter_pos=None,
-    filter_map=None,
-    filter_ancestral=False,
-    filter_cont=True,
-    **kwargs,
-):
-
-    if filter_ancestral and ancestral is not None:
-        no_ancestral_call = ref[f"{ancestral}_ref"] + ref[f"{ancestral}_alt"] == 0
-        ref = ref.loc[~no_ancestral_call]
-        logging.info(
-            "filtering %s SNP due to missing ancestral call", np.sum(no_ancestral_call)
-        )
-
-    if filter_cont and cont is not None:
-        no_cont_data = ref[f"{cont}_ref"] + ref[f"{cont}_alt"] == 0
-        ref = ref.loc[~no_cont_data]
-        logging.info(
-            "filtering %s SNP due to missing contaminant call", np.sum(no_cont_data)
-        )
-
-    if filter_delta is not None:
-        kp = np.zeros(ref.shape[0], bool)
-        for i, s1 in enumerate(states):
-            for j in range(i + 1, states.n_raw_states):
-                s2 = states[j]
-                f1 = np.nan_to_num(
-                    ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"])
-                )
-                f2 = np.nan_to_num(
-                    ref[s2 + "_alt"] / (ref[s2 + "_alt"] + ref[s2 + "_ref"])
-                )
-                delta = np.abs(f1 - f2)
-                kp = np.logical_or(kp, delta >= filter_delta)
-
-        logging.info("filtering %s SNP due to delta", np.sum(1 - kp))
-        ref = ref[kp]
-
-    if filter_pos is not None and filter_pos >= 0:
-        chrom = ref.index.get_level_values("chrom").factorize()[0]
-        pos = ref.index.get_level_values("pos").values
-        kp = nfp(chrom, pos, ref.shape[0], filter_pos)
-        logging.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
-        ref = ref[kp]
-
-    if filter_map is not None and filter_map >= 0:
-        chrom = ref.index.get_level_values("chrom").factorize()[0]
-        pos = ref.index.get_level_values("map").values
-        kp = nfp(chrom, pos, ref.shape[0], filter_map)
-        logging.info("filtering %s SNP due to map filter", np.sum(1 - kp))
-        ref = ref[kp]
-
-    return ref
-
 
 def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
     if bin_size == -1:
@@ -200,7 +140,6 @@ def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
         cuts = pd.qcut(
             x, q=n_bins, precision=0, labels=False, duplicates="drop"
         )  # .astype(np.uint8)
-        print(n_bins, "x", x.shape, min(Counter(cuts).values()))
         return cuts
 
 
@@ -310,17 +249,182 @@ def load_read_data(
         return data, None
 
 
-@njit
-def nfp(chrom, pos, n_snps, filter_pos):
-    kp = np.ones(n_snps, np.bool_)
-    prev_chrom, prev_pos = -1, -10_000_000
-    for i in range(n_snps):
-        if prev_chrom != chrom[i]:
-            prev_chrom, prev_pos = chrom[i], pos[i]
-            continue
-        if pos[i] - prev_pos <= filter_pos:
-            kp[i] = False
-        else:
-            prev_pos = pos[i]
+def load_admixfrog_data_geno(
+    geno_file,
+    states,
+    ancestral,
+    filter=filter,
+    target_ind=None,
+    guess_ploidy=False,
+    pos_mode=False,
+):
+    df = read_geno_ref(
+        fname=geno_file,
+        pops=states.state_dict,
+        target_ind=target_ind,
+        guess_ploidy=guess_ploidy,
+    )
+    df = filter_ref(df, states, ancestral=ancestral, **filter)
+    df["rg"] = "rg0"
+    if pos_mode:
+        df.reset_index("map", inplace=True)
+        df.map = df.index.get_level_values("pos")
+        df.set_index("map", append=True, inplace=True)
 
-    return kp
+    cats = pd.unique(df.index.get_level_values("chrom"))
+    chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
+
+    if not df.index.is_unique:
+        dups = df.index.duplicated()
+        logging.warning(f"\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m")
+        logging.warning(" ==> strongly consider re-filtering input file")
+        df = df[~dups]
+    return df
+
+
+def load_admixfrog_data(
+    states,
+    target=None,
+    target_file=None,
+    gt_mode=False,
+    filter=defaultdict(lambda: None),
+    ref_files=None,
+    geno_file=None,
+    ancestral=None,
+    cont_id=None,
+    split_lib=True,
+    pos_mode=False,
+    downsample=1,
+    guess_ploidy=True,
+    sex=None,
+    map_col="map",
+    fake_contamination=0,
+    autosomes_only=False,
+    bin_reads=False,
+    deam_bin_size=100000,
+    len_bin_size=10000,
+):
+    """
+    we have the following possible input files
+    1. only a geno file (for target and reference)
+    2. custom ref/target (from standalone csv)
+    3. geno ref (and target from csv)
+    """
+    tot_n_snps = 0
+
+    "1. only geno file"
+    if ref_files is None and target_file is None and geno_file and target:
+        df = load_admixfrog_data_geno(
+            geno_file=geno_file,
+            states=states,
+            ancestral=ancestral,
+            filter=filter,
+            target_ind=target,
+            guess_ploidy=guess_ploidy,
+            pos_mode=pos_mode,
+        )
+        ix = None
+
+    elif ref_files and target_file and (geno_file is None) and (target is None):
+        "2. standard input"
+        hcf = filter.pop("filter_high_cov")
+
+        # load reference first
+        ref = load_ref(
+            ref_files, states, cont_id, ancestral, autosomes_only, map_col=map_col
+        )
+        ref = filter_ref(ref, states, ancestral=ancestral, **filter)
+
+        if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
+            data, ix = load_read_data(target_file, make_bins=False)
+            assert np.max(data.tref + data.talt) <= 2
+            assert np.min(data.tref + data.talt) >= 0
+            if not data.index.is_unique:
+                dups = data.index.duplicated()
+                logging.warning(
+                    f"\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m"
+                )
+                logging.warning(" ==> strongly consider re-filtering input file")
+                data = data[~dups]
+        else:
+            data, ix = load_read_data(
+                target_file,
+                split_lib,
+                downsample,
+                make_bins=bin_reads,
+                len_bin_size=len_bin_size,
+                deam_bin_size=deam_bin_size,
+                high_cov_filter=hcf,
+            )
+            # data = data[["rg", "tref", "talt"]]
+
+        # sexing stuff
+        if sex is None:
+            sex = guess_sex(ref, data)
+
+        if fake_contamination and cont_id:
+            """filter for SNP with fake ref data"""
+            cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+            ref = ref[ref[cont_ref] + ref[cont_alt] > 0]
+
+        tot_n_snps = ref.shape[0]
+
+        if pos_mode:
+            ref.reset_index("map", inplace=True)
+            ref.map = ref.index.get_level_values("pos")
+            ref.set_index("map", append=True, inplace=True)
+        ref = ref.loc[~ref.index.duplicated()]
+
+        df = ref.join(data, how="inner")
+
+    elif geno_file and target_file and ref_file is None:
+        "4. geno ref, standard target"
+        raise NotImplementedError("")
+    else:
+        raise NotImplementedError("ambiguous input")
+
+    # sort by chromosome name. PANDAS is VERY DUMB WTF
+    cats = pd.unique(df.index.get_level_values("chrom"))
+    chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
+
+    df.index = df.index.set_levels(df.index.levels[0].astype(chrom_dtype), level=0)
+    df.reset_index(inplace=True)
+    df.sort_values(["chrom", "pos"], inplace=True)
+    df.set_index(["chrom", "pos", "ref", "alt", "map"], inplace=True)
+
+    # get ids of unique snps
+    snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=True).ngroup()
+    snp_ids.rename("snp_id", inplace=True)
+
+    snp_ids = pd.DataFrame(snp_ids)
+    snp_ids.set_index("snp_id", append=True, inplace=True)
+    df = snp_ids.join(df)
+
+    if fake_contamination and cont_id:
+        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+        mean_endo_cov = np.mean(df.tref + df.talt)
+        """
+            C = x / (e+x);
+            Ce + Cx = x
+            Ce = x - Cx
+            Ce = x(1-C)
+            Ce / ( 1- C) = x
+        """
+
+        prop_cont = fake_contamination
+        target_cont_cov = prop_cont * mean_endo_cov / (1 - prop_cont)
+        f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt])
+
+        logging.debug(f"endogenous cov: {mean_endo_cov}")
+        logging.debug(f"fake contamination cov: {target_cont_cov}")
+
+        c_ref = np.random.poisson((1 - f_cont) * target_cont_cov)
+        c_alt = np.random.poisson(f_cont * target_cont_cov)
+        logging.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
+        logging.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
+        df.tref += c_ref
+        df.talt += c_alt
+
+    return df, ix, sex, tot_n_snps
+
+

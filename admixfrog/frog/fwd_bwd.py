@@ -4,75 +4,64 @@ import logging
 
 
 @njit
-def calc_ll(alpha0, trans_mat, emissions):
-    """likelihood using forward algorithm"""
-    _, n = fwd_algorithm(alpha0, emissions, trans_mat=trans_mat)
-    return np.sum([np.sum(np.log(n_)) for n_ in n])
-
-
-@njit
-def fwd_step(alpha_prev, E, trans_mat):
-    alpha_new = (alpha_prev @ trans_mat) * E
+def fwd_step(alpha_prev, E, trans):
+    alpha_new = (alpha_prev @ trans) * E
     n = np.sum(alpha_new)
     return alpha_new / n, n
 
 
 @njit
-def fwd_algorithm_single_obs(alpha0, emission, trans_mat):
+def fwd_algorithm_single_obs(alpha0, emission, trans, alpha, n):
     """
     calculate P(X_t | o_[1..t], a0)
     """
     n_steps, n_states = emission.shape
-    alpha = np.empty((n_steps, n_states))
-    n = np.empty((n_steps))
     alpha[0] = alpha0
     n[0] = np.sum(alpha0)
     for i in range(n_steps):
         if i == 0:
-            alpha[i], n[i] = fwd_step(alpha0, emission[i], trans_mat)
+            alpha[i], n[i] = fwd_step(alpha0, emission[i], trans)
         else:
-            alpha[i], n[i] = fwd_step(alpha[i - 1], emission[i], trans_mat)
-    return alpha, n
+            alpha[i], n[i] = fwd_step(alpha[i - 1], emission[i], trans)
 
 
 # @jit(nopython=True)
-def fwd_algorithm(alpha0, emissions, trans_mat):
+def fwd_algorithm(alpha0, emissions, trans, alpha=None, n=None):
     """
     calculate P(X_t | o_[1..t], a0)
     """
     # alpha, n = [], []
     n_seqs = len(emissions)
-    alpha = [np.empty((2, 2)) for _ in range(n_seqs)]
-    n = [np.empty((2)) for _ in range(n_seqs)]
+    if alpha is None:
+        alpha = [np.empty_like(emissions[i]) for i in range(n_seqs)]
+    if n is None:
+        n = [np.empty_like(emissions[i]) for i in range(n_seqs)]
+
     for i in range(n_seqs):
-        alpha[i], n[i] = fwd_algorithm_single_obs(alpha0, emissions[i], trans_mat)
+        fwd_algorithm_single_obs(alpha0, emissions[i], trans, alpha[i], n[i])
     return alpha, n
 
 
 @njit
-def bwd_step(beta_next, E, trans_mat, n):
-    beta = (trans_mat * E) @ beta_next
+def bwd_step(beta_next, E, trans, n):
+    beta = (trans * E) @ beta_next
     return beta / n
 
 
 @njit
-def bwd_algorithm_single_obs(emission, trans_mat, n):
+def bwd_algorithm_single_obs(emission, trans, n, beta):
     """
-    calculate P(o[t+1..n] | X) / P(o[t+1..n])
+    calculate P(o[t+1..n] | X) / P(o[t+1..n]), return to beta
     """
-
     n_steps, n_states = emission.shape
 
-    beta = np.ones((n_steps, n_states))
-
-    # for i, e in zip(range(n_steps-1, -1, -1), reversed(em)):
     for i in range(n_steps - 1, 0, -1):
-        beta[i - 1] = bwd_step(beta[i], emission[i], trans_mat, n[i])
+        beta[i - 1] = bwd_step(beta[i], emission[i], trans, n[i])
     return beta
 
 
 # @jit(nopython=True)
-def bwd_algorithm(emissions, trans_mat, n):
+def bwd_algorithm(emissions, trans, n, beta=None):
     """
     calculate P(o[t+1..n] | X) / P(o[t+1..n])
 
@@ -80,24 +69,25 @@ def bwd_algorithm(emissions, trans_mat, n):
         list of emission probabilities, one per observed sequence (i.e. chromosome)
     n : list[np.array]
         list of normalization constants
-    trans_mat : np.array<n_states x n_states>
+    trans : np.array<n_states x n_states>
         transition matrix
     """
 
     n_seqs = len(emissions)
-    beta = [np.empty((2, 2)) for _ in range(n_seqs)]
+    if beta is None:
+        beta = [np.empty((2, 2)) for _ in range(n_seqs)]
     for i in range(n_seqs):
         n_i, em = n[i], emissions[i]
         n_steps, n_states = em.shape
-        beta_i = bwd_algorithm_single_obs(em, trans_mat, n_i)
-        beta[i] = beta_i
+        beta[i] = np.ones((n_steps, n_states))
+        bwd_algorithm_single_obs(em, trans, n_i, beta[i])
     return beta
 
 
 # @jit(nopython=True)
-def fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma=None):
-    alpha, n = fwd_algorithm(alpha0=alpha0, emissions=emissions, trans_mat=trans_mat)
-    beta = bwd_algorithm(emissions=emissions, n=n, trans_mat=trans_mat)
+def fwd_bwd_algorithm(alpha0, emissions, trans, gamma=None):
+    fwd_algorithm(alpha0=alpha0, emissions=emissions, trans_mat=trans)
+    beta = bwd_algorithm(emissions=emissions, n=n, trans=trans)
     if gamma is None:
         gamma = [a * b for (a, b) in zip(alpha, beta)]
         return gamma
@@ -105,19 +95,28 @@ def fwd_bwd_algorithm(alpha0, emissions, trans_mat, gamma=None):
         g[:] = a * b
     return alpha, beta, n
 
+def fwd_bwd_algorithm2(pars, X):
+    """inmemory version of forward-backward algorithm"""
+    fwd_algorithm(alpha0=pars.alpha0, emissions=X.emissions, trans=pars.trans,
+                  alpha=X.alpha, n=X.n)
+    beta = bwd_algorithm(emissions=X.emissions,  trans=pars.trans,
+                         beta=X.beta, n=X.n,)
+    for a, b, g in zip(X.alpha, X.beta, X.gamma):
+        g[:] = a * b
 
-def viterbi(alpha0, trans_mat, emissions):
-    return [viterbi_single_obs(alpha0, trans_mat, e) for e in emissions]
+
+def viterbi(alpha0, trans, emissions):
+    return [viterbi_single_obs(alpha0, trans, e) for e in emissions]
 
 
-def viterbi_single_obs(alpha0, trans_mat, emissions):
+def viterbi_single_obs(alpha0, trans, emissions):
     n_steps, n_states = emissions.shape
 
     ll = np.ones_like(emissions)
     backtrack = np.zeros_like(emissions, np.uint8)
 
     log_e = np.log(emissions)
-    log_t = np.log(trans_mat)
+    log_t = np.log(trans)
 
     for i in range(n_steps):
         if i == 0:
@@ -139,31 +138,32 @@ def viterbi_single_obs(alpha0, trans_mat, emissions):
 
 
 def update_transitions(
-    old_trans_mat, alpha, beta, gamma, emissions, n, est_inbreeding=False
+    pars, X, O
 ):
+    old_trans = pars.trans
     # if no diploid / haploid data, do not update
-    if len(alpha) == 0:
-        return old_trans_mat
+    if len(X.alpha) == 0:
+        return pars.trans
 
-    new_trans_mat = np.zeros_like(old_trans_mat)
-    n_states = old_trans_mat.shape[0]
+    new_trans = np.zeros_like(old_trans)
+    n_states = old_trans.shape[0]
 
     for i in range(n_states):
         for j in range(n_states):
-            for a, b, e, n_ in zip(alpha, beta, emissions, n):
-                new_trans_mat[i, j] += np.sum(
-                    a[:-1, i] * old_trans_mat[i, j] * b[1:, j] * e[1:, j] / n_[1:]
+            for a, b, e, n_ in zip(X.alpha, X.beta, X.emissions, X.n):
+                new_trans[i, j] += np.sum(
+                    a[:-1, i] * old_trans[i, j] * b[1:, j] * e[1:, j] / n_[1:]
                 )
 
-    gamma_sum = np.sum([np.sum(g[:-1], 0) for g in gamma], 0)
-    new_trans_mat /= gamma_sum[:, np.newaxis]
-    assert np.allclose(np.sum(new_trans_mat, 1), 1)
+    gamma_sum = np.sum([np.sum(g[:-1], 0) for g in X.gamma], 0)
+    new_trans /= gamma_sum[:, np.newaxis]
+    assert np.allclose(np.sum(new_trans, 1), 1)
 
     # deal with underflow due to absence of state
-    if not np.allclose(np.sum(new_trans_mat, 1), 1):
+    if not np.allclose(np.sum(new_trans, 1), 1):
         for i in range(n_states):
-            if np.any(np.isnan(new_trans_mat[i])):
-                new_trans_mat[i] = 0.0
-                new_trans_mat[i, i] - 1.0
+            if np.any(np.isnan(new_trans[i])):
+                new_trans[i] = 0.0
+                new_trans[i, i] - 1.0
 
-    return new_trans_mat
+    return new_trans

@@ -34,8 +34,9 @@ cdef double get_po_given_c(
                 ll += PG[i, s, g] * p
     return ll
 
-def update_contamination(cont, error, P, PG,
-                         est_options):
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+def update_contamination(cont, error, P, PG, O):
     """
     update emissions by maximizing contamination parameter
 
@@ -53,8 +54,8 @@ def update_contamination(cont, error, P, PG,
 
         def get_po_given_c_all(args):
             args = list(args)
-            C = args.pop(0) if est_options['est_contamination'] else cont[i]
-            E = args.pop(0) if est_options['est_error'] else error[i]
+            C = args.pop(0) if O.est_contamination else cont[i]
+            E = args.pop(0) if O.est_error else error[i]
 
             prob = get_po_given_c(c=C,
                                  e=E,
@@ -65,10 +66,10 @@ def update_contamination(cont, error, P, PG,
             return -prob
 
         init, bounds = [], []
-        if est_options['est_contamination']:
+        if O.est_contamination:
             init.append(cont[i])
             bounds.append((0, 1-1e-10))
-        if est_options['est_error']:
+        if O.est_error:
             init.append(error[i])
             bounds.append((0.00001, .1))
 
@@ -77,10 +78,10 @@ def update_contamination(cont, error, P, PG,
         opt = OO.x.tolist()
 
         old_c, old_e = cont[i], error[i]
-        if est_options['est_contamination']:
+        if O.est_contamination:
             cont[i] = opt.pop(0)
 
-        if est_options['est_error']:
+        if O.est_error:
             error[i] = opt.pop(0)
 
         log__ = "[%s|%s] \tc: [%.4f->%.4f]\t:" % (rg, np.sum(f_), old_c, cont[i])

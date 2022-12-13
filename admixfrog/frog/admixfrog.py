@@ -3,22 +3,25 @@ import pandas as pd
 import itertools
 import yaml
 import logging
+from pprint import pprint
 from collections import Counter, defaultdict
 from ..utils.input import load_read_data, load_ref, filter_ref
+from ..utils.input import load_admixfrog_data_geno, load_admixfrog_data
 from ..utils.output import write_pars_table
 from ..utils.output_frog import write_bin_table, write_cont_table_frog
 from ..utils.output_frog import write_snp_table, write_est_runs, write_sim_runs
 from ..utils.output_slug import write_cont_table_slug
 from ..utils.utils import bins_from_bed, data2probs, init_pars
-from ..utils.utils import guess_sex
 from ..utils.states import States
-from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions
+from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions, fwd_bwd_algorithm2
 from ..gll.genotype_emissions import update_post_geno, update_Ftau, update_snp_prob
 from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
 from .rle import get_rle
 from .decode import pred_sims, resampling_pars
-from ..utils.geno_io import read_geno_ref, read_geno
+from ..utils.classes import FrogOptions, FrogX
+from ..utils.squarem import squarem
+from copy import deepcopy
 
 COORDS = ["chrom", "map", "pos"]
 
@@ -29,380 +32,85 @@ EST_DEFAULT = dict(
         ("est_F", False),
         ("est_tau", False),
         ("est_error", False),
-        ("freq_contamination", 1),
-        ("freq_F", 1),
     ]
 )
 
 
-def baum_welch(
-    P,
-    pars,
-    est_options,
-    max_iter=1000,
-    ll_tol=1e-1,
-    gt_mode=False,
-    scale_probs=True,
-):
-    O = est_options
-    gll_mode = not gt_mode
-    ll = -np.inf
-    n_states = P.states.n_states
-    n_hap_states = P.states.n_hap
-    n_gt = 3
+def bw_one_iter(pars, data, O, X):
+    pars = deepcopy(pars) if O.copy_pars else pars
 
-    # create arrays for posterior, emissions
-    Z = np.zeros((P.n_bins, n_states))  # P(Z | O)
-    E = np.ones((P.n_bins, n_states))  # P(O | Z)
+    H = X.H
+    fwd_bwd_algorithm2(pars, X)
+    fwd_bwd_algorithm2(pars.H, X.H)
 
-    SNP = np.zeros(
-        (P.n_snps, n_states, n_gt)
-    )  # P(O, G | Z), scaled such that  the max is 1
-    PG = np.zeros((P.n_snps, n_states, n_gt))  # P(G Z | O)
-
-    # pointers to the same data, but split by chromosome
-    gamma, emissions = [], []
-    hap_gamma, hap_emissions = [], []
-    row0 = 0
-    for r, chrom in zip(P.bin_sizes, P.chroms):
-        if chrom in P.haplo_chroms:
-            hap_gamma.append(Z[row0 : (row0 + r), :n_hap_states])
-            hap_emissions.append(E[row0 : (row0 + r), :n_hap_states])
-        else:
-            gamma.append(Z[row0 : (row0 + r)])
-            emissions.append(E[row0 : (row0 + r)])
-        row0 += r
-
-    s_scaling = update_snp_prob(
-        SNP=SNP,
-        P=P,
-        pars=pars,
-        est_inbreeding=O["est_inbreeding"],
-        gt_mode=gt_mode,
-        scale_probs=scale_probs,
-    )  # return value here is SNP
-
-    e_scaling = update_emissions(E, SNP, P, scale_probs=scale_probs)  # P(O | Z)
-    logging.info("e-scaling: %s", e_scaling)
-    logging.info("s-scaling: %s", s_scaling)
-    scaling = e_scaling + s_scaling
-
-    for it in range(max_iter):
-        alpha, beta, n = fwd_bwd_algorithm(pars.alpha0, emissions, pars.trans, gamma)
-        alpha_hap, beta_hap, n_hap = fwd_bwd_algorithm(
-            pars.alpha0_hap, hap_emissions, pars.trans_hap, hap_gamma
-        )
-        ll, old_ll = (
-            np.sum([np.sum(np.log(n_i)) for n_i in itertools.chain(n, n_hap)])
-            + scaling,
-            ll,
-        )
-
-        assert np.allclose(np.sum(Z, 1), 1)
-        assert not np.isnan(ll)
-
-        tpl = (
-            P.n_reads / 1000,
-            P.n_obs / 1000,
-            P.n_snps / 1000,
-            P.n_bins / 1000,
-            it,
-            np.mean(np.max(Z, 1) >= 0.95),
-            ll,
-            ll - old_ll,
-        )
-        logging.info("[%dk|%dk|%dk|%dk]: iter:%d |p95:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
-        if ll - old_ll < ll_tol:
-            break
-
-        if np.any(np.isnan(Z)):
-            raise ValueError("nan observed in state posterior")
-        if np.any(np.isnan(E)):
-            raise ValueError("nan observed in emissions")
-
-        # update stuff
-        if O["est_trans"]:
-            pars.trans = update_transitions(
-                pars.trans,
-                alpha,
-                beta,
-                gamma,
-                emissions,
-                n,
-                est_inbreeding=O["est_inbreeding"],
-            )
-            pars.trans_hap = update_transitions(
-                pars.trans_hap,
-                alpha_hap,
-                beta_hap,
-                hap_gamma,
-                hap_emissions,
-                n_hap,
-                est_inbreeding=False,
-            )
-            logging.debug(pars.trans)
-            logging.debug(pars.trans_hap)
-            pars.alpha0 = np.linalg.matrix_power(pars.trans, 10000)[0]
-            pars.alpha0_hap = np.linalg.matrix_power(pars.trans_hap, 10000)[0]
-
-        logging.info("\t".join(P.states.state_names))
-        logging.info("\t".join(["%.3f" % a for a in pars.alpha0]))
-
-        scaling = update_emission_stuff(
-            it,
-            E,
-            P,
-            PG,
-            SNP,
-            Z,
-            pars,
-            scaling,
-            est_options,
-            gt_mode,
-            scale_probs=scale_probs,
-        )
-
-    update_post_geno(PG, SNP, Z, P)
-
-    return (
-        Z,
-        PG,
-        pars,
-        ll,
-        emissions,
-        hap_emissions,
-        (alpha, beta, n),
-        (alpha_hap, beta_hap, n_hap),
+    pars.ll, pars.prev_ll = (
+        np.sum([np.sum(np.log(n_i)) for n_i in itertools.chain(X.n, H.n)]) + X.scaling,
+        pars.ll,
     )
 
+    assert np.allclose(np.sum(X.Z, 1), 1)
+    assert not np.isnan(pars.ll)
 
-def update_emission_stuff(
-    it,
-    E,
-    P,
-    PG,
-    SNP,
-    Z,
-    pars,
-    scaling,
-    est_options,
-    gt_mode,
-    scale_probs,
-):
-    O = est_options
-    cond_cont = O["est_contamination"] and (it % O["freq_contamination"] == 0 or it < 3)
-    cond_Ftau = O["est_F"] or O["est_tau"] and (it % O["freq_F"] == 0 or it < 3)
+    tpl = (
+        data.n_reads / 1000,
+        data.n_obs / 1000,
+        data.n_snps / 1000,
+        data.n_bins / 1000,
+        np.mean(np.max(X.Z, 1) >= 0.95),
+        pars.ll,
+        pars.ll - pars.prev_ll,
+    )
+    logging.info("[%dk|%dk|%dk|%dk]: |p95:%.3f\tLL:%.4f\tΔLL:%.4f" % tpl)
+    # if pars.ll - pars.prev_ll < O.ll_tol:
+    #    return pars
 
-    if cond_Ftau or cond_cont:  # and gll_mode:
-        update_post_geno(PG, SNP, Z, P)
+    if np.any(np.isnan(X.Z)):
+        raise ValueError("nan observed in state posterior")
+    if np.any(np.isnan(X.E)):
+        raise ValueError("nan observed in emissions")
 
-    if cond_cont and not gt_mode:
-        delta = update_contamination(pars.cont, pars.error, P, PG, est_options)
-        if delta < 1e-5:  # when we converged, do not update contamination
-            O["est_contamination"], cond_cont = False, False
-            logging.info("stopping contamination updates")
+    # update stuff
+    if O.est_trans:
+        pars.trans = update_transitions(pars, X, O)
+        pars.trans_hap = update_transitions(pars.H, X.H, O)
+        pars.alpha0 = np.linalg.matrix_power(pars.trans, 10000)[0]
+        pars.alpha0_hap = np.linalg.matrix_power(pars.trans_hap, 10000)[0]
 
-    if cond_Ftau:
-        delta = update_Ftau(pars.F, pars.tau, PG, P, est_options)
-        if delta < 1e-5:  # when we converged, do not update F
-            O["est_F"], O["est_tau"] = False, False
-            cond_Ftau, cond_F = False, False
-            logging.info("stopping Ftau updates")
-    if cond_Ftau or cond_cont:
+    logging.info("\t".join(data.states.state_names))
+    logging.info("\t".join(["%.3f" % a for a in pars.alpha0]))
+
+    update_full_emissions(data, X, pars, O)
+    return pars
+
+
+def update_full_emissions(P, X, pars, O):
+    if O.est_contamination or O.est_F or O.est_tau or O.est_error:
+        update_post_geno(X, P)
+
+    if O.est_contamination and not O.gt_mode:
+        update_contamination(pars.cont, pars.error, P, X.PG, O)
+
+    if O.est_F or O.est_tau:
+        update_Ftau(pars.F, pars.tau, X.PG, P, O)
+
+    if O.est_contamination or O.est_F or O.est_tau or O.est_error:
         s_scaling = update_snp_prob(
-            SNP,
+            X.SNP,
             P,
             pars=pars,
-            est_inbreeding=O["est_inbreeding"],
-            gt_mode=gt_mode,
-            scale_probs=scale_probs,
+            est_inbreeding=O.est_inbreeding,
+            gt_mode=O.gt_mode,
+            scale_probs=O.scale_probs,
         )
 
-        e_scaling = update_emissions(E, SNP, P, scale_probs=scale_probs)  # P(O | Z)
+        e_scaling = update_emissions(
+            X.E, X.SNP, P, scale_probs=O.scale_probs
+        )  # P(O | Z)
         logging.info("e-scaling: %s", e_scaling)
         logging.info("s-scaling: %s", s_scaling)
-        scaling = e_scaling + s_scaling
+        X.scaling = e_scaling + s_scaling
 
-    return scaling
-
-
-def load_admixfrog_data_geno(
-    geno_file,
-    states,
-    ancestral,
-    filter=filter,
-    target_ind=None,
-    guess_ploidy=False,
-    pos_mode=False,
-):
-    df = read_geno_ref(
-        fname=geno_file,
-        pops=states.state_dict,
-        target_ind=target_ind,
-        guess_ploidy=guess_ploidy,
-    )
-    df = filter_ref(df, states, ancestral=ancestral, **filter)
-    df["rg"] = "rg0"
-    if pos_mode:
-        df.reset_index("map", inplace=True)
-        df.map = df.index.get_level_values("pos")
-        df.set_index("map", append=True, inplace=True)
-
-    cats = pd.unique(df.index.get_level_values("chrom"))
-    chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
-
-    if not df.index.is_unique:
-        dups = df.index.duplicated()
-        logging.warning(f"\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m")
-        logging.warning(" ==> strongly consider re-filtering input file")
-        df = df[~dups]
-    return df
-
-
-def load_admixfrog_data(
-    states,
-    target=None,
-    target_file=None,
-    gt_mode=False,
-    filter=defaultdict(lambda: None),
-    ref_files=None,
-    geno_file=None,
-    ancestral=None,
-    cont_id=None,
-    split_lib=True,
-    pos_mode=False,
-    downsample=1,
-    guess_ploidy=True,
-    sex=None,
-    map_col="map",
-    fake_contamination=0,
-    autosomes_only=False,
-    bin_reads=False,
-    deam_bin_size=100000,
-    len_bin_size=10000,
-):
-    """
-    we have the following possible input files
-    1. only a geno file (for target and reference)
-    2. custom ref/target (from standalone csv)
-    3. geno ref (and target from csv)
-    """
-    tot_n_snps = 0
-
-    "1. only geno file"
-    if ref_files is None and target_file is None and geno_file and target:
-        df = load_admixfrog_data_geno(
-            geno_file=geno_file,
-            states=states,
-            ancestral=ancestral,
-            filter=filter,
-            target_ind=target,
-            guess_ploidy=guess_ploidy,
-            pos_mode=pos_mode,
-        )
-        ix = None
-
-    elif ref_files and target_file and (geno_file is None) and (target is None):
-        "2. standard input"
-        hcf = filter.pop("filter_high_cov")
-
-        # load reference first
-        ref = load_ref(
-            ref_files, states, cont_id, ancestral, autosomes_only, map_col=map_col
-        )
-        ref = filter_ref(ref, states, ancestral=ancestral, **filter)
-
-        if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
-            data, ix = load_read_data(target_file, make_bins=False)
-            assert np.max(data.tref + data.talt) <= 2
-            assert np.min(data.tref + data.talt) >= 0
-            if not data.index.is_unique:
-                dups = data.index.duplicated()
-                logging.warning(
-                    f"\033[91mWARNING: {np.sum(dups)} duplicate sites found\033[0m"
-                )
-                logging.warning(" ==> strongly consider re-filtering input file")
-                data = data[~dups]
-        else:
-            data, ix = load_read_data(
-                target_file,
-                split_lib,
-                downsample,
-                make_bins=bin_reads,
-                len_bin_size=len_bin_size,
-                deam_bin_size=deam_bin_size,
-                high_cov_filter=hcf,
-            )
-            # data = data[["rg", "tref", "talt"]]
-
-        # sexing stuff
-        if sex is None:
-            sex = guess_sex(ref, data)
-
-        if fake_contamination and cont_id:
-            """filter for SNP with fake ref data"""
-            cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
-            ref = ref[ref[cont_ref] + ref[cont_alt] > 0]
-
-        tot_n_snps = ref.shape[0]
-
-        if pos_mode:
-            ref.reset_index("map", inplace=True)
-            ref.map = ref.index.get_level_values("pos")
-            ref.set_index("map", append=True, inplace=True)
-        ref = ref.loc[~ref.index.duplicated()]
-
-        df = ref.join(data, how="inner")
-
-    elif geno_file and target_file and ref_file is None:
-        "4. geno ref, standard target"
-        raise NotImplementedError("")
-    else:
-        raise NotImplementedError("ambiguous input")
-
-    # sort by chromosome name. PANDAS is VERY DUMB WTF
-    cats = pd.unique(df.index.get_level_values("chrom"))
-    chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
-
-    df.index = df.index.set_levels(df.index.levels[0].astype(chrom_dtype), level=0)
-    df.reset_index(inplace=True)
-    df.sort_values(["chrom", "pos"], inplace=True)
-    df.set_index(["chrom", "pos", "ref", "alt", "map"], inplace=True)
-
-    # get ids of unique snps
-    snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=True).ngroup()
-    snp_ids.rename("snp_id", inplace=True)
-
-    snp_ids = pd.DataFrame(snp_ids)
-    snp_ids.set_index("snp_id", append=True, inplace=True)
-    df = snp_ids.join(df)
-
-    if fake_contamination and cont_id:
-        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
-        mean_endo_cov = np.mean(df.tref + df.talt)
-        """
-            C = x / (e+x);
-            Ce + Cx = x
-            Ce = x - Cx
-            Ce = x(1-C)
-            Ce / ( 1- C) = x
-        """
-
-        prop_cont = fake_contamination
-        target_cont_cov = prop_cont * mean_endo_cov / (1 - prop_cont)
-        f_cont = df[cont_alt] / (df[cont_ref] + df[cont_alt])
-
-        logging.debug(f"endogenous cov: {mean_endo_cov}")
-        logging.debug(f"fake contamination cov: {target_cont_cov}")
-
-        c_ref = np.random.poisson((1 - f_cont) * target_cont_cov)
-        c_alt = np.random.poisson(f_cont * target_cont_cov)
-        logging.debug(f"Added cont. reads with ref allele: {np.sum(c_ref)}")
-        logging.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
-        df.tref += c_ref
-        df.talt += c_alt
-
-    return df, ix, sex, tot_n_snps
+    return X.scaling
 
 
 def run_admixfrog(
@@ -445,12 +153,9 @@ def run_admixfrog(
     this is typically run through the command-line interface. Type admixfrog --help for information
     on arguments
     """
-
-    from pprint import pprint
-
     pprint(kwargs)
 
-    # numpy config
+    # numpy config for output
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
 
@@ -517,9 +222,30 @@ def run_admixfrog(
         **init,
     )
 
-    Z, G, pars, ll, emissions, hemissions, (_, beta, n), (_, bhap, nhap) = baum_welch(
-        P, pars, gt_mode=gt_mode, est_options=est, **kwargs
-    )
+    X = FrogX(P)
+    O = FrogOptions(**est, gt_mode=gt_mode)
+
+    # initialize emissions latent variable
+    # scaling = update_full_emissions(P, X, pars, O)
+    s_scaling = update_snp_prob(
+        SNP=X.SNP,
+        P=P,
+        pars=pars,
+        est_inbreeding=O.est_inbreeding,
+        gt_mode=O.gt_mode,
+        scale_probs=O.scale_probs,
+    )  # return value here is SNP
+
+    e_scaling = update_emissions(X.E, X.SNP, P, scale_probs=O.scale_probs)  # P(O | Z)
+    logging.info("e-scaling: %s", e_scaling)
+    logging.info("s-scaling: %s", s_scaling)
+    X.scaling = e_scaling + s_scaling
+
+    # run accelerted EM
+    pars = squarem(pars, data=P, latents=X, controller=O, updater=bw_one_iter)
+
+    # final update of latent variables
+    update_post_geno(X, P)
 
     # output formating from here
     if output["output_pars"]:
@@ -549,13 +275,13 @@ def run_admixfrog(
             ix.to_csv(f"{outname}.ix.xz", index=False)
 
     if output["output_bin"] or output["output_rle"]:
-        viterbi_path = viterbi(pars.alpha0, pars.trans, emissions)
-        viterbi_path_hap = viterbi(pars.alpha0_hap, pars.trans_hap, hemissions)
+        viterbi_path = viterbi(pars.alpha0, pars.trans, X.emissions)
+        viterbi_path_hap = viterbi(pars.alpha0_hap, pars.trans_hap, X.H.emissions)
         V = np.array([*states.state_names])[np.hstack(viterbi_path)]
         viterbi_df = pd.Series(V, name="viterbi")
 
         df_bin = write_bin_table(
-            Z, bins, viterbi_df, [*states.state_names], P, outname=f"{outname}.bin.xz"
+            X.Z, bins, viterbi_df, [*states.state_names], P, outname=f"{outname}.bin.xz"
         )
 
     if output["output_rle"]:
@@ -564,19 +290,19 @@ def run_admixfrog(
 
     if output["output_snp"]:
         df_snp = write_snp_table(
-            data=df, G=G, Z=Z, P=P, gt_mode=gt_mode, outname=f"{outname}.snp.xz"
+            data=df, G=X.PG, Z=X.Z, P=P, gt_mode=gt_mode, outname=f"{outname}.snp.xz"
         )
 
     if output["output_rsim"]:
         df_pred = pred_sims(
             trans=pars.trans,
-            emissions=emissions,
-            beta=beta,
+            emissions=X.emissions,
+            beta=X.beta,
             alpha0=pars.alpha0,
-            n=n,
-            states=states,
+            n=X.n,
+            states=P.states,
             n_sims=n_post_replicates,
-            decode=not est["est_inbreeding"],
+            decode=not O.est_inbreeding,
             keep_loc=keep_loc,
         )
         df_pred["chrom"] = [P.diplo_chroms[i] for i in df_pred.chrom.values]
@@ -586,13 +312,13 @@ def run_admixfrog(
         else:
             df_pred["state"] = [states[i] for i in df_pred.state.values]
 
-        if len(bhap) > 0:
+        if len(X.H.beta) > 0:
             df_pred_hap = pred_sims(
                 trans=pars.trans_hap,
-                emissions=hemissions,
-                beta=bhap,
+                emissions=X.H.emissions,
+                beta=X.H.beta,
                 alpha0=pars.alpha0_hap,
-                n=nhap,
+                n=X.H.n,
                 states=states,
                 n_sims=n_post_replicates,
                 keep_loc=keep_loc,

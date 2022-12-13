@@ -10,10 +10,6 @@ from .emissions import full_posterior_genotypes, calc_ll, calc_full_ll
 from ..utils.log import log_
 
 
-def norm(self):
-    """simple L2 - norm function to test parameter vector convergence and squarem steps"""
-    return np.sqrt(np.nansum(np.power(self, 2)))
-
 
 def update_ftau(old_F, old_tau, data, post_g, update_F=True):
     """updates the SFS parameters
@@ -111,7 +107,7 @@ def update_eb(post_x, R, two_errors=False):
     return e, b
 
 
-def update_pars(pars, data, controller):
+def update_pars(pars, data, controller, latents=None):
     """update all parameters; 1 EM step"""
     O = controller
 
@@ -160,70 +156,6 @@ def update_pars(pars, data, controller):
 
     if O.do_ll:
         pars.ll, pars.prev_ll = calc_full_ll(data, pars), pars.ll
-
-    return pars
-
-
-def squarem(pars0, data, controller):
-    """squarem port from R"""
-
-    EPS = controller.param_tol
-    controller.copy_pars = True  # required for squarem
-    min_step = controller.squarem_min
-    max_step = controller.squarem_max
-    pars = pars0
-
-    for i in range(controller.n_iter):
-        pars1 = update_pars(pars, data, controller)
-        Δp1 = pars1 - pars
-        if norm(Δp1) < EPS:  #  or pars1.ll - pars1.prev_ll < EPS:
-            pars = pars1
-            break
-
-        pars2 = update_pars(pars1, data, controller)
-        Δp2 = pars2 - pars1
-        if norm(Δp2) < EPS or pars2.ll - pars1.ll < EPS:
-            pars = pars2
-            break
-
-        Δp3 = Δp2 - Δp1
-
-        step_size = norm(Δp1) / norm(Δp3)
-        step_size = np.clip(step_size, min_step, max_step)
-
-        pars_sq = deepcopy(pars2)
-        pars_sq.pars[:] = pars.pars + 2 * step_size * Δp1 + step_size * step_size * Δp3
-
-        # "stabilization step if all parameters are in bounds
-        if np.all(0 <= pars_sq.pars) and np.all(pars_sq.pars <= 1):
-            pass
-        else:
-            pars_sq.pars[pars_sq.pars < 0] = EPS
-            pars_sq.pars[pars_sq.pars > 1] = 1 - EPS
-
-        pars_sq = update_pars(pars_sq, data, controller)
-
-        log_.info(
-            f"LLs p0 {pars.ll:.4f} | p1 {pars1.ll-pars.ll:.4f} | p2 {pars2.ll-pars1.ll:.4f} | psq {pars_sq.ll-pars2.ll:.4f}"
-        )
-
-        # ll did not improve
-        if pars_sq.ll <= pars2.ll:
-            pars = pars2
-            if step_size >= max_step:
-                max_step = np.maximum(
-                    controller.squarem_max, max_step / controller.squarem_mstep
-                )
-        else:
-            pars = pars_sq
-            if step_size == max_step:
-                max_step *= controller.squarem_mstep
-
-        s = f"iter {i}: step: {step_size:.3f} | ll: {pars.ll:4f} "
-        s += f"Δll : {pars.delta_ll:.6f} | e={pars.e[0]:.4f} | b={pars.b[0]:.4f}"
-        s += f" | Δc : {pars.delta_cont:.4f} | Δtau : {pars.delta_tau:.4f} | ΔF : {pars.delta_F:.4f}"
-        s += f" | Δ1 : {norm(Δp1):.4f}| Δ2:{norm(Δp2):.4f} "
-        log_.info(s)
 
     return pars
 

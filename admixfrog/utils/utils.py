@@ -744,3 +744,78 @@ def scale_mat3d(M):
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
+
+def filter_ref(
+    ref,
+    states,
+    ancestral=None,
+    cont=None,
+    filter_delta=None,
+    filter_pos=None,
+    filter_map=None,
+    filter_ancestral=False,
+    filter_cont=True,
+    **kwargs,
+):
+
+    if filter_ancestral and ancestral is not None:
+        no_ancestral_call = ref[f"{ancestral}_ref"] + ref[f"{ancestral}_alt"] == 0
+        ref = ref.loc[~no_ancestral_call]
+        logging.info(
+            "filtering %s SNP due to missing ancestral call", np.sum(no_ancestral_call)
+        )
+
+    if filter_cont and cont is not None:
+        no_cont_data = ref[f"{cont}_ref"] + ref[f"{cont}_alt"] == 0
+        ref = ref.loc[~no_cont_data]
+        logging.info(
+            "filtering %s SNP due to missing contaminant call", np.sum(no_cont_data)
+        )
+
+    if filter_delta is not None:
+        kp = np.zeros(ref.shape[0], bool)
+        for i, s1 in enumerate(states):
+            for j in range(i + 1, states.n_raw_states):
+                s2 = states[j]
+                f1 = np.nan_to_num(
+                    ref[s1 + "_alt"] / (ref[s1 + "_alt"] + ref[s1 + "_ref"])
+                )
+                f2 = np.nan_to_num(
+                    ref[s2 + "_alt"] / (ref[s2 + "_alt"] + ref[s2 + "_ref"])
+                )
+                delta = np.abs(f1 - f2)
+                kp = np.logical_or(kp, delta >= filter_delta)
+
+        logging.info("filtering %s SNP due to delta", np.sum(1 - kp))
+        ref = ref[kp]
+
+    if filter_pos is not None and filter_pos >= 0:
+        chrom = ref.index.get_level_values("chrom").factorize()[0]
+        pos = ref.index.get_level_values("pos").values
+        kp = nfp(chrom, pos, ref.shape[0], filter_pos)
+        logging.info("filtering %s SNP due to pos filter", np.sum(1 - kp))
+        ref = ref[kp]
+
+    if filter_map is not None and filter_map >= 0:
+        chrom = ref.index.get_level_values("chrom").factorize()[0]
+        pos = ref.index.get_level_values("map").values
+        kp = nfp(chrom, pos, ref.shape[0], filter_map)
+        logging.info("filtering %s SNP due to map filter", np.sum(1 - kp))
+        ref = ref[kp]
+
+    return ref
+
+@njit
+def nfp(chrom, pos, n_snps, filter_pos):
+    kp = np.ones(n_snps, np.bool_)
+    prev_chrom, prev_pos = -1, -10_000_000
+    for i in range(n_snps):
+        if prev_chrom != chrom[i]:
+            prev_chrom, prev_pos = chrom[i], pos[i]
+            continue
+        if pos[i] - prev_pos <= filter_pos:
+            kp[i] = False
+        else:
+            prev_pos = pos[i]
+
+    return kp

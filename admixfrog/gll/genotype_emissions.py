@@ -46,7 +46,7 @@ def update_emissions(E, SNP, P, bad_bin_cutoff=1e-250, scale_probs=True):
     return log_scaling
 
 
-def update_post_geno(PG, SNP, Z, P):
+def update_post_geno(X, P):
     """
     calculate P(G, Z | O), the probability of genotype given
     observations and hidden states Z.
@@ -62,10 +62,12 @@ def update_post_geno(PG, SNP, Z, P):
     Z[n_bin x n_states]: P(Z | O')
 
     """
+    PG, SNP, Z = X.PG, X.SNP, X.Z
     PG[:] = Z[P.SNP2BIN, :, np.newaxis] * SNP  # P(Z|O) P(O, G | Z)
     PG /= np.sum(SNP, 2)[:, :, np.newaxis]
     PG[np.isnan(PG)] = 0.0
     np.clip(PG, 0, 1, out=PG)
+
 
     assert np.all(PG >= 0)
     assert np.all(PG <= 1)
@@ -113,18 +115,18 @@ def update_Ftau(F, tau, PG, P, est_options):
 
         def f(args):
             args = list(args)
-            F = args.pop(0) if est_options["est_F"] else F[i]
-            tau_ = exp(args.pop(0)) if est_options["est_tau"] else exp(tau[i])
+            F = args.pop(0) if est_options.est_F else F[i]
+            tau_ = exp(args.pop(0)) if est_options.est_tau else exp(tau[i])
             x = np.log(_p_gt_homo(s, P, F, tau_) + 1e-10) * PG[P.diploid_snps, i, :]
             if np.isnan(np.sum(x)):
                 raise ValueError("nan in likelihood")
             return -np.sum(x)
 
         init, bounds = [], []
-        if est_options["est_F"]:
+        if est_options.est_F:
             init.append(F[i])
             bounds.append((0, 1))
-        if est_options["est_tau"]:
+        if est_options.est_tau:
             init.append(tau[i])
             bounds.append((-10, 20))
 
@@ -133,10 +135,10 @@ def update_Ftau(F, tau, PG, P, est_options):
         opt = OO.x.tolist()
 
         old_F, old_tau = F[i], tau[i]
-        if est_options["est_F"]:
+        if est_options.est_F:
             F[i] = opt.pop(0)
 
-        if est_options["est_tau"]:
+        if est_options.est_tau:
             tau[i] = opt.pop(0)
 
         log__ = "[%s] \tF: [%.4f->%.4f]\t:" % (s, old_F, F[i])

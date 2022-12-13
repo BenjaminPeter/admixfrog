@@ -93,7 +93,6 @@ class SlugData:
 @dataclass
 class SlugController:
     """class for options for the admixslug em"""
-
     do_ll: bool = True
     update_eb: bool = True
     update_ftau: bool = True
@@ -178,5 +177,67 @@ class FrogData:
 
 
 @dataclass
-class FrogController:
+class FrogOptions:
+    est_contamination : bool = True
+    est_F :bool = True
+    est_tau :bool = True
+    est_trans : bool = True
+    est_error :bool = True
+    gt_mode :bool=False
+    est_inbreeding :bool = True
+    scale_probs :bool = True
+    freq_contamination : int = 1
+    freq_F : int = 1
+    ll_tol: float = 0.01
+    param_tol : float = 0.01
+    copy_pars: bool = False
+    squarem_min: float = 1.0
+    squarem_max: float = 1.0
+    squarem_mstep: float = 2.0
+    n_iter : int = 100
+
+
+class FrogX:
+    def __init__(self, P):
+        n_bins, n_states = P.n_bins, P.states.n_states
+        n_snps = P.n_snps
+        n_hap_states = P.states.n_hap
+
+        self.Z = np.zeros((n_bins, n_states)) #P(Z | O)
+        self.A = np.zeros((n_bins, n_states)) #fwd/bwd alpha
+        self.B = np.zeros((n_bins, n_states)) #fwd/bwd beta
+        self.N = np.zeros((n_bins)) #fwd/bwd beta
+        self.E = np.ones((n_bins, n_states)) #P(O| Z)
+        self.SNP = np.ones((n_snps, n_states, 3)) #P(O, G | Z), scales such that the max is 1
+        self.PG = np.zeros((n_snps, n_states, 3)) #P(G, Z | O)
+
+        # pointers to the same data, but split by chromosome
+        self.H = FrogXHap()
+        self.gamma, self.emissions = [], []
+        self.alpha, self.beta, self.n = [], [], []
+        self.H.gamma, self.H.emissions = [], []
+        self.H.alpha, self.H.beta, self.H.n = [], [], []
+    
+        row0 = 0
+        for r, chrom in zip(P.bin_sizes, P.chroms):
+            if chrom in P.haplo_chroms:
+                self.H.gamma.append(self.Z[row0 : (row0 + r), :n_hap_states])
+                self.Z[row0 : (row0 + r), :n_hap_states] = 1 / n_hap_states
+                self.H.emissions.append(self.E[row0 : (row0 + r), :n_hap_states])
+                self.H.alpha.append(self.A[row0 : (row0 + r), :n_hap_states])
+                self.H.beta.append(self.B[row0 : (row0 + r), :n_hap_states])
+                self.H.n.append(self.N[row0 : (row0 + r)])
+            else:
+                self.gamma.append(self.Z[row0 : (row0 + r)])
+                self.Z[row0 : (row0 + r)] = 1 / n_states
+                self.emissions.append(self.E[row0 : (row0 + r)])
+                self.alpha.append(self.A[row0 : (row0 + r)])
+                self.beta.append(self.B[row0 : (row0 + r)])
+                self.n.append(self.N[row0 : (row0 + r)])
+            row0 += r
+
+        self.scaling = 0
+
+
+class FrogXHap:
     pass

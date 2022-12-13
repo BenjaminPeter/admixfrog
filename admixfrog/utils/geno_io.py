@@ -7,8 +7,9 @@ import itertools
 import pandas as pd
 from collections.abc import Mapping
 from pprint import pprint
-from .input import filter_ref
+from .utils import filter_ref
 import logging
+from numba import njit
 
 
 def row_length(n_ind):
@@ -163,3 +164,4 @@ def ref_count(x):
 def read_geno_ref(*args, **kwargs):
     Y = read_geno(*args, **kwargs)
     return ref_alt(Y)
+
