@@ -91,23 +91,23 @@ class SlugData:
 
 
 @dataclass
-class SlugController:
-    """class for options for the admixslug em"""
+class SquaremOptions:
+    n_iter: int = 100
+    ll_tol: float = 0.01
+    param_tol: float = 1e-4
+    squarem_min: float = 1.0
+    squarem_max: float = 1.0
+    squarem_mstep: float = 2.0
 
-    do_ll: bool = True
+@dataclass
+class SlugOptions(SquaremOptions):
+    """class for options for the admixslug em"""
     update_eb: bool = True
     update_ftau: bool = True
     update_cont: bool = True
     update_delta: bool = False
     update_bias: bool = True
     update_F: bool = True
-    n_iter: int = 200
-    ll_tol: float = 0.01
-    param_tol: float = 1e-4
-    copy_pars: bool = False
-    squarem_min: float = 1.0
-    squarem_max: float = 1.0
-    squarem_mstep: float = 2.0
     n_resamples: int = 10
 
 
@@ -125,12 +125,12 @@ class FrogData:
     alpha_hap: np.ndarray  # alpha parameter for each haploid SNP [L_h x 1]
     beta_hap: np.ndarray  # beta parameter for each haploid SNP [L_h x 1]
 
-    OBS2RG: np.ndarray  # which read is in which rg [R x 1]
+    RG2OBS: dict  # dict[RG] with entries of observations for each RG
     OBS2SNP: np.ndarray  # which read belongs to which locus [R x 1]
     SNP2BIN: np.ndarray  # which snp belongs to which sfs entry [L x 1]
     n_bins: int
 
-    bin_sizes: list
+    n_bins_by_chr: list
 
     states: Any = None  # the bins
     rgs: Any = None  # the read group names used
@@ -178,24 +178,15 @@ class FrogData:
 
 
 @dataclass
-class FrogOptions:
+class FrogOptions(SquaremOptions):
     est_contamination: bool = True
     est_F: bool = True
     est_tau: bool = True
     est_trans: bool = True
     est_error: bool = True
     gt_mode: bool = False
-    est_inbreeding: bool = True
+    est_inbreeding: bool = False
     scale_probs: bool = True
-    freq_contamination: int = 1
-    freq_F: int = 1
-    ll_tol: float = 0.01
-    param_tol: float = 0.01
-    copy_pars: bool = False
-    squarem_min: float = 1.0
-    squarem_max: float = 1.0
-    squarem_mstep: float = 2.0
-    n_iter: int = 100
 
 
 class FrogX:
@@ -222,7 +213,7 @@ class FrogX:
         self.H.alpha, self.H.beta, self.H.n = [], [], []
 
         row0 = 0
-        for r, chrom in zip(P.bin_sizes, P.chroms):
+        for r, chrom in zip(P.n_bins_by_chr, P.chroms):
             if chrom in P.haplo_chroms:
                 self.H.gamma.append(self.Z[row0 : (row0 + r), :n_hap_states])
                 self.Z[row0 : (row0 + r), :n_hap_states] = 1 / n_hap_states

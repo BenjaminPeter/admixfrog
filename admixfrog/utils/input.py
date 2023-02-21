@@ -8,13 +8,12 @@ import itertools
 from ..utils.geno_io import read_geno_ref, read_geno
 from .utils import posterior_table, posterior_table_slug
 from .utils import guess_sex, filter_ref
+from .classes import FrogData
 
 
 def load_ref(
     ref_files,
     states,
-    cont_id,
-    ancestral=None,
     autosomes_only=False,
     map_col="map",
     large_ref=True,
@@ -22,6 +21,8 @@ def load_ref(
     """loads reference in custom (csv) format
     ref_files: paths to files
     """
+
+    cont_id, ancestral = states.contamination, states.ancestral
 
     # 1. get list of states we care about
     label_states = list(states.state_dict.keys())
@@ -31,10 +32,10 @@ def load_ref(
         for ((k, v), e) in itertools.product(states.state_dict.items(), EXT)
     )
 
-    if ancestral is not None:
-        label_states = list(set(list(label_states) + [ancestral]))
-    if cont_id is not None:
-        label_states = list(set(list(label_states) + [cont_id]))
+    if states.ancestral is not None:
+        label_states = list(set(list(label_states) + [states.ancestral]))
+    if states.contamination is not None:
+        label_states = list(set(list(label_states) + [states.contamination]))
 
     # 2. required in every ref
     basic_cols = ["chrom", "pos", "ref", "alt"]  # required in every ref
@@ -263,7 +264,7 @@ def load_admixfrog_data_geno(
         target_ind=target_ind,
         guess_ploidy=guess_ploidy,
     )
-    df = filter_ref(df, states, ancestral=ancestral, **filter)
+    df = filter_ref(df, states, **filter)
     df["rg"] = "rg0"
     if pos_mode:
         df.reset_index("map", inplace=True)
@@ -289,8 +290,6 @@ def load_admixfrog_data(
     filter=defaultdict(lambda: None),
     ref_files=None,
     geno_file=None,
-    ancestral=None,
-    cont_id=None,
     split_lib=True,
     pos_mode=False,
     downsample=1,
@@ -302,6 +301,9 @@ def load_admixfrog_data(
     bin_reads=False,
     deam_bin_size=100000,
     len_bin_size=10000,
+    prior=None,
+    cont_prior=(1e-8, 1e-8),
+    ancestral_prior=0,
 ):
     """
     we have the following possible input files
@@ -310,6 +312,7 @@ def load_admixfrog_data(
     3. geno ref (and target from csv)
     """
     tot_n_snps = 0
+    cont_ref, cont_alt = f'{states.contamination}_ref', f'{states.contamination}_alt', 
 
     "1. only geno file"
     if ref_files is None and target_file is None and geno_file and target:
@@ -329,10 +332,8 @@ def load_admixfrog_data(
         hcf = filter.pop("filter_high_cov")
 
         # load reference first
-        ref = load_ref(
-            ref_files, states, cont_id, ancestral, autosomes_only, map_col=map_col
-        )
-        ref = filter_ref(ref, states, ancestral=ancestral, **filter)
+        ref = load_ref(ref_files, states, autosomes_only, map_col=map_col)
+        ref = filter_ref(ref, states, **filter)
 
         if gt_mode:  # gt mode does not do read emissions, assumes genotypes are known
             data, ix = load_read_data(target_file, make_bins=False)
@@ -361,9 +362,8 @@ def load_admixfrog_data(
         if sex is None:
             sex = guess_sex(ref, data)
 
-        if fake_contamination and cont_id:
+        if fake_contamination and samples.contamination:
             """filter for SNP with fake ref data"""
-            cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
             ref = ref[ref[cont_ref] + ref[cont_alt] > 0]
 
         tot_n_snps = ref.shape[0]
@@ -397,10 +397,11 @@ def load_admixfrog_data(
 
     snp_ids = pd.DataFrame(snp_ids)
     snp_ids.set_index("snp_id", append=True, inplace=True)
+
+
     df = snp_ids.join(df)
 
-    if fake_contamination and cont_id:
-        cont_ref, cont_alt = f"{cont_id}_ref", f"{cont_id}_alt"
+    if fake_contamination and samples.contamination:
         mean_endo_cov = np.mean(df.tref + df.talt)
         """
             C = x / (e+x);
@@ -424,4 +425,141 @@ def load_admixfrog_data(
         df.tref += c_ref
         df.talt += c_alt
 
+
+    alt_prior, ref_prior = get_prior(prior, df[~df.index.duplicated()], states,  
+                                     cont_prior, ancestral_prior)
+
+    make_bins(snp = snp_ids.index.to_frame(index=False),
+              chroms = snp_ids.index.get_level_values('chrom'),
+              snp_mode,
+
+
+        snp, chroms, bin_size,
+                                                          n_snps,
+                                                          snp_mode,
+                                                          haplo_chroms,
+                                                          diplo_chroms)
+
+    breakpoint()
+    P = FrogData(
+        O=np.array(df.talt.values, np.uint8),
+        N=np.array(df.tref.values + df.talt.values, np.uint8),
+        psi=np.array(0.0)
+        if states.contamination is None
+        else np.array((df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)),
+        alt_prior = alt_prior,
+        ref_prior = ref_prior,
+        snp
+        states=states,
+        bin_size = bin_size,
+        rgs=rgs,
+        sex=sex,
+    )
+
+
     return df, ix, sex, tot_n_snps
+
+def empirical_bayes_prior(der, anc, known_anc=False):
+    """using beta-binomial plug-in estimator"""
+
+    n = anc + der
+    f = np.nanmean(der / n) if known_anc else 0.5
+
+    H = f * (1.0 - f)  # alt formulation
+    if H == 0.0:
+        return 1e-6, 1e-6
+
+    V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der / n, anc / n)))
+
+    ab = (H - V) / (V - H / np.nanmean(n))
+    if np.nanmean(n) < ab:
+        return 1e-6, 1e-6
+    pa = max((f * ab, 1e-5))
+    pb = max(((1 - f) * ab, 1e-5))
+    return pa, pb
+
+def get_prior(prior, snp_df, states, cont_prior, 
+              ancestral_prior):
+    alt_ix = ["%s_alt" % s for s in states]
+    ref_ix = ["%s_ref" % s for s in states]
+    snp_ix_states = set(alt_ix + ref_ix)
+    ca, cb = cont_prior
+    n_snps = snp_df.shape[0]
+
+
+    if states.contamination is not None:
+        cont_ref, cont_alt = f"{states.contamination}_ref",f"{states.contamination}_alt" 
+        snp_ix_states.update([cont_ref, cont_alt])
+    if states.ancestral is not None:
+        anc_ref, anc_alt = f"{states.ancestral}_ref", f"{states.ancestral}_alt"
+        snp_ix_states.update([anc_ref, anc_alt])
+    if prior is None:  # empirical bayes, estimate from data
+        alt_prior = np.empty((n_snps, states.n_raw_states))
+        ref_prior = np.empty((n_snps, states.n_raw_states))
+
+        if states.contamination is not None:
+            ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
+
+        if states.ancestral is None:
+            for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, states)):
+                pa, pb = empirical_bayes_prior(snp_df[a], snp_df[b])
+                logging.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
+                alt_prior[:, i] = snp_df[a] + pa
+                ref_prior[:, i] = snp_df[b] + pb
+        else:
+            anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+
+            # set up vectors stating which allele is ancestral
+            ref_is_anc = (snp_df[anc_ref] > 0) & (snp_df[anc_alt] == 0)
+            alt_is_anc = (snp_df[anc_alt] > 0) & (snp_df[anc_ref] == 0)
+            ref_is_der, alt_is_der = alt_is_anc, ref_is_anc
+            anc_is_unknown = (1 - alt_is_anc) * (1 - ref_is_anc) == 1
+
+            for i, (alt_col, ref_col, s) in enumerate(zip(alt_ix, ref_ix, states)):
+
+                # 1. set up base entries based on observed counts
+                alt_prior[:, i] = snp_df[alt_col]
+                ref_prior[:, i] = snp_df[ref_col]
+
+                # 2. where anc is unknown, add symmetric prior estimated from data
+                pa, pb = empirical_bayes_prior(snp_df[alt_col], snp_df[ref_col])
+                logging.info("[%s]EB prior0 [anc=%.4f, der=%.4f]: " % (s, pa, pb))
+                alt_prior[anc_is_unknown, i] += pa
+                ref_prior[anc_is_unknown, i] += pb
+
+                # 3. where anc is known, create indices
+                m_anc = np.array(pd.concat((ref_is_anc, alt_is_anc), axis=1))
+                m_der = np.array(pd.concat((ref_is_der, alt_is_der), axis=1))
+                ANC = np.array(snp_df[[ref_col, alt_col]])[m_anc]
+                DER = np.array(snp_df[[ref_col, alt_col]])[m_der]
+
+                pder, panc = empirical_bayes_prior(DER, ANC, known_anc=True)
+                panc += ancestral_prior
+                logging.info("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
+                alt_prior[alt_is_anc, i] += panc
+                alt_prior[alt_is_der, i] += pder
+                ref_prior[ref_is_anc, i] += panc
+                ref_prior[ref_is_der, i] += pder
+
+    else:
+        """ancestral allele contribution to prior
+        the ancestral allele adds one pseudocount to the data
+        """
+        if ancestral is None:
+            prior_anc_alt, prior_anc_ref = np.zeros(1), np.zeros(1)
+        else:
+            anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+            prior_anc_alt = snp_df[anc_alt] * ancestral_prior
+            prior_anc_ref = snp_df[anc_ref] * ancestral_prior
+
+        alt_prior = (
+            snp_df[alt_ix].to_numpy() + np.array(prior_anc_alt)[:, np.newaxis] + prior
+        )
+        ref_prior = (
+            snp_df[ref_ix].to_numpy() + np.array(prior_anc_ref)[:, np.newaxis] + prior
+        )
+        assert np.all(df.tref.values + df.talt.values < 256)
+
+    return ref_prior, alt_prior
+
+

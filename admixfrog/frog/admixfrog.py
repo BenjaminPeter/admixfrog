@@ -11,7 +11,7 @@ from ..utils.output import write_pars_table
 from ..utils.output_frog import write_bin_table, write_cont_table_frog
 from ..utils.output_frog import write_snp_table, write_est_runs, write_sim_runs
 from ..utils.output_slug import write_cont_table_slug
-from ..utils.utils import bins_from_bed, data2probs, init_pars
+from .utils import data2probs, init_pars
 from ..utils.states import States
 from .fwd_bwd import fwd_bwd_algorithm, viterbi, update_transitions, fwd_bwd_algorithm2
 from ..gll.genotype_emissions import update_post_geno, update_Ftau, update_snp_prob
@@ -79,14 +79,7 @@ def bw_one_iter(pars, data, O, X):
     logging.info("\t".join(data.states.state_names))
     logging.info("\t".join(["%.3f" % a for a in pars.alpha0]))
 
-    update_full_emissions(data, X, pars, O)
-    return pars
-
-
-def update_full_emissions(P, X, pars, O):
-    if O.est_contamination or O.est_F or O.est_tau or O.est_error:
-        update_post_geno(X, P)
-
+    update_post_geno(X, P)
     if O.est_contamination and not O.gt_mode:
         update_contamination(pars.cont, pars.error, P, X.PG, O)
 
@@ -94,23 +87,27 @@ def update_full_emissions(P, X, pars, O):
         update_Ftau(pars.F, pars.tau, X.PG, P, O)
 
     if O.est_contamination or O.est_F or O.est_tau or O.est_error:
-        s_scaling = update_snp_prob(
-            X.SNP,
-            P,
-            pars=pars,
-            est_inbreeding=O.est_inbreeding,
-            gt_mode=O.gt_mode,
-            scale_probs=O.scale_probs,
-        )
+        calculate_emissions(P, X, pars, O)
+    return pars
 
-        e_scaling = update_emissions(
-            X.E, X.SNP, P, scale_probs=O.scale_probs
-        )  # P(O | Z)
-        logging.info("e-scaling: %s", e_scaling)
-        logging.info("s-scaling: %s", s_scaling)
-        X.scaling = e_scaling + s_scaling
 
-    return X.scaling
+def calculate_emissions(P, X, pars, O):
+    s_scaling = update_snp_prob(
+        X.SNP,
+        P,
+        pars=pars,
+        est_inbreeding=O.est_inbreeding,
+        gt_mode=O.gt_mode,
+        scale_probs=O.scale_probs,
+    )
+
+    e_scaling = update_emissions(
+        X.E, X.SNP, P, scale_probs=O.scale_probs
+    )  # P(O | Z)
+    logging.info("e-scaling: %s", e_scaling)
+    logging.info("s-scaling: %s", s_scaling)
+    X.scaling = e_scaling + s_scaling
+
 
 
 def run_admixfrog(
@@ -183,8 +180,6 @@ def run_admixfrog(
         gt_mode=gt_mode,
         states=states,
         sex=sex,
-        ancestral=ancestral,
-        cont_id=cont_id,
         split_lib=split_lib,
         map_col=map_col,
         pos_mode=pos_mode,
@@ -196,18 +191,17 @@ def run_admixfrog(
         bin_reads=bin_reads,
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
+        prior=prior,
     )
     logging.info("done loading data")
 
-    bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex, snp_mode=snp_mode)
-    logging.info("done creating bins")
-
-    P = data2probs(
+    bins, P = data2probs(
         df,
-        IX,
         states,
-        cont_id,
+        bin_size,
+        sex=sex,
         prior=prior,
+        cont_id=cont_id,
         ancestral=ancestral,
         ancestral_prior=ancestral_prior,
     )
@@ -229,20 +223,7 @@ def run_admixfrog(
     O = FrogOptions(**est, gt_mode=gt_mode)
 
     # initialize emissions latent variable
-    # scaling = update_full_emissions(P, X, pars, O)
-    s_scaling = update_snp_prob(
-        SNP=X.SNP,
-        P=P,
-        pars=pars,
-        est_inbreeding=O.est_inbreeding,
-        gt_mode=O.gt_mode,
-        scale_probs=O.scale_probs,
-    )  # return value here is SNP
-
-    e_scaling = update_emissions(X.E, X.SNP, P, scale_probs=O.scale_probs)  # P(O | Z)
-    logging.info("e-scaling: %s", e_scaling)
-    logging.info("s-scaling: %s", s_scaling)
-    X.scaling = e_scaling + s_scaling
+    scaling = calculate_emissions(P, X, pars, O)
 
     # run accelerated EM
     pars = squarem(pars, data=P, latents=X, controller=O, updater=bw_one_iter)

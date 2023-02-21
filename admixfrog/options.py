@@ -10,7 +10,8 @@ POP_OPTIONS = [
     "het_steates",
     "homo_states",
     "state_file",
-    "random_read_samples" "ancestral",
+    "random_read_samples",
+    "ancestral",
 ]
 
 
@@ -23,8 +24,6 @@ INFILE_OPTIONS = [
     "force_target_file",
     "length_bin_size",
     "report_alleles",
-    "tstv",
-    "alleles",
     "vcfgt",
     "target",
     "target_file",
@@ -466,20 +465,6 @@ def add_estimation_options(P):
         dest="est_error",
         help="""estimate sequencing error per rg""",
     )
-    # parser.add_argument(
-    #    "--dont-est-error",
-    #    action="store_false",
-    #    default=True,
-    #    dest="est_error",
-    #    help="""estimate sequencing error per rg""",
-    # )
-    parser.add_argument(
-        "--freq-contamination",
-        "--fc",
-        type=int,
-        default=1,
-        help="""update frequency for contamination/error (default 1)""",
-    )
     parser.add_argument(
         "--est-F",
         "-f",
@@ -493,13 +478,6 @@ def add_estimation_options(P):
         action="store_true",
         default=False,
         help="""Estimate tau (population structure in references)""",
-    )
-    parser.add_argument(
-        "--freq-F",
-        "--f",
-        type=int,
-        default=1,
-        help="""update frequency for F (default 1)""",
     )
     parser.add_argument(
         "--est-inbreeding",

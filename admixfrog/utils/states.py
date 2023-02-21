@@ -12,6 +12,8 @@ class States(object):
         het_states=None,
         roh_states=None,
         est_inbreeding=False,
+        ancestral = None,
+        contamination = None,
     ):
         """get info about which states to include"""
 
@@ -40,6 +42,9 @@ class States(object):
 
         self.est_inbreeding = est_inbreeding
 
+        self.ancestral = ancestral
+        self.contamination = contamination
+
     @classmethod
     def from_commandline(
         cls, raw_states, state_file, ancestral, cont_id=None, *args, **kwargs
@@ -50,7 +55,8 @@ class States(object):
         )
         state_dict2 = cls.parse_state_string(raw_states, state_file=state_file)
         states = list(dict(((x, None) for x in state_dict2.values())))
-        new_states = cls(states, *args, **kwargs)
+        new_states = cls(states, ancestral=ancestral, 
+                         contamination=cont_id, *args, **kwargs)
         new_states.state_dict = state_dict
         return new_states
 
@@ -147,7 +153,6 @@ class States(object):
         return rename dict for reference
 
         """
-        ext2 = ["_ref", "_alt"]
         d1 = [s.split("=") for s in states if s is not None]
         d2 = [(s if len(s) > 1 else (s[0], s[0])) for s in d1]
         state_dict = dict(
@@ -181,3 +186,7 @@ class States(object):
                     s2[state] = label
             state_dict = s2
         return state_dict
+
+    #@property
+    #def ancestral(self):
+        pass

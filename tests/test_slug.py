@@ -1,4 +1,4 @@
-from admixfrog.utils.classes import SlugData, SlugController
+from admixfrog.utils.classes import SlugData, SlugOptions
 from admixfrog.utils.pars import SlugPars
 from admixfrog.slug.emissions import *
 from admixfrog.slug.em import *
@@ -130,7 +130,7 @@ def test_error_est():
     )
 
     pars = SlugPars(cont=[0, 1], tau=[0], F=[0], e=0.01, b=0.001)
-    controller = SlugController(update_eb=True, update_ftau=False, update_cont=False)
+    controller = SlugOptions(update_eb=True, update_ftau=False, update_cont=False)
     update_pars(pars, data, controller)
     print(f"e : {pars.prev_e} -> {pars.e}")
     print(f"b : {pars.prev_b} -> {pars.b}")
@@ -159,7 +159,7 @@ def test_cont_est():
     )
 
     pars = SlugPars(cont=[0.8, 0.5, 0.5], tau=[0], F=[0], e=0.0, b=0.0)
-    controller = SlugController(update_eb=False, update_ftau=False, update_cont=True)
+    controller = SlugOptions(update_eb=False, update_ftau=False, update_cont=True)
     pars = update_pars(pars, reads, controller)
     assert pars.cont[0] == 0
     assert pars.cont[2] == 1
@@ -186,7 +186,7 @@ def test_delta_est():
     )
 
     pars = SlugPars(cont=[1.0], tau=[0.4], F=[0.5], e=0.00, b=0.00)
-    controller = SlugController(update_eb=False, update_ftau=False, update_cont=False)
+    controller = SlugOptions(update_eb=False, update_ftau=False, update_cont=False)
     update_pars(pars, data, controller)
     print(f"eb= {pars.e}, {pars.b}")
     print(f"C = {pars.cont}")
@@ -258,7 +258,7 @@ def test_update_large():
     # update_pars_reads(pars, data, data,
     #            True, True, True)
     # print( f'll : {pars.prev_ll} -> {pars.ll}')
-    controller = SlugController(
+    controller = SlugOptions(
         update_eb=False, update_ftau=True, update_cont=True, n_iter=1000, ll_tol=1e-4
     )
     em(pars, data, controller)

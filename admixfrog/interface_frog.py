@@ -1,6 +1,7 @@
 """basic command line interfaces
 """
 import argparse
+import pandas as pd
 from pprint import pprint, pformat
 import admixfrog
 import numpy as np
@@ -37,7 +38,6 @@ def do_rle():
     add_rle_options(parser)
     args = parser.parse_args()
     logging.info(pformat(args))
-    import pandas as pd
 
     dtype_ = dict(chrom="category")
     data = pd.read_csv(args.target_file, dtype=dtype_)

@@ -11,14 +11,14 @@ from ..utils.output import write_pars_table
 from ..utils.output_slug import write_snp_table_slug, write_cont_table_slug
 from ..utils.output_slug import write_sfs2, write_vcf
 from ..utils.output_slug import write_f3_table, write_f4_table
-from ..utils.utils import data2probs, init_pars_sfs
+from ..utils.utils import init_pars_sfs
 from ..utils.utils import guess_sex
 from ..utils.states import States
 from ..gll.genotype_emissions import update_post_geno, update_snp_prob
 from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
 from ..utils.geno_io import read_geno_ref, read_geno
-from ..utils.classes import SlugController
+from ..utils.classes import SlugOptions
 from ..utils.utils import make_slug_data
 from ..utils.squarem import squarem
 from .emissions import full_posterior_genotypes
@@ -71,7 +71,7 @@ def run_admixslug(
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
 
-    controller = SlugController(
+    controller = SlugOptions(
         update_eb=est["est_error"],
         update_ftau=est["est_tau"],
         update_F=est["est_F"],

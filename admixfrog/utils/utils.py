@@ -9,310 +9,6 @@ from numba import njit
 from scipy.linalg import expm
 
 
-Probs = namedtuple(
-    "Probs", ("O", "N", "P_cont", "alpha", "beta", "rg", "alpha_hap", "beta_hap", "S")
-)
-
-
-class _IX:
-    """class to be filled with various indices"""
-
-    def __init__(self):
-        pass
-
-
-def data2probs(
-    df,
-    IX,
-    states,
-    cont_id=None,
-    prior=None,
-    cont_prior=(1e-8, 1e-8),
-    ancestral=None,
-    ancestral_prior=0,
-    doalphabeta=True,
-):
-    """create data structure that holds the reference genetic data
-
-    creates an object of type `Probs` with the following entries:
-    O : array[n_obs]: the number of alternative reads
-    N : array[n_obs]: the total number of reads
-    P_cont : array[n_obs]: the contaminant allele frequency
-    lib[n_obs] : the library /read group of the observation
-    alpha[n_snps, n_states] : the reference allele beta-prior
-    beta[n_snps, n_states] : the alt allele beta-prior
-    S : States object with all states
-
-
-    input:
-
-    df: merged reference and SNP data. has columns tref, talt with the read
-    counts at each SNP, and "X_alt, X_ref" for each source pop
-    IX: index object, with number of snps, number of reads, etc.
-    state_ids: the references to keep
-    prior: None for empirical bayes prior, otherwise prior to be added
-    ancestral: ancestray allele
-    doalphabeta: for e.g. SFS mode, alpha and beta don't need to be calcuated
-    """
-
-    alt_ix = ["%s_alt" % s for s in states]
-    ref_ix = ["%s_ref" % s for s in states]
-    snp_ix_states = set(alt_ix + ref_ix)
-    ca, cb = cont_prior
-
-    if cont_id is not None:
-        cont_ref, cont_alt = "%s_alt" % cont_id, "%s_ref" % cont_id
-        snp_ix_states.update([cont_ref, cont_alt])
-    if ancestral is not None:
-        anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
-        snp_ix_states.update([anc_ref, anc_alt])
-
-    snp_df = df[list(snp_ix_states)]
-    snp_df = snp_df[~snp_df.index.get_level_values("snp_id").duplicated()]
-    n_snps = len(snp_df.index.get_level_values("snp_id"))
-
-    if not doalphabeta:
-        raise NotImplementedError()
-
-    if prior is None:  # empirical bayes, estimate from data
-        alt_prior = np.empty((n_snps, states.n_raw_states))
-        ref_prior = np.empty((n_snps, states.n_raw_states))
-        if cont_id is not None:
-            ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
-
-        if ancestral is None:
-            for i, (a, b, s) in enumerate(zip(alt_ix, ref_ix, states)):
-                pa, pb = empirical_bayes_prior(snp_df[a], snp_df[b])
-                logging.info("[%s]EB prior [a=%.4f, b=%.4f]: " % (s, pa, pb))
-                alt_prior[:, i] = snp_df[a] + pa
-                ref_prior[:, i] = snp_df[b] + pb
-        else:
-            anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
-
-            # set up vectors stating which allele is ancestral
-            ref_is_anc = (snp_df[anc_ref] > 0) & (snp_df[anc_alt] == 0)
-            alt_is_anc = (snp_df[anc_alt] > 0) & (snp_df[anc_ref] == 0)
-            ref_is_der, alt_is_der = alt_is_anc, ref_is_anc
-            anc_is_unknown = (1 - alt_is_anc) * (1 - ref_is_anc) == 1
-
-            for i, (alt_col, ref_col, s) in enumerate(zip(alt_ix, ref_ix, states)):
-
-                # 1. set up base entries based on observed counts
-                alt_prior[:, i] = snp_df[alt_col]
-                ref_prior[:, i] = snp_df[ref_col]
-
-                # 2. where anc is unknown, add symmetric prior estimated from data
-                pa, pb = empirical_bayes_prior(snp_df[alt_col], snp_df[ref_col])
-                logging.info("[%s]EB prior0 [anc=%.4f, der=%.4f]: " % (s, pa, pb))
-                alt_prior[anc_is_unknown, i] += pa
-                ref_prior[anc_is_unknown, i] += pb
-
-                # 3. where anc is known, create indices
-                m_anc = np.array(pd.concat((ref_is_anc, alt_is_anc), axis=1))
-                m_der = np.array(pd.concat((ref_is_der, alt_is_der), axis=1))
-                ANC = np.array(snp_df[[ref_col, alt_col]])[m_anc]
-                DER = np.array(snp_df[[ref_col, alt_col]])[m_der]
-
-                pder, panc = empirical_bayes_prior(DER, ANC, known_anc=True)
-                panc += ancestral_prior
-                logging.info("[%s]EB prior1 [anc=%.4f, der=%.4f]: " % (s, panc, pder))
-                alt_prior[alt_is_anc, i] += panc
-                alt_prior[alt_is_der, i] += pder
-                ref_prior[ref_is_anc, i] += panc
-                ref_prior[ref_is_der, i] += pder
-
-        assert np.all(df.tref.values + df.talt.values < 256)
-
-    else:
-        """ancestral allele contribution to prior
-        the ancestral allele adds one pseudocount to the data
-        """
-        if ancestral is None:
-            prior_anc_alt, prior_anc_ref = np.zeros(1), np.zeros(1)
-        else:
-            anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
-            prior_anc_alt = snp_df[anc_alt] * ancestral_prior
-            prior_anc_ref = snp_df[anc_ref] * ancestral_prior
-
-        alt_prior = (
-            snp_df[alt_ix].to_numpy() + np.array(prior_anc_alt)[:, np.newaxis] + prior
-        )
-        ref_prior = (
-            snp_df[ref_ix].to_numpy() + np.array(prior_anc_ref)[:, np.newaxis] + prior
-        )
-        assert np.all(df.tref.values + df.talt.values < 256)
-
-    OBS2RG = np.empty_like(IX.OBS2SNP, dtype=np.uint16)
-    rgs = dict((v, i) for i, v in enumerate(IX.rgs))
-
-    for rg, i in rgs.items():
-        OBS2RG[IX.RG2OBS[rg]] = i
-
-    P = FrogData(
-        O=np.array(df.talt.values, np.uint8),
-        N=np.array(df.tref.values + df.talt.values, np.uint8),
-        psi=np.array(0.0)
-        if cont_id is None
-        else np.array((df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)),
-        alpha=alt_prior[IX.diploid_snps],
-        beta=ref_prior[IX.diploid_snps],
-        alpha_hap=alt_prior[IX.haploid_snps],
-        beta_hap=ref_prior[IX.haploid_snps],
-        states=states,
-        n_bins=IX.n_bins,
-        bin_sizes=IX.bin_sizes,
-        rgs=rgs,
-        OBS2RG=OBS2RG,
-        OBS2SNP=IX.OBS2SNP,
-        SNP2BIN=IX.SNP2BIN,
-        chroms=IX.chroms,
-        haplo_chroms=IX.haplo_chroms,
-        diplo_chroms=IX.diplo_chroms,
-        haploid_snps=IX.haploid_snps,
-        diploid_snps=IX.diploid_snps,
-        sex=IX.sex,
-    )
-    return P
-
-
-def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
-    """create a bunch of auxillary data frames for binning
-
-    - bins: columns are chrom_id, chrom, bin_pos, bin_id, map
-    - IX: container storing all indices, will need to be cleaned later on
-        currently contains:
-        - IX.SNP2BIN [n_snps]: array giving bin for each snp
-        - IX.OBS2SNP [n_obs]: array giving snp for each obs
-        - IX.OBS2BIN [n_obs]: array giving bin for each obs
-        - IX.bin_sizes [n_chroms]: number of bins per chromosome
-        - IX.RG2OBS [n_rgs] : [list] dict giving obs for each readgroup
-        - IX.rgs : names of all libraries
-    """
-    IX = _IX()
-    IX.rgs = np.unique(df.rg)
-
-    obsix = df.index.to_frame(index=False)
-    snp = obsix.drop_duplicates()
-
-    chroms = pd.unique(snp.chrom)
-    n_snps = len(snp.snp_id.unique())
-
-    haplo_chroms, diplo_chroms = [], []
-    if sex is None:
-        diplo_chroms = chroms
-    else:
-        for c in chroms:
-            if c[0] in "YyWw":
-                haplo_chroms.append(c)
-            elif c[0] in "Xx" and sex == "m":
-                haplo_chroms.append(c)
-            elif c[0] in "Zz" and sex == "f":
-                haplo_chroms.append(c)
-            elif c.startswith("hap"):
-                haplo_chroms.append(c)
-            else:
-                diplo_chroms.append(c)
-
-    IX.SNP2BIN = np.empty((n_snps), int)
-    IX.OBS2SNP = obsix.snp_id.values
-
-    bin_loc = []
-    bin0 = 0
-
-    dtype_bin = np.dtype(
-        [("chrom", "U2"), ("map", float), ("pos", int), ("id", int), ("haploid", bool)]
-    )
-
-    IX.bin_sizes = []
-    IX.diploid_snps, IX.haploid_snps = [], []
-
-    for i, chrom in enumerate(chroms):
-        map_ = snp.map[snp.chrom == chrom]
-        pos = snp.pos[snp.chrom == chrom]
-
-        chrom_start = float(np.floor(map_.head(1) / bin_size) * bin_size)
-        chrom_end = float(np.ceil(map_.tail(1) / bin_size) * bin_size)
-        chrom_is_hap = chrom in haplo_chroms
-
-        if snp_mode:
-            bins = np.arange(bin0, bin0 + np.sum(snp.chrom == chrom))
-            logging.debug("binning chrom %s: %d snp bins", chrom, len(bins))
-
-            IX.bin_sizes.append(len(bins))
-            bin_ids = bins
-            _bin = np.empty_like(bins, dtype_bin)
-            _bin["chrom"] = chrom
-            _bin["pos"] = pos
-            _bin["id"] = bin_ids
-            _bin["map"] = bins
-            _bin["haploid"] = chrom_is_hap
-            bin_loc.append(_bin)
-
-            snp_ids = bins
-            IX.SNP2BIN[bins] = bins
-
-        else:
-            # create bins
-            bins = np.arange(chrom_start, chrom_end, bin_size)
-            logging.debug("binning chrom %s: %d bins", chrom, len(bins))
-
-            IX.bin_sizes.append(len(bins))
-            bin_ids = range(bin0, bin0 + len(bins))
-            _bin = np.empty_like(bins, dtype_bin)
-            _bin["chrom"] = chrom
-            _bin["pos"] = np.interp(bins, map_, pos)
-            _bin["id"] = bin_ids
-            _bin["map"] = bins
-            _bin["haploid"] = chrom_is_hap
-            bin_loc.append(_bin)
-
-            # put SNPs in bins
-            snp_ids = snp.snp_id[snp.chrom == chrom]
-            dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
-            IX.SNP2BIN[snp_ids] = dig_snp + bin0
-
-        if chrom_is_hap:
-            IX.haploid_snps.extend(snp_ids)
-        else:
-            IX.diploid_snps.extend(snp_ids)
-
-        bin0 += len(bins)
-
-    bins = np.hstack(bin_loc)
-
-    # for now, assume data is ordered such that diploid chroms come before haploid ones
-    assert (
-        len(IX.haploid_snps) == 0
-        or len(IX.diploid_snps) == 0
-        or min(IX.haploid_snps) > max(IX.diploid_snps)
-    )
-
-    if len(IX.haploid_snps) > 0:
-        IX.haploid_snps = slice(min(IX.haploid_snps), max(IX.haploid_snps) + 1)
-    else:
-        IX.haploid_snps = slice(0, 0)
-    if len(IX.diploid_snps) > 0:
-        IX.diploid_snps = slice(min(IX.diploid_snps), max(IX.diploid_snps) + 1)
-    else:
-        IX.diploid_snps = slice(0, 0)
-
-    IX.RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in IX.rgs)
-    IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
-
-    IX.n_chroms = len(chroms)
-    IX.n_bins = len(bins)
-    IX.n_snps = len(IX.SNP2BIN)
-    IX.n_obs = len(IX.OBS2SNP)
-    IX.n_reads = np.sum(df.tref + df.talt)
-    IX.n_rgs = len(IX.RG2OBS)
-
-    IX.chroms = chroms
-    IX.haplo_chroms = haplo_chroms
-    IX.diplo_chroms = diplo_chroms
-    IX.sex = sex
-
-    logging.debug("done creating bins")
-    return bins, IX
 
 
 def get_haploid_stuff(snp, chroms, sex):
@@ -519,120 +215,6 @@ def init_pars_sfs(n_sfs, n_rgs, F0, tau0, e0, c0, **kwargs):
     return pars
 
 
-def init_pars(
-    states,
-    n_rgs,
-    homo_ids=None,
-    het_ids=None,
-    F0=0.001,
-    tau0=1,
-    e0=1e-2,
-    c0=1e-2,
-    init_guess=None,
-    transition_matrix=None,
-    bin_size=1.0,
-    **kwargs,
-):
-    """initialize parameters
-
-    returns a pars object
-    """
-
-    n_states, n_hap = states.n_states, states.n_hap
-
-    alpha0 = np.ones(n_states) / n_states
-    alpha0_hap = np.ones(n_hap) / n_hap
-
-    if transition_matrix is None:
-        trans_mat = np.zeros((n_states, n_states)) + 2e-2
-        trans_mat_hap = np.zeros((n_hap, n_hap)) + 2e-2
-
-        np.fill_diagonal(trans_mat, 1 - (n_states - 1) * 2e-2)
-        np.fill_diagonal(trans_mat_hap, 1 - (n_hap - 1) * 2e-2)
-
-        if init_guess is not None:
-            guess = [i for i, n in enumerate(states.state_names) if n in init_guess]
-            logging.info("starting with guess %s " % guess)
-            trans_mat[:, guess] = trans_mat[:, guess] + 1
-            trans_mat /= np.sum(trans_mat, 1)[:, np.newaxis]
-    else:
-        trans_mat_hap = pd.read_csv(transition_matrix, header=None).to_numpy()
-        trans_mat = trans_mat_hap_to_dip(trans_mat_hap)
-        trans_mat_hap = expm(trans_mat_hap * bin_size)
-        trans_mat = expm(trans_mat * bin_size)
-
-    return FrogPars(
-        alpha0=alpha0,
-        alpha0_hap=alpha0_hap,
-        trans=trans_mat,
-        trans_hap=trans_mat_hap,
-        cont=np.zeros(n_rgs) + c0,
-        error=np.zeros(n_rgs) + e0,
-        F=np.zeros(states.n_homo) + F0,
-        tau=np.zeros(states.n_homo) + tau0,
-    )
-
-
-def trans_mat_hap_to_dip(tmat):
-    """given a haploid transition rate matrix tmat, returns a diploid transition
-    matrix
-
-    assumptions:
-     - only one transition at a time
-     - "canonical" order of heterozygous states
-     - independence between haplotypes
-    """
-    n = tmat.shape[0]
-    n_homo = n
-    n_het = int(n * (n - 1) / 2)
-    tmat2 = np.zeros((n_homo + n_het, n_homo + n_het))
-
-    # homo -> homo transition
-    # for i in range(n_homo):
-    #    for j in range(n_homo):
-    #        tmat2[i, j] = tmat[i, j] ** 2 #prob both change at once
-
-    # homo -> het transition
-    for i in range(n_homo):
-        c = n_homo  # state
-        for h1 in range(n_homo):  # first het
-            for h2 in range(h1 + 1, n_homo):  # second het
-                if i == h1:  # only transition second haplotype
-                    tmat2[i, c] = tmat[h1, h2]
-                    tmat2[c, i] = tmat[h2, h1]
-                elif i == h2:  # only transition first haplotype
-                    tmat2[i, c] = tmat[h2, h1]
-                    tmat2[c, i] = tmat[h1, h2]
-                else:  # transition both
-                    pass
-                    # tmat2[i, c] = tmat[i, h1] * tmat[i, h2] + tmat[i, h2] * tmat[j, h1]
-                    # tmat2[c, i] = tmat[h1,i] * tmat[h2, i] + tmat[h2, i] * tmat[h1, j]
-                c += 1
-
-    # het -> het transition
-    c1 = n_homo
-    for i in range(n_homo):  # first het from
-        for j in range(i + 1, n_homo):  # second het from
-            c2 = n_homo
-            for h1 in range(n_homo):  # first het of target
-                for h2 in range(h1 + 1, n_homo):  # second het of target
-                    if i == h1 and j == h2:  # no transition
-                        continue
-                    elif i == h1:  # transition second haplotype from j to h2
-                        tmat2[c1, c2] = tmat[j, h2]
-                    elif j == h2:  # transition first haplotype from i to h1
-                        tmat2[c1, c2] = tmat[i, h1]
-                    else:  # transition both
-                        pass
-                    c2 += 1
-            c1 += 1
-
-    s = np.sum(tmat2, 1)
-    for i in range(tmat2.shape[0]):
-        tmat2[i, i] -= s[i]
-
-    return tmat2
-
 
 def posterior_table(pg, Z, P, est_inbreeding=False):
     freq = np.array([0, 1, 2, 0, 1]) if est_inbreeding else np.arange(3)
@@ -660,25 +242,6 @@ def posterior_table_slug(pg, data, gtll=None):
         df = pd.concat((df, df_ll), axis=1)
     return df
 
-
-def empirical_bayes_prior(der, anc, known_anc=False):
-    """using beta-binomial plug-in estimator"""
-
-    n = anc + der
-    f = np.nanmean(der / n) if known_anc else 0.5
-
-    H = f * (1.0 - f)  # alt formulation
-    if H == 0.0:
-        return 1e-6, 1e-6
-
-    V = np.nanvar(der / n) if known_anc else np.nanvar(np.hstack((der / n, anc / n)))
-
-    ab = (H - V) / (V - H / np.nanmean(n))
-    if np.nanmean(n) < ab:
-        return 1e-6, 1e-6
-    pa = max((f * ab, 1e-5))
-    pb = max(((1 - f) * ab, 1e-5))
-    return pa, pb
 
 
 def guess_sex(ref, data, sex_ratio_threshold=0.75):
@@ -735,11 +298,7 @@ def scale_mat3d(M):
     modifies M and returns log(scaling)
     """
     scaling = np.max(M, (1, 2))[:, np.newaxis, np.newaxis]
-
-    # zeros = np.isclose(scaling, 0)[:, 0, 0]
     M /= scaling
-    # M[zeros] = 1
-    # scaling[zeros] = 1
 
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
@@ -749,8 +308,6 @@ def scale_mat3d(M):
 def filter_ref(
     ref,
     states,
-    ancestral=None,
-    cont=None,
     filter_delta=None,
     filter_pos=None,
     filter_map=None,
@@ -759,15 +316,15 @@ def filter_ref(
     **kwargs,
 ):
 
-    if filter_ancestral and ancestral is not None:
-        no_ancestral_call = ref[f"{ancestral}_ref"] + ref[f"{ancestral}_alt"] == 0
+    if filter_ancestral and states.ancestral is not None:
+        no_ancestral_call = ref[f"{states.ancestral}_ref"] + ref[f"{states.ancestral}_alt"] == 0
         ref = ref.loc[~no_ancestral_call]
         logging.info(
             "filtering %s SNP due to missing ancestral call", np.sum(no_ancestral_call)
         )
 
-    if filter_cont and cont is not None:
-        no_cont_data = ref[f"{cont}_ref"] + ref[f"{cont}_alt"] == 0
+    if filter_cont and states.contamination is not None:
+        no_cont_data = ref[f"{states.contamination}_ref"] + ref[f"{states.contamination}_alt"] == 0
         ref = ref.loc[~no_cont_data]
         logging.info(
             "filtering %s SNP due to missing contaminant call", np.sum(no_cont_data)
