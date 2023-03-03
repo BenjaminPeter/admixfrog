@@ -39,7 +39,6 @@ requires = ["poetry-core>=1.2.0",
     "setuptools", 
     "Cython>=0.29",
     "scipy>=1.1"]
-script = 'build.py'
 #build-backend = "poetry_dynamic_versioning.backend"
 build-backend = "poetry.core.masonry.api"
 
@@ -52,3 +51,7 @@ admixfrog-profile = 'admixfrog:profile_frog'
 admixslug-profile = 'admixfrog:profile_slug'
 admixfrog-ref = 'admixfrog:do_ref'
 admixslug = 'admixfrog:run_sfs'
+
+[tool.poetry.build]
+generate-setup-file = false
+script = 'build.py'
