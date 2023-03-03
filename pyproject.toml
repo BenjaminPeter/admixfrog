@@ -20,8 +20,8 @@ requires = ["poetry-core>=1.2.0",
     "setuptools", 
     "Cython>=0.29",
     "scipy>=1.1"]
-build-backend = "poetry.core.masonry.api"
-#build-backend = "poetry_dynamic_versioning.backend"
+#build-backend = "poetry.core.masonry.api"
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry.build]
 generate-setup-file = true
