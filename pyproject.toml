@@ -7,6 +7,10 @@ license = "BSD"
 readme = "README.md"
 build = "build.py"
 
+[tool.poetry.build]
+script = 'build.py'
+generate-setup-file = false
+
 [tool.poetry.dependencies]
 python = ">=3.8"
 pandas = ">=1.5"
