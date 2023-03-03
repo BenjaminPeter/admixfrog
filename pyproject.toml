@@ -6,8 +6,8 @@ authors = ["benjamin_peter <benjamin_peter@eva.mpg.de>"]
 license = "BSD"
 readme = "README.md"
 build = "build.py"
-
-build-backend = "poetry.core.masonry.api"
+packages = [{ include = "admixfrog" }]
+include = [{ path = "admixfrog/**/*.so", format = "wheel" }]
 
 #[tool.poetry.build]
 #script = 'build.py'
