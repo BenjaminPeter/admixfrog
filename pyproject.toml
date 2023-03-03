@@ -9,9 +9,6 @@ build = "build.py"
 packages = [{ include = "admixfrog" }]
 include = [{ path = "admixfrog/**/*.so", format = "wheel" }]
 
-#[tool.poetry.build]
-#script = 'build.py'
-#generate-setup-file = false
 
 [tool.poetry.dependencies]
 python = ">=3.8"
@@ -45,7 +42,8 @@ requires = ["poetry-core>=1.2.0",
     "setuptools", 
     "cython>=0.29",
     "scipy>=1.1"]
-build-backend = "poetry_dynamic_versioning.backend"
+#build-backend = "poetry_dynamic_versioning.backend"
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 admixfrog = 'admixfrog:run_frog'
