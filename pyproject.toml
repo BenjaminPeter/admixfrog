@@ -40,7 +40,7 @@ pattern  = "^(?P<base>\\d+\\.\\d+\\.\\d+)(-?((?P<stage>[a-zA-Z]+)\\.?(?P<revisio
 requires = ["poetry-core>=1.2.0", 
     "poetry-dynamic-versioning", 
     "setuptools", 
-    "cython>=0.29",
+    "Cython>=0.29",
     "scipy>=1.1"]
 #build-backend = "poetry_dynamic_versioning.backend"
 build-backend = "poetry.core.masonry.api"
