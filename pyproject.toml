@@ -5,8 +5,6 @@ description = "Local Ancestry Inference for low-coverage ancient DNA data"
 authors = ["benjamin_peter <benjamin_peter@eva.mpg.de>"]
 license = "BSD"
 readme = "README.md"
-#build = "build.py"
-#packages = [{ include = "admixfrog" }]
 include = [{ path = "admixfrog/**/*.so", format = "wheel" }]
 
 
@@ -42,6 +40,7 @@ requires = ["poetry-core>=1.2.0",
     "setuptools", 
     "Cython>=0.29",
     "scipy>=1.1"]
+script = 'build.py'
 #build-backend = "poetry_dynamic_versioning.backend"
 build-backend = "poetry.core.masonry.api"
 
