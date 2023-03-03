@@ -7,9 +7,11 @@ license = "BSD"
 readme = "README.md"
 build = "build.py"
 
-[tool.poetry.build]
-script = 'build.py'
-generate-setup-file = false
+build-backend = "poetry.core.masonry.api"
+
+#[tool.poetry.build]
+#script = 'build.py'
+#generate-setup-file = false
 
 [tool.poetry.dependencies]
 python = ">=3.8"
