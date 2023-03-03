@@ -19,7 +19,7 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.8"
 pandas = ">=1.5"
-numba = ">=0.42"
+numba = ">=0.53"
 numpy = ">=1.0"
 scipy = ">=1.1"
 pybedtools = ">=0.7.10"
@@ -47,8 +47,8 @@ requires = ["poetry-core>=1.2.0",
     "setuptools", 
     "Cython>=0.29",
     "scipy>=1.1"]
-#build-backend = "poetry_dynamic_versioning.backend"
-build-backend = "poetry.core.masonry.api"
+build-backend = "poetry_dynamic_versioning.backend"
+#build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 admixfrog = 'admixfrog:run_frog'
