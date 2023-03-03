@@ -11,6 +11,7 @@ extensions = [Extension("admixfrog.utils.distributions",
 extensions = cythonize(extensions)
 
 def build(setup_kwargs):
+    print("BUILD")
     setup_kwargs.update({
         'ext_modules' : cythonize(extensions, language_level=3),
         'zip_safe' : False})
