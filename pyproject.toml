@@ -5,8 +5,8 @@ description = "Local Ancestry Inference for low-coverage ancient DNA data"
 authors = ["benjamin_peter <benjamin_peter@eva.mpg.de>"]
 license = "BSD"
 readme = "README.md"
-build = "build.py"
-packages = [{ include = "admixfrog" }]
+#build = "build.py"
+#packages = [{ include = "admixfrog" }]
 include = [{ path = "admixfrog/**/*.so", format = "wheel" }]
 
 
