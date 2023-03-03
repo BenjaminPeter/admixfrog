@@ -10,11 +10,22 @@ packages = [
 ]
 include = [
     # C extensions must be included in the wheel distributions
-    { path = "admixfrog/gll/*so", format = "wheel" },
-    { path = "admixfrog/utils/*so", format = "wheel" },
+    { path = "admixfrog/gll/*.so", format = "wheel" },
+    { path = "admixfrog/utils/*.so", format = "wheel" },
 ]
 
+[build-system]
+requires = ["poetry-core>=1.2.0", 
+    "poetry-dynamic-versioning", 
+    "setuptools", 
+    "Cython>=0.29",
+    "scipy>=1.1"]
+build-backend = "poetry.core.masonry.api"
+#build-backend = "poetry_dynamic_versioning.backend"
 
+[tool.poetry.build]
+generate-setup-file = true
+script = 'build.py'
 
 [tool.poetry.dependencies]
 python = ">=3.8"
@@ -41,15 +52,6 @@ bump = false
 pattern  = "^(?P<base>\\d+\\.\\d+\\.\\d+)(-?((?P<stage>[a-zA-Z]+)\\.?(?P<revision>\\d+)?))?"
 
 
-[build-system]
-requires = ["poetry-core>=1.2.0", 
-    "poetry-dynamic-versioning", 
-    "setuptools", 
-    "Cython>=0.29",
-    "scipy>=1.1"]
-#build-backend = "poetry_dynamic_versioning.backend"
-build-backend = "poetry.core.masonry.api"
-
 [tool.poetry.scripts]
 admixfrog = 'admixfrog:run_frog'
 admixfrog-bam = 'admixfrog:bam'
@@ -60,6 +62,3 @@ admixslug-profile = 'admixfrog:profile_slug'
 admixfrog-ref = 'admixfrog:do_ref'
 admixslug = 'admixfrog:run_sfs'
 
-[tool.poetry.build]
-generate-setup-file = false
-script = 'build.py'
