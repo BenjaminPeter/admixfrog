@@ -14,3 +14,6 @@ def build(setup_kwargs):
     setup_kwargs.update({
         'ext_modules' : cythonize(extensions, language_level=3),
         'zip_safe' : False})
+
+if __name__ == '__main__':
+    build({})
