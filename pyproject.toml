@@ -5,7 +5,15 @@ description = "Local Ancestry Inference for low-coverage ancient DNA data"
 authors = ["benjamin_peter <benjamin_peter@eva.mpg.de>"]
 license = "BSD"
 readme = "README.md"
-include = [{ path = "admixfrog/**/*.so", format = "wheel" }]
+packages = [
+    { include = "admixfrog" },
+]
+include = [
+    # C extensions must be included in the wheel distributions
+    { path = "admixfrog/gll/*so", format = "wheel" },
+    { path = "admixfrog/utils/*so", format = "wheel" },
+]
+
 
 
 [tool.poetry.dependencies]
