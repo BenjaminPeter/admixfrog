@@ -102,7 +102,7 @@ class ComplexFile(File, ABC):
             # we found last target position
             if target_chrom != cur_chrom:
                 print(target_chrom)
-                if cur_chrom is not None:
+                if cur_chrom is not None and sites is not None:
                     print("closing", target_chrom)
                     self._close_file()
 
@@ -112,6 +112,8 @@ class ComplexFile(File, ABC):
                 try:
                     site = next(sites)
                 except StopIteration:  # no sites in bam
+                    site = None
+                except TypeError: #no iterator
                     site = None
 
             # case 0: no data for chromosome
@@ -286,6 +288,11 @@ class BamFile(ComplexFile):
         return rg.replace("_", "-")
 
     def _open_file(self, chrom):
+        """opens file for iterating in pileup mode
+        returns none if chromosome is not allowed
+        """
+        if self.chroms is not None and chrom not in self.chroms: 
+            return None
         self._handle = pysam.AlignmentFile(self.fname.format(CHROM=chrom))
         pileup = self._handle.pileup(reference=chrom, multiple_iterators=False)
         print(f"opening {chrom}")
