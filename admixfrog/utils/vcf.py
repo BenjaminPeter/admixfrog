@@ -223,7 +223,7 @@ def vcf_to_sample(
     else:
         chroms = parse_chroms(chroms)
 
-    logging.debug("chroms found: %s", chroms)
+    logging.info("chroms found: %s", chroms)
 
     ref = pd.read_csv(ref_file)
     ref.chrom = ref.chrom.astype(str)
@@ -234,11 +234,13 @@ def vcf_to_sample(
         for chrom in chroms:
 
             ref_local = ref[ref.chrom == chrom]
+            logging.info("sites on chrom %s: %s", chrom, len(ref_local))
             with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
                 vcf.subset_samples([sample_id])
-                for row in vcf.fetch(chrom):
+                for i, row in enumerate(vcf.fetch(chrom)):
                     ALT_INDEX = 1
-
+                    if i % 1000 == 0 and i > 0:
+                        logging.info(f'{i} i sites processed')
                     if row.pos in ref_local.pos.values:
                         if len(row.alleles) == 1:
                             ALT_INDEX = -1
@@ -267,7 +269,7 @@ def vcf_to_sample(
 
                     if allele_str != "0,0":
                         infile.write(f"{snp_str},{allele_str}\n")
-            logging.debug(f"done processing {chrom}")
+            logging.info(f"done processing {chrom}")
 
 
 def load_random_read_samples(pop_file=None, random_read_samples=[]):

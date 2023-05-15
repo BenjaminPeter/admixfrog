@@ -198,7 +198,7 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
         - IX.rgs : names of all libraries
     """
     IX = _IX()
-    IX.rgs = np.unique(df.rg)
+    IX.rgs = pd.unique(df.rg)
 
     obsix = df.index.to_frame(index=False)
     snp = obsix.drop_duplicates()
@@ -263,7 +263,7 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
         else:
             # create bins
             bins = np.arange(chrom_start, chrom_end, bin_size)
-            logging.debug("binning chrom %s: %d bins", chrom, len(bins))
+            logging.info("binning chrom %s: %d bins", chrom, len(bins))
 
             IX.bin_sizes.append(len(bins))
             bin_ids = range(bin0, bin0 + len(bins))
@@ -305,7 +305,11 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     else:
         IX.diploid_snps = slice(0, 0)
 
-    IX.RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in IX.rgs)
+    #IX.RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in IX.rgs)
+    #much more efficient
+    IX.RG2OBS = defaultdict(list)
+    for i, rg in enumerate(df.rg): 
+        IX.RG2OBS[rg].append(i)
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
 
     IX.n_chroms = len(chroms)
@@ -464,7 +468,7 @@ def make_slug_reads_data(
         all_state_ix.update([anc_ref, anc_alt])
 
     df2 = df.reset_index()[["snp_id", "tref", "talt", "rg"]]
-    rgs = np.unique(df2.rg)
+    rgs = pd.unique(df2.rg)
     rg_dict = dict((l, i) for i, l in enumerate(rgs))
     df2["rg"] = [rg_dict[rg] for rg in df2.rg]
     n_reads = np.sum(df2.tref + df2.talt)
