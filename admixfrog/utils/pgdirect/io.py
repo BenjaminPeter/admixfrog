@@ -283,9 +283,9 @@ class BamFile(ComplexFile):
 
         Returns
         -------
-        simplified rg (underscore replaced by dash)
+        simplified rg (everything after first dash is discarded)
         """
-        return rg.replace("_", "-")
+        return rg.split("-")[0]
 
     def _open_file(self, chrom):
         """opens file for iterating in pileup mode

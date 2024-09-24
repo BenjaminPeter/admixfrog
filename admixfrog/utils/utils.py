@@ -310,6 +310,10 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     IX.RG2OBS = defaultdict(list)
     for i, rg in enumerate(df.rg): 
         IX.RG2OBS[rg].append(i)
+    for k in IX.RG2OBS:
+        IX.RG2OBS[k] = np.array(IX.RG2OBS[k])
+
+
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
 
     IX.n_chroms = len(chroms)
