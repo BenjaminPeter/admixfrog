@@ -18,8 +18,8 @@ from ..gll.genotype_emissions import update_post_geno, update_snp_prob
 from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
 from ..utils.geno_io import read_geno_ref, read_geno
-from .classes import SlugController
-from ..utils.utils import make_slug_reads_data
+from .classes import SlugController, SlugReads
+#from ..utils.utils import make_slug_reads_data
 from .em_reads import em, squarem
 from .emissions_reads import full_posterior_genotypes
 from .fstats import calc_fstats, summarize_f3, summarize_f4
@@ -106,7 +106,7 @@ def run_admixslug(
     )
     logging.info("done loading data")
 
-    data, sfs = make_slug_reads_data(
+    data, sfs = SlugReads.load(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
     )
     pars = init_pars_sfs(data.n_sfs, data.n_rgs, **init)
