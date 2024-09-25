@@ -109,10 +109,9 @@ def run_admixslug(
     data, sfs = SlugReads.load(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
     )
-    pars = init_pars_sfs(data.n_sfs, data.n_rgs, **init)
+    pars = SlugParsSquare(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
-    # posterior_gt = em(pars, data, controller)
     pars = squarem(pars, data, controller)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
 
