@@ -17,7 +17,7 @@ pip install cython scipy  --upgrade
 ```
 Install `admixfrog` (from github):
 ```
-pip install git+https://github.com/benjaminpeter/admixfrog
+pip install git+https://github.com/benjaminpeter/admixfrog@0.7.3
 ```
 
 Install `admixfrog` (from source directory):
