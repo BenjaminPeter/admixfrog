@@ -6,7 +6,7 @@ def test_update_F(script_runner):
     cmd += ' --est-F --est-error '
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -18,7 +18,7 @@ def test_update_Ftau(script_runner):
     cmd += ' --est-F --est-tau --F0 0.3 0.4 --tau0 .5 .1'
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -30,7 +30,7 @@ def test_update_all(script_runner):
     cmd += ' --est-F --est-tau --est-error'
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success

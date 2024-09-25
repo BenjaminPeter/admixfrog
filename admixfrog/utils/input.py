@@ -83,7 +83,7 @@ def load_ref(
         ref0.index.rename("map", level=map_col, inplace=True)
 
         ref0 = ref0.loc[~ref0.index.duplicated()]
-        ref0 = ref0[~np.isnan(ref0.reset_index("map").map.values)]
+        ref0 = ref0[~np.isnan(ref0.reset_index("map")['map'].values)]
 
         if i == 0:
             ref = ref0
@@ -93,7 +93,7 @@ def load_ref(
     ref.fillna(value=0, inplace=True)
 
     # aggregate different labels
-    ref = ref.rename(D, axis=1).groupby(level=0, axis=1).agg(sum)
+    ref = ref.rename(D, axis=1).T.groupby(level=0).sum().T
 
     if autosomes_only:
         ref = ref[ref.index.get_level_values("chrom") != "X"]

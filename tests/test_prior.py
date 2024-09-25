@@ -6,7 +6,7 @@ def test_prior_fix(script_runner):
     cmd += ' --prior 1'
     args = cmd.split()
     print(" ".join(args))
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -18,7 +18,7 @@ def test_prior_fix_anc(script_runner):
     cmd += ' --prior 1 --ancestral-prior 1. --ancestral PAN'
     args = cmd.split()
     print(" ".join(args))
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -30,7 +30,7 @@ def test_prior_eb(script_runner):
     cmd += ' --ancestral PAN '
     args = cmd.split()
     print(" ".join(args))
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -42,7 +42,7 @@ def test_prior_eb_anc(script_runner):
     cmd += ' --ancestral PAN --ancestral-prior 1.'
     args = cmd.split()
     print(" ".join(args))
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success

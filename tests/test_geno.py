@@ -17,7 +17,7 @@ class TestGeno(object):
         cmd += f' --states {self.states} --out {self.final} --target {self.target}'
         cmd += f' --dont-est-contamination  --ancestral Denisova.DG --c0 0 '
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success

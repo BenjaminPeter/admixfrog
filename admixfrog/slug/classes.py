@@ -13,7 +13,7 @@ class SlugPars(object):
     F: np.ndarray  # F est per SFS entry
     e: float  # error  0-> 1
     b: float  # refernce bias;  error 1 -> 0
-    ll: float = np.NINF
+    ll: float = -np.inf
 
     # self.delta : float = 0 #accuracy of contamination; currently unused
 
@@ -25,7 +25,7 @@ class SlugPars(object):
         self.prev_tau = np.zeros_like(self.tau)
         self.prev_F = np.zeros_like(self.F)
         self.prev_cont = np.zeros_like(self.cont)
-        self.prev_ll = np.NINF
+        self.prev_ll = -np.inf
 
     @property
     def n_sfs(self):
@@ -82,12 +82,12 @@ class SlugParsSquare(object):
         self._pars[self.b_slice] = b
         self._pars[self.e_slice] = e
 
-        self.ll = np.NINF
+        self.ll = -np.inf
 
         self.prev_tau = np.zeros_like(self.tau)
         self.prev_F = np.zeros_like(self.F)
         self.prev_cont = np.zeros_like(self.cont)
-        self.prev_ll = np.NINF
+        self.prev_ll = -np.inf
 
     def __sub__(self, other):
         return self.pars - other.pars

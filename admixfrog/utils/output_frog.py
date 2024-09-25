@@ -28,7 +28,7 @@ def write_cont_table_frog(df, cont, error, tot_n_snps, outname=None):
     df_libs["len_bin"] = len_bins
     df_libs["deam"] = deams
 
-    CC = df.groupby(["rg"]).agg(({"tref": sum, "talt": sum})).reset_index()
+    CC = df.groupby(["rg"]).agg(({"tref": 'sum', "talt": 'sum'})).reset_index()
     CC["n_reads"] = CC.tref + CC.talt
     del CC["tref"]
     del CC["talt"]
@@ -61,11 +61,11 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
         .groupby("snp_id")
         .agg(
             {
-                "tref": sum,
-                "talt": sum,
+                "tref": 'sum',
+                "talt": 'sum',
                 "chrom": lambda x: x.iloc[0],
-                "pos": min,
-                "map": min,
+                "pos": 'min',
+                "map": 'min',
             }
         )
         .reset_index()

@@ -69,7 +69,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     snp.loc[snp.chrom == "23", "chrom"] = "X"
     snp.loc[snp.chrom == "24", "chrom"] = "Y"
     snp.loc[snp.chrom == "90", "chrom"] = "mt"
-    snp.map *= 100  # from Morgan to cM
+    snp['map'] *= 100  # from Morgan to cM
 
     ix = pd.MultiIndex.from_frame(ind[["pop", "sex", "id"]])
 
@@ -123,13 +123,14 @@ def ref_alt(Y, copy=False):
     if "mt" in Y.index:
         Y.loc["mt"] = Y.loc["mt"].transform(lambda x: np.where(x > 1, 3, x)).values
 
-    ref = Y.groupby(lambda x: x, level=0, axis=1).agg(ref_count)
+    Y[Y>2] = np.nan
+    ref = Y.groupby('pop', axis=1).sum()
     ref.rename(columns=lambda x: f"{x}_ref", inplace=True)
 
     CHROMS = pd.unique(Y.index.get_level_values("chrom"))
     AUTOSOMES = [c for c in CHROMS if c not in ["mt", "Y", "X"]]
 
-    # no transform Y s.t. we get non-ref counts
+    # now transform Y s.t. we get non-ref counts
     Y.loc[AUTOSOMES] = Y.loc[AUTOSOMES].transform(lambda x: x.name[3] - x).values
 
     if "X" in Y.index:
@@ -145,7 +146,7 @@ def ref_alt(Y, copy=False):
     if "mt" in Y.index:  # always haploid
         Y.loc["mt"] = Y.loc["mt"].transform(lambda x: 1 - x).values
 
-    alt = Y.groupby(lambda x: x, level=0, axis=1).agg(ref_count)
+    alt = Y.groupby('pop', axis=1).sum()
     alt.rename(columns=lambda x: f"{x}_alt", inplace=True)
 
     df = ref.merge(alt, on=["chrom", "pos", "map", "ref", "alt"])
@@ -156,7 +157,7 @@ def ref_alt(Y, copy=False):
 
 def ref_count(x):
     """count number of reference alleles"""
-    v = np.sum(x * (x < 3), axis=1)
+    v = np.sum(x * (x < 3), axis=0)
     return v
 
 

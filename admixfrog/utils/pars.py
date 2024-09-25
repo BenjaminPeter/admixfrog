@@ -19,10 +19,10 @@ class Pars(object):
             arr = np.array(lcs[par])
             self._pars[self.slices[par]] = arr.flatten()
 
-        self.ll = np.NINF
+        self.ll = -np.inf
 
         self.prev = np.zeros_like(self._pars)
-        self.prev_ll = np.NINF
+        self.prev_ll = -np.inf
 
     def __setattr__(self, name, value):
         """get attributes by names.

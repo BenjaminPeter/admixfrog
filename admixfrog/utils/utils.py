@@ -236,11 +236,11 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     IX.diploid_snps, IX.haploid_snps = [], []
 
     for i, chrom in enumerate(chroms):
-        map_ = snp.map[snp.chrom == chrom]
-        pos = snp.pos[snp.chrom == chrom]
+        map_ = snp['map'][snp.chrom == chrom]
+        pos = snp['pos'][snp.chrom == chrom]
 
-        chrom_start = float(np.floor(map_.head(1) / bin_size) * bin_size)
-        chrom_end = float(np.ceil(map_.tail(1) / bin_size) * bin_size)
+        chrom_start = float(np.floor(map_.iloc[0] / bin_size) * bin_size)
+        chrom_end = float(np.ceil(map_.iloc[-1] / bin_size) * bin_size)
         chrom_is_hap = chrom in haplo_chroms
 
         if snp_mode:
@@ -277,7 +277,7 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
 
             # put SNPs in bins
             snp_ids = snp.snp_id[snp.chrom == chrom]
-            dig_snp = np.digitize(snp[snp.chrom == chrom].map, bins, right=False) - 1
+            dig_snp = np.digitize(snp[snp.chrom == chrom]['map'], bins, right=False) - 1
             IX.SNP2BIN[snp_ids] = dig_snp + bin0
 
         if chrom_is_hap:
@@ -745,8 +745,8 @@ def guess_sex(ref, data, sex_ratio_threshold=0.75):
         v[0] in "XZxzh" for v in data.index.get_level_values("chrom")
     ]
 
-    n_sites = ref.groupby(ref.heterogametic).apply(lambda df: len(df))
-    n_reads = data.groupby(data.heterogametic).apply(
+    n_sites = ref.heterogametic.value_counts()
+    n_reads = data.groupby(data.heterogametic)[['heterogametic', 'tref', 'talt']].apply(
         lambda df: np.sum(df.tref + df.talt)
     )
     cov = n_reads / n_sites

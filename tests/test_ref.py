@@ -17,7 +17,7 @@ class TestRefVCF(object):
         cmd += f'--chroms 9 --pop-file {self.popfile} --out {self.ref} --states AFR NEA DEN '
         print(cmd)
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
@@ -27,7 +27,7 @@ class TestRefVCF(object):
         cmd += f'-P --out {self.final} -b 100000 --ref {self.ref}'
 
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
@@ -48,7 +48,7 @@ class TestRefVCF2(TestRefVCF):
         cmd += f'--chroms 9 '
         print(cmd)
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
@@ -71,7 +71,7 @@ class TestRefVCFPseudoHAP(TestRefVCF):
         cmd += f'--pseudo-haploid Altai_snpAD.DG'
         print(cmd)
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success

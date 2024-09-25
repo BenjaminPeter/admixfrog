@@ -19,7 +19,7 @@ class TestVCFGT(object):
         cmd = f'admixfrog-bam --vcf-gt {vcfgt} --sample-id {sid} --ref {self.ref} '
         cmd += f'--chroms 9 --random-read-sample --force-infile --out {self.out}'
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
@@ -31,7 +31,7 @@ class TestVCFGT(object):
         cmd = f'admixfrog-bam --vcf-gt {vcfgt} --sample-id {sid} --ref {self.ref} '
         cmd += f'--chroms 9 --random-read-sample --force-infile --out {self.out_yri}'
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
@@ -42,7 +42,7 @@ class TestVCFGT(object):
         cmd = f'admixfrog-bam --vcf-gt {vcfgt} --sample-id {sid} --ref {self.ref} '
         cmd += f'--chroms 9 --force-infile --out {self.out_yri2}'
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
@@ -52,7 +52,7 @@ class TestVCFGT(object):
         cmd += f'-P --out {self.final} -b 100000 --ref {self.ref}'
 
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
@@ -62,7 +62,7 @@ class TestVCFGT(object):
         cmd += f'--out {self.rle} '
 
         args = cmd.split()
-        ret = script_runner.run(*args, cwd='tests/')
+        ret = script_runner.run(args, cwd='tests/')
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success

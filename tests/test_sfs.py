@@ -6,7 +6,7 @@ def test_basic(script_runner):
     cmd += ' --output-vcf --autosomes'
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -17,7 +17,7 @@ def test_jk(script_runner):
     cmd += ' --out res/test_sfs --seed 13 --force-infile --jk-resamples 3 --states AFR NEA  '
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -29,7 +29,7 @@ def test_slug_input(script_runner):
     cmd += ' --chroms 9,X --force-bam'
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -41,7 +41,7 @@ def test_slug_input_plus(script_runner):
     cmd += ' --chroms 9,X --force-bam --states AFR NEA'
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
@@ -54,7 +54,7 @@ def test_binning(script_runner):
     cmd += ' --deam-bin-size 100 --len-bin-size 20'
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success

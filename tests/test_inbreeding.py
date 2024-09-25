@@ -5,7 +5,7 @@ def test_inbreeding(script_runner):
     cmd += ' --est-inbreeding ' 
     args = cmd.split()
     print(args)
-    ret = script_runner.run(*args, cwd='tests')
+    ret = script_runner.run(args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success
