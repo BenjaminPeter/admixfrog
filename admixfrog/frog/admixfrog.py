@@ -264,7 +264,7 @@ def load_admixfrog_data_geno(
     df["rg"] = "rg0"
     if pos_mode:
         df.reset_index("map", inplace=True)
-        df['map'] = df.index.get_level_values("pos")
+        df["map"] = df.index.get_level_values("pos")
         df.set_index("map", append=True, inplace=True)
 
     cats = pd.unique(df.index.get_level_values("chrom"))
@@ -368,7 +368,7 @@ def load_admixfrog_data(
 
         if pos_mode:
             ref.reset_index("map", inplace=True)
-            ref['map']= ref.index.get_level_values("pos")
+            ref["map"] = ref.index.get_level_values("pos")
             ref.set_index("map", append=True, inplace=True)
         ref = ref.loc[~ref.index.duplicated()]
 
@@ -421,7 +421,6 @@ def load_admixfrog_data(
         logging.debug(f"Added cont. reads with alt allele: {np.sum(c_alt)}")
         df.tref += c_ref
         df.talt += c_alt
-
 
     return df, ix, sex, tot_n_snps
 

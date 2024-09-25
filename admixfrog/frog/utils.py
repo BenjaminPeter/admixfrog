@@ -7,6 +7,7 @@ dtype_bin = np.dtype(
     [("chrom", "U2"), ("map", float), ("pos", int), ("id", int), ("haploid", bool)]
 )
 
+
 def init_pars(
     states,
     n_rgs,
@@ -60,6 +61,7 @@ def init_pars(
         tau=np.zeros(states.n_homo) + tau0,
     )
 
+
 def empirical_bayes_prior(der, anc, known_anc=False):
     """using beta-binomial plug-in estimator"""
 
@@ -79,16 +81,18 @@ def empirical_bayes_prior(der, anc, known_anc=False):
     pb = max(((1 - f) * ab, 1e-5))
     return pa, pb
 
-def get_prior(prior, snp_df, states, n_snps, cont_prior, 
-              ancestral_prior):
+
+def get_prior(prior, snp_df, states, n_snps, cont_prior, ancestral_prior):
     alt_ix = ["%s_alt" % s for s in states]
     ref_ix = ["%s_ref" % s for s in states]
     snp_ix_states = set(alt_ix + ref_ix)
     ca, cb = cont_prior
 
-
     if states.contamination is not None:
-        cont_ref, cont_alt = f"{states.contamination}_ref",f"{states.contamination}_alt" 
+        cont_ref, cont_alt = (
+            f"{states.contamination}_ref",
+            f"{states.contamination}_alt",
+        )
         snp_ix_states.update([cont_ref, cont_alt])
     if states.ancestral is not None:
         anc_ref, anc_alt = f"{states.ancestral}_ref", f"{states.ancestral}_alt"
@@ -96,7 +100,6 @@ def get_prior(prior, snp_df, states, n_snps, cont_prior,
     if prior is None:  # empirical bayes, estimate from data
         alt_prior = np.empty((n_snps, states.n_raw_states))
         ref_prior = np.empty((n_snps, states.n_raw_states))
-
 
         if states.contamination is not None:
             ca, cb = empirical_bayes_prior(snp_df[cont_ref], snp_df[cont_alt])
@@ -226,7 +229,6 @@ def trans_mat_hap_to_dip(tmat):
     return tmat2
 
 
-
 def make_bins(snp, chroms, bin_size, n_snps, snp_mode, haplo_chroms, diplo_chroms):
     SNP2BIN = np.empty((n_snps), int)
 
@@ -310,23 +312,22 @@ def make_bins(snp, chroms, bin_size, n_snps, snp_mode, haplo_chroms, diplo_chrom
     return bins, n_bins_by_chr, SNP2BIN, diploid_snps, haploid_snps
 
 
-
 def data2probs(
     df,
     states,
     bin_size,
-    sex='F',
+    sex="F",
     prior=None,
     cont_id=None,
     cont_prior=(1e-8, 1e-8),
     ancestral_prior=0,
     ancestral=None,
-    snp_mode=False
+    snp_mode=False,
 ):
     """create data structure that holds the reference genetic data
 
     creates an object of type `FrogData` defined in utils/classes.py
-    It will contain both the target and reference data, as well as 
+    It will contain both the target and reference data, as well as
     data structures that assign each SNP to bins and read groups
 
     input:
@@ -341,10 +342,10 @@ def data2probs(
     cont_id, cont_prior: contamination population and prior
     """
 
-    OBS2SNP = df.index.get_level_values('snp_id')
+    OBS2SNP = df.index.get_level_values("snp_id")
     n_snps = len(pd.unique(OBS2SNP))
-    
-    chroms = pd.unique(df.index.get_level_values('chrom'))
+
+    chroms = pd.unique(df.index.get_level_values("chrom"))
     haplo_chroms, diplo_chroms = [], []
 
     if sex is None:
@@ -363,18 +364,16 @@ def data2probs(
                 diplo_chroms.append(c)
 
     snp = df.index.to_frame(index=False).drop_duplicates()
-    bins, n_bins_by_chr, SNP2BIN, diploid_snps, haploid_snps = make_bins(snp, chroms, bin_size,
-                                                          n_snps,
-                                                          snp_mode,
-                                                          haplo_chroms,
-                                                          diplo_chroms)
+    bins, n_bins_by_chr, SNP2BIN, diploid_snps, haploid_snps = make_bins(
+        snp, chroms, bin_size, n_snps, snp_mode, haplo_chroms, diplo_chroms
+    )
 
     rgs = pd.unique(df.rg)
     RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in rgs)
 
-
-    alt_prior, ref_prior = get_prior(prior, df, states, n_snps, cont_id,
-                                     cont_prior, ancestral, ancestral_prior)
+    alt_prior, ref_prior = get_prior(
+        prior, df, states, n_snps, cont_id, cont_prior, ancestral, ancestral_prior
+    )
 
     P = FrogData(
         O=np.array(df.talt.values, np.uint8),
@@ -401,5 +400,3 @@ def data2probs(
         sex=sex,
     )
     return P, bins
-
-

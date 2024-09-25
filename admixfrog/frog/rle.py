@@ -76,7 +76,7 @@ def get_rle(data, states, penalty=0.5):
         data["target"] = np.sum(data[target], 1)
         runs = (
             data[["chrom", "target", "id"]]
-            .set_index('chrom')
+            .set_index("chrom")
             .groupby("chrom", observed=False)
             .apply(get_runs, penalty=penalty)
             .reset_index()
@@ -89,7 +89,6 @@ def get_rle(data, states, penalty=0.5):
 
         res.append(runs)
 
-    
     with warnings.catch_warnings():
         # TODO: pandas 2.1.0 has a FutureWarning for concatenating DataFrames with Null entries
         warnings.filterwarnings("ignore", category=FutureWarning)
@@ -110,7 +109,7 @@ def get_rle(data, states, penalty=0.5):
     )
 
     res["len"] = res.end - res.start
-    res["map_len"] = res.map_end - res['map']
+    res["map_len"] = res.map_end - res["map"]
     res["pos_len"] = res.pos_end - res.pos
     res["nscore"] = res.score / res.len
     return res

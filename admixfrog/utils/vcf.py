@@ -240,7 +240,7 @@ def vcf_to_sample(
                 for i, row in enumerate(vcf.fetch(chrom)):
                     ALT_INDEX = 1
                     if i % 1000 == 0 and i > 0:
-                        logging.info(f'{i} i sites processed')
+                        logging.info(f"{i} i sites processed")
                     if row.pos in ref_local.pos.values:
                         if len(row.alleles) == 1:
                             ALT_INDEX = -1

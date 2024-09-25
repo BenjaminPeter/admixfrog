@@ -122,7 +122,7 @@ def test_slug_p_gt_diploid():
 
     slug_p_gt_diploid(tau, F, res)
 
-    pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0**2])
+    pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
     pred2 = np.array([(1 - tau0), 0, tau0])
     pred1 = F[1] * pred2 + (1 - F[1]) * pred0
 

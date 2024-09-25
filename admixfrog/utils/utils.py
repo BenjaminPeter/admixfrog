@@ -236,8 +236,8 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     IX.diploid_snps, IX.haploid_snps = [], []
 
     for i, chrom in enumerate(chroms):
-        map_ = snp['map'][snp.chrom == chrom]
-        pos = snp['pos'][snp.chrom == chrom]
+        map_ = snp["map"][snp.chrom == chrom]
+        pos = snp["pos"][snp.chrom == chrom]
 
         chrom_start = float(np.floor(map_.iloc[0] / bin_size) * bin_size)
         chrom_end = float(np.ceil(map_.iloc[-1] / bin_size) * bin_size)
@@ -277,7 +277,7 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
 
             # put SNPs in bins
             snp_ids = snp.snp_id[snp.chrom == chrom]
-            dig_snp = np.digitize(snp[snp.chrom == chrom]['map'], bins, right=False) - 1
+            dig_snp = np.digitize(snp[snp.chrom == chrom]["map"], bins, right=False) - 1
             IX.SNP2BIN[snp_ids] = dig_snp + bin0
 
         if chrom_is_hap:
@@ -305,14 +305,13 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     else:
         IX.diploid_snps = slice(0, 0)
 
-    #IX.RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in IX.rgs)
-    #much more efficient
+    # IX.RG2OBS = dict((l, np.where(df.rg == l)[0]) for l in IX.rgs)
+    # much more efficient
     IX.RG2OBS = defaultdict(list)
-    for i, rg in enumerate(df.rg): 
+    for i, rg in enumerate(df.rg):
         IX.RG2OBS[rg].append(i)
     for k in IX.RG2OBS:
         IX.RG2OBS[k] = np.array(IX.RG2OBS[k])
-
 
     IX.OBS2BIN = IX.SNP2BIN[IX.OBS2SNP]
 
@@ -746,7 +745,7 @@ def guess_sex(ref, data, sex_ratio_threshold=0.75):
     ]
 
     n_sites = ref.heterogametic.value_counts()
-    n_reads = data.groupby(data.heterogametic)[['heterogametic', 'tref', 'talt']].apply(
+    n_reads = data.groupby(data.heterogametic)[["heterogametic", "tref", "talt"]].apply(
         lambda df: np.sum(df.tref + df.talt)
     )
     cov = n_reads / n_sites

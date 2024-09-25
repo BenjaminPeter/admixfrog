@@ -30,9 +30,7 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
         df["h_cont"] = np.clip(cont + 1.96 * se, 0, 1)
 
     if outname is not None:
-        df.reset_index().to_csv(
-            outname, float_format="%.6f", index=False
-        )
+        df.reset_index().to_csv(outname, float_format="%.6f", index=False)
 
     return df
 
@@ -40,7 +38,7 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
 def write_snp_table_slug(df, posterior_gt, data, outname=None):
     D = (
         df.groupby(["chrom", "pos", "map", "ref", "alt"])
-        .agg({"tref": 'sum', "talt": 'sum'})
+        .agg({"tref": "sum", "talt": "sum"})
         .reset_index()
     )
 
@@ -84,7 +82,7 @@ def write_vcf_chroms(chroms):
 def write_vcf(df, data, posterior_gt, genotype_ll, sample_name="test", outname=None):
     D = (
         df.groupby(["chrom", "pos", "map", "ref", "alt"])
-        .agg({"tref": 'sum', "talt": 'sum'})
+        .agg({"tref": "sum", "talt": "sum"})
         .reset_index()
     )
     T = posterior_table_slug(pg=posterior_gt, data=data, gtll=genotype_ll)
