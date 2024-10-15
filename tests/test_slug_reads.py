@@ -18,12 +18,11 @@ def test_error_est():
         SNP2SFS = [0])
 
     pars = SlugParsSquare(
-        n_sfs = 1,
-        n_rgs = 2,
-        c0 = .0,
-        tau0 = 0,
-        F0 = 0,
-        e0 = 0.40
+        cont = [.0, 0],
+        tau = [0],
+        F = [0],
+        e = 0.40,
+        b = 0
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False)
     update_pars_reads(pars, data, controller)
@@ -41,7 +40,7 @@ def test_error_est():
 def test_cont_est():
     """simple test dataset for ensuring algorithm is correct
 
-    one RG with only endo (all ref) and one RG with only cont ( all 1)
+    three RGs with
     """
     data = SlugReads(
         READS = [0, 0, 0, 0, 

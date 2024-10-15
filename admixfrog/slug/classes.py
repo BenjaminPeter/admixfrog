@@ -63,11 +63,15 @@ class SlugPars(object):
 class SlugParsSquare(object):
     """Parameters inferred by admixslug"""
 
-    def __init__(self, n_sfs, n_rgs, F0, tau0, e0, c0):
-        cont=np.zeros(n_rgs) + c0
-        tau=np.zeros(n_sfs) + tau0
-        F=np.zeros(n_sfs) + F0
-        e, b =e0, e0
+    @classmethod
+    def from_n(cls, n_sfs, n_rgs, cont0, F0, e0, b0):
+        cont = np.zeros(n_rgs) + cont0
+        F = np.zeros(n_sfs) + F0
+        tau = np.zeros(n_sfs) + tau0
+        return cls(cont, tau, F, e0, b0)
+
+    def __init__(self, cont, tau, F, e, b):
+        n_sfs, n_rgs = len(tau), len(cont)
 
         k = n_rgs + 2 * n_sfs
         self.cont_slice = slice(n_rgs)

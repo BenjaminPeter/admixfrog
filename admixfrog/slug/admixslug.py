@@ -109,7 +109,7 @@ def run_admixslug(
     data, sfs = SlugReads.load(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
     )
-    pars = SlugParsSquare(data.n_sfs, data.n_rgs, **init)
+    pars = SlugParsSquare.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
     pars = squarem(pars, data, controller)
