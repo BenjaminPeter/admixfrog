@@ -408,7 +408,6 @@ class SlugReads:
         )
 
         logging.debug("done creating data")
-        breakpoint
         return data, sfs
 
 

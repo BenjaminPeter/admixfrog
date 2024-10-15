@@ -6,7 +6,6 @@ import pandas as pd
 
 def calc_fstats(sfs, pop_list=None, name="XXX"):
     """should calculate a table with all f3/f4 between source states and target"""
-    breakpoint()
     SAMPLE_NAME = name
     freqs, pops = sfs_to_freq(sfs)
 
@@ -52,7 +51,6 @@ def sfs_to_freq(sfs, ref_freq=False):
 
     by default, alt allele frequency is calculated, ref_freq gives inverse
     """
-    breakpoint()
     sfs = deepcopy(sfs)
     pops = [p[:-4] for p in sfs.columns if p.endswith("_alt")]
     for pop in pops:

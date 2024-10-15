@@ -9,7 +9,7 @@ def test_basic(script_runner):
     cmd += '--states AFR NEA -b 100000 -P'
     args = cmd.split()
     print(args)
-    ret = script_runner.run(args, cwd='tests')
+    ret = script_runner.run(*args, cwd='tests')
     print(ret.stdout)
     print(ret.stderr)
     assert ret.success

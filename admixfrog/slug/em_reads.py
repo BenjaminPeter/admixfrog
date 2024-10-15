@@ -97,7 +97,6 @@ def update_c(post_c, READ2RG, n_rgs):
 
 
 def update_eb(post_x, R, two_errors=False):
-    breakpoint()
     not_bias = np.sum(post_x[:, 1] * (R == 1))
     not_errors = np.sum(post_x[:, 0] * (R == 0))
     bias = np.sum(post_x[:, 1] * (R == 0))
@@ -143,7 +142,6 @@ def update_pars_reads(pars, data, controller):
     fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
     post_g = posterior_g(bwd_g, fwd_g)
 
-    breakpoint()
 
     if O.update_ftau:
         post_g = posterior_g(bwd_g, fwd_g)
