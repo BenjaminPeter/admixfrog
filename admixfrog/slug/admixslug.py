@@ -11,14 +11,14 @@ from ..utils.output import write_pars_table
 from ..utils.output_slug import write_snp_table_slug, write_cont_table_slug
 from ..utils.output_slug import write_sfs2, write_vcf
 from ..utils.output_slug import write_f3_table, write_f4_table
-from ..utils.utils import data2probs, init_pars_sfs
+from ..utils.utils import data2probs
 from ..utils.utils import guess_sex
 from ..utils.states import States
 from ..gll.genotype_emissions import update_post_geno, update_snp_prob
 from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
 from ..utils.geno_io import read_geno_ref, read_geno
-from .classes import SlugController, SlugReads
+from .classes import SlugController, SlugReads, SlugPars
 #from ..utils.utils import make_slug_reads_data
 from .em_reads import em, squarem
 from .emissions_reads import full_posterior_genotypes
@@ -109,7 +109,7 @@ def run_admixslug(
     data, sfs = SlugReads.load(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
     )
-    pars = SlugParsSquare.from_n(data.n_sfs, data.n_rgs, **init)
+    pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
     pars = squarem(pars, data, controller)

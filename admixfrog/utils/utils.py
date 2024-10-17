@@ -3,11 +3,7 @@ from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
 import yaml
-from ..slug.classes import (
-    SlugData,
-    SlugParsSquare,
-    SlugReads,
-)
+
 from numba import njit
 from scipy.linalg import expm
 
@@ -485,18 +481,6 @@ def init_ce(c0=0.01, e0=0.001):
     error = defaultdict(lambda: e0)
     return cont, error
 
-
-def init_pars_sfs(n_sfs, n_rgs, F0, tau0, e0, c0, **kwargs):
-    cont, error = init_ce(c0, e0)
-    F, tau = init_ftau(n_sfs, F0, tau0)
-    pars = SlugParsSquare(
-        cont=np.zeros(n_rgs) + c0,
-        tau=np.zeros(n_sfs) + tau0,
-        F=np.zeros(n_sfs) + F0,
-        e=e0,
-        b=e0,
-    )
-    return pars
 
 
 def trans_mat_hap_to_dip(tmat):

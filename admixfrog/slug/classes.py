@@ -1,71 +1,19 @@
 from dataclasses import dataclass
 import numpy as np
+import logging
 from typing import Any
 from scipy.special import logit, expit
+import pandas as pd
+from ..utils.utils import make_full_df, make_obs2sfs, get_haploid_stuff
 
 
-@dataclass
 class SlugPars(object):
     """Parameters inferred by admixslug"""
 
-    cont: np.ndarray  # contamination estimate per rg
-    tau: np.ndarray  # tau est per SFS entry
-    F: np.ndarray  # F est per SFS entry
-    e: float  # error  0-> 1
-    b: float  # refernce bias;  error 1 -> 0
-    ll: float = -np.inf
-
-    # self.delta : float = 0 #accuracy of contamination; currently unused
-
-    def __post_init__(self):
-        assert len(self.F) == len(self.tau)
-        super().__setattr__("cont", np.array(self.cont))
-        super().__setattr__("F", np.array(self.F))
-        super().__setattr__("tau", np.array(self.tau))
-        self.prev_tau = np.zeros_like(self.tau)
-        self.prev_F = np.zeros_like(self.F)
-        self.prev_cont = np.zeros_like(self.cont)
-        self.prev_ll = -np.inf
-
-    @property
-    def n_sfs(self):
-        return len(self.F)
-
-    @property
-    def n_rgs(self):
-        return len(self.cont)
-
-    @property
-    def delta_cont(self):
-        return np.sum(np.abs(self.prev_cont - self.cont))
-
-    @property
-    def delta_F(self):
-        return np.sum(np.abs(self.prev_F - self.F))
-
-    @property
-    def delta_tau(self):
-        return np.sum(np.abs(self.prev_tau - self.tau))
-
-    @property
-    def delta_ll(self):
-        return self.ll - self.prev_ll
-
-    @property
-    def delta_e(self):
-        return self.e - self.prev_e
-
-    @property
-    def delta_b(self):
-        return self.b - self.prev_b
-
-
-class SlugParsSquare(object):
-    """Parameters inferred by admixslug"""
-
     @classmethod
-    def from_n(cls, n_sfs, n_rgs, cont0, F0, e0, b0):
-        cont = np.zeros(n_rgs) + cont0
+    def from_n(cls, n_sfs, n_rgs, c0, F0, e0, tau0, b0=None):
+        b0 = e0 if b0 is None else b0
+        cont = np.zeros(n_rgs) + c0
         F = np.zeros(n_sfs) + F0
         tau = np.zeros(n_sfs) + tau0
         return cls(cont, tau, F, e0, b0)
@@ -99,7 +47,7 @@ class SlugParsSquare(object):
         return self.pars - other.pars
 
     def not__sub__(self, other):  # replaced
-        return SlugParsSquare(
+        return SlugPars(
             cont=self.cont - other.cont,
             tau=self.tau - other.tau,
             F=self.F - other.F,
@@ -347,7 +295,7 @@ class SlugReads:
         return self.SNP2SFS[self.READ2SNP]
 
     @classmethod
-    def load(df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True):
+    def load(cls, df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True):
         ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
         sfs_state_ix = alt_ix + ref_ix  # states used in sfs
         all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral

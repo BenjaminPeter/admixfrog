@@ -96,14 +96,21 @@ def update_c(post_c, READ2RG, n_rgs):
     return c
 
 
-def update_eb(post_x, R, two_errors=False):
+def update_eb(post_x, R, two_errors=True):
+    """
+        post_x : 
+    """
     not_bias = np.sum(post_x[:, 1] * (R == 1))
     not_errors = np.sum(post_x[:, 0] * (R == 0))
     bias = np.sum(post_x[:, 1] * (R == 0))
     errors = np.sum(post_x[:, 0] * (R == 1))
+    if two_errors:
+        e = errors / (errors + not_errors)
+        b = bias / (bias + not_bias)
+    else:
+        e = errors + bias / (errors + bias + not_errors + not_bias)
+        b = e
 
-    e = errors / (errors + not_errors)
-    b = bias / (bias + not_bias)
 
     e = 0 if np.isnan(e) else e
     b = 0 if np.isnan(b) else b

@@ -130,7 +130,7 @@ def test_data1():
         OBS2SNP = [0, 0, 0],
         SNP2SFS = [0])
 
-    pars0 = SlugParsSquare(
+    pars0 = SlugPars(
         cont = [0, 0.5, 1],
         tau = [0],
         F = [0],
@@ -153,7 +153,7 @@ def test_error_est():
         FLIPPED = np.zeros(1, dtype='bool'),
         SNP2SFS = [0])
 
-    pars = SlugParsSquare(
+    pars = SlugPars(
         cont = [0, 1],
         tau = [0],
         F = [0],
