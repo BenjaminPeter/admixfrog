@@ -1,5 +1,5 @@
 def test_version(script_runner):
-    ret = script_runner.run('admixfrog', '--version')
+    ret = script_runner.run(['admixfrog', '--version'])
     assert ret.success
 
 def test_basic(script_runner):

@@ -4,7 +4,6 @@ from math import lgamma, exp, pow
 from copy import deepcopy
 
 
-# def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
 @njit
 def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l})
