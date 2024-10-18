@@ -101,9 +101,7 @@ class ComplexFile(File, ABC):
 
             # we found last target position
             if target_chrom != cur_chrom:
-                print(target_chrom)
                 if cur_chrom is not None and sites is not None:
-                    print("closing", target_chrom)
                     self._close_file()
 
                 sites = self._open_file(target_chrom)

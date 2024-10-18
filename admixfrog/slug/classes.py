@@ -4,7 +4,7 @@ import logging
 from typing import Any
 from scipy.special import logit, expit
 import pandas as pd
-from ..utils.utils import make_full_df, make_obs2sfs, get_haploid_stuff
+from ..utils.utils import make_full_df, make_obs2sfs, make_obs2sfs_folded, get_haploid_stuff
 
 
 class SlugPars(object):

@@ -65,12 +65,10 @@ def sfs_to_freq(sfs, ref_freq=False):
 def f_calc_pi(pop1, pop2):
     def f(df):
         pi = df[pop1] * (1 - df[pop2]) + df[pop2] * (1 - df[pop1])
-        # return np.average(pi, weights=df.n_snps)
         nans = np.isnan(pi)
         if np.all(nans):
             return np.nan
         return np.average(pi[~nans], weights=df.n_snps[~nans])
-        # return np.mean(pi * df['n_snps']) / np.mean(df['n_snps'])
 
     return f
 
