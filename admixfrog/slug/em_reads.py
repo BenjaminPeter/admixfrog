@@ -144,7 +144,6 @@ def update_pars_reads(pars, data, controller):
     fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
     post_g = posterior_g(bwd_g, fwd_g)
 
-    breakpoint()
 
 
     if O.update_ftau:
