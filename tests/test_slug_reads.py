@@ -6,8 +6,6 @@ import pytest
 
 def test_error_bias_est():
     """simple test dataset for ensuring algorithm is correct
-       SNP 1 has ref=anc, alt = derived (FLIPPED = False)
-       SNP 2 has ref=der, alt = anc (FLIPPED = TRUE)
 
        - error is the probability a read has the alt allele when it really should
            have reference
@@ -21,89 +19,6 @@ def test_error_bias_est():
         psi = [1, 1],
         READ2RG = [0] * 10,
         READ2SNP = [0] * 6 + [1] * 4,
-        FLIPPED = [False, True],
-        SNP2SFS = [0, 0])
-
-    pars = SlugPars(
-        cont = [.0],
-        tau = [0],
-        F = [0],
-        e = 0.50,
-        b = 0.55
-    )
-    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
-                                update_bias=True)
-    update_pars_reads(pars, data, controller)
-    print( f'e : {pars.prev_e} -> {pars.e}')
-    print( f'b : {pars.prev_b} -> {pars.b}')
-    print( f'll : {pars.prev_ll} -> {pars.ll}')
-    assert pars.e == 0.5
-    assert pars.b == 0.25
-
-    update_pars_reads(pars, data, controller)
-    assert pars.prev_ll == pars.ll
-    assert pars.e == pars.prev_e
-    assert pars.b == pars.prev_b
-
-def test_error_est():
-    """simple test dataset for ensuring algorithm is correct
-       SNP 1 has ref=anc, alt = derived (FLIPPED = False)
-       SNP 2 has ref=der, alt = anc (FLIPPED = TRUE)
-
-       - error is the probability a read has the alt allele when it really should
-           have reference
-        - bias is the prob a read has ref allele when it should have alt
-
-        both SNPs have truth = homozygous anc, i.e no error
-
-    """
-    data = SlugReads(
-        READS = [0, 0, 0, 1, 1, 1, 0, 1, 1, 1],
-        psi = [1, 1],
-        READ2RG = [0] * 10,
-        READ2SNP = [0] * 6 + [1] * 4,
-        FLIPPED = [False, True],
-        SNP2SFS = [0, 0])
-
-    pars = SlugPars(
-        cont = [.0],
-        tau = [0],
-        F = [0],
-        e = 0.50,
-        b = 0.25
-    )
-    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
-                                update_bias=False)
-    update_pars_reads(pars, data, controller)
-    print( f'e : {pars.prev_e} -> {pars.e}')
-    print( f'b : {pars.prev_b} -> {pars.b}')
-    print( f'll : {pars.prev_ll} -> {pars.ll}')
-    assert pars.e == 0.4
-    assert pars.b == pars.e
-
-    update_pars_reads(pars, data, controller)
-    assert pars.prev_ll == pars.ll
-    assert pars.e == pars.prev_e
-    assert pars.b == pars.prev_b
-
-def test_error_bias_est2():
-    """simple test dataset for ensuring algorithm is correct
-       SNP 1 has ref=anc, alt = derived (FLIPPED = False)
-       SNP 2 has ref=der, alt = anc (FLIPPED = TRUE)
-
-       - error is the probability a read has the alt allele when it really should
-           have reference
-        - bias is the prob a read has ref allele when it should have alt
-
-        both SNPs have truth = ref
-
-    """
-    data = SlugReads(
-        READS = [0, 0, 0, 1, 1, 1, 0, 1, 1, 1],
-        psi = [1, 1],
-        READ2RG = [0] * 10,
-        READ2SNP = [0] * 6 + [1] * 4,
-        FLIPPED = [False, True],
         SNP2SFS = [0, 1])
 
     pars = SlugPars(
@@ -127,11 +42,49 @@ def test_error_bias_est2():
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
 
+def test_error_est():
+    """simple test dataset for ensuring algorithm is correct
+
+       - error is the probability a read has the alt allele when it really should
+           have reference
+        - bias is the prob a read has ref allele when it should have alt
+
+        both SNPs have truth = homozygous anc, i.e no error
+
+    """
+    data = SlugReads(
+        READS = [0, 0, 0, 1, 1, 1, 0, 1, 1, 1],
+        psi = [1, 1],
+        READ2RG = [0] * 10,
+        READ2SNP = [0] * 6 + [1] * 4,
+        SNP2SFS = [0, 1])
+
+    pars = SlugPars(
+        cont = [.0],
+        tau = [0, 1],
+        F = [0, 0],
+        e = 0.50,
+        b = 0.25
+    )
+    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
+                                update_bias=False)
+    update_pars_reads(pars, data, controller)
+    print( f'e : {pars.prev_e} -> {pars.e}')
+    print( f'b : {pars.prev_b} -> {pars.b}')
+    print( f'll : {pars.prev_ll} -> {pars.ll}')
+    assert pars.e == 0.4
+    assert pars.b == pars.e
+
+    update_pars_reads(pars, data, controller)
+    assert pars.prev_ll == pars.ll
+    assert pars.e == pars.prev_e
+    assert pars.b == pars.prev_b
+
 
 def test_cont_est():
     """simple test dataset for ensuring algorithm is correct
 
-    we have 2 SNP (1 flipped), with 3 RGs with 5 reads each; 
+    we have 3 SNP with 3 RGs with 5 reads each; 
     """
     data = SlugReads(
         READS = [0, 0, 0, 0, 
@@ -140,12 +93,11 @@ def test_cont_est():
         psi = [1, 0],
         READ2RG = [0] * 4 + [1] * 4 + [2] * 4,
         READ2SNP = [0] * 10 + [1] * 2,
-        FLIPPED = [False, True],
-        SNP2SFS = [0, 0])
+        SNP2SFS = [0, 1])
 
     pars = SlugPars(
         cont = [0.8, 0.5, .5],
-        tau = [0, 0],
+        tau = [0, 1],
         F = [0, 0],
         e = 0.,
         b = 0.
@@ -175,7 +127,6 @@ def test_ftau_est_hap():
         psi = [1, 1, .5, 1],
         READ2RG = [0] * 4 + [0] * 4 + [0] * 4 + [1] * 3,
         READ2SNP = [0] * 4 + [1] * 4 + [2] * 4 + [3] * 3,
-        FLIPPED = [False] * 4,
         haploid_snps = [2,3],
         SNP2SFS = [0, 0, 1, 1])
 
@@ -212,7 +163,6 @@ def test_ftau_est():
         psi = [1, 1, .5, 1],
         READ2RG = [0] * 16,
         READ2SNP = [0] * 4 + [1] * 4 + [2] * 4 + [3] * 4,
-        FLIPPED = [False] * 2 + [True] * 2,
         SNP2SFS = [0, 0, 1, 1])
 
     pars = SlugPars(
@@ -234,7 +184,55 @@ def test_ftau_est():
     assert .45 < pars.tau[1] < .5
     assert pars.ll > ll0
     assert pars.F[1] > .8
-    #assert pars.F[0] == 0.5
+    assert pars.F[0] == 0
+
+def test_tau_only_est():
+    """simple test dataset for ensuring algorithm is correct
+
+    """
+    data = SlugReads(
+        READS = [0, 0, 0, 0, #SNP1 only has ref, hence is likely homoz 
+                 0, 0, 0, 1, #SNP2 has both, hence is het
+                 0, 0, 0, 0, #SNP3 only has ref, hence is homoz
+                 1, 1, 1, 1], #SNP4 only has alt, is homozygous
+        psi = [1, 1, .5, 1],
+        READ2RG = [0] * 16,
+        READ2SNP = [0] * 4 + [1] * 4 + [2] * 4 + [3] * 4,
+        SNP2SFS = [0, 0, 1, 1])
+
+    pars = SlugPars(
+        cont = [0.0],
+        tau = [0.4, .1],
+        F = [0., 0.],
+        e = 0.00,
+        b = 0.00
+    )
+    ll0 = calc_full_ll_reads(data, pars)
+    controller = SlugController(update_eb=False,  update_ftau=True,
+                                update_F=False, update_cont=False)
+
+    print(pars.prev_ll, pars.ll)
+    i =0
+    while True:
+
+        print(f"----- iter {i}----")
+        i+=1
+        update_pars_reads(pars, data, controller)
+        print(f'eb= {pars.e}, {pars.b}')
+        print(f'C = {pars.cont}')
+        print(f'F = {pars.F}')
+        print(f'tau = {pars.tau}')
+        print( f'll : {pars.prev_ll} -> {pars.ll} ')
+
+        if pars.ll - pars.prev_ll < 1e-7:
+            break
+
+    assert .25 < pars.tau[0] < .27
+    assert .49 < pars.tau[1] < .51
+    assert pars.ll > ll0
+    assert pars.F[1] > .8
+    assert pars.F[0] == 0
+
 
 @pytest.mark.skip(reason="NYI")
 def test_delta_est():
@@ -292,7 +290,6 @@ def test_update_large():
     true_cont = np.arange(0, 1, step = 1 / n_rgs)
 
     SNP2SFS = np.random.randint(0, n_sfs, size=n_snps)
-    #FLIPPED = np.zeros(n_snps, bool)
 
 
     G = np.random.binomial(2, true_tau[SNP2SFS], size = n_snps)
@@ -308,9 +305,6 @@ def test_update_large():
     p = e * (1.-p) + p * (1.-b)
     O = np.random.binomial(1, p, n_reads)
 
-    FLIPPED = np.zeros(n_snps, bool)
-    #FLIPPED = np.array(np.random.binomial(1, .4, size =n_snps), bool)
-    #O[FLIPPED[READ2SNP]] = 1 - O[FLIPPED[READ2SNP]]
 
 
     np.set_printoptions(suppress=True,precision = 3)
@@ -320,7 +314,6 @@ def test_update_large():
         psi = psi,
         READ2RG = READ2RG,
         READ2SNP = READ2SNP,
-        FLIPPED = FLIPPED,
         SNP2SFS = SNP2SFS)
     pars = SlugPars(
         cont = np.repeat(0.5, n_rgs),

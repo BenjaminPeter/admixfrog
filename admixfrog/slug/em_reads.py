@@ -47,10 +47,7 @@ def update_ftau(old_F, old_tau, data, post_g, update_F=True):
     tau[:], F[:] = old_tau, old_F
 
     for k in range(data.n_sfs):
-        g0, g1, g2 = np.sum(post_g[(data.SNP2SFS == k) & (~data.FLIPPED)], 0)
-        f2, f1, f0 = np.sum(post_g[(data.SNP2SFS == k) & (data.FLIPPED)], 0)
-
-        G0, G1, G2 = g0 + f0, g1 + f1, g2 + f2
+        G0, G1, G2 = np.sum(post_g[data.SNP2SFS == k ], 0)
 
         # update tau
         if G0 + G1 + G2 > 0:
@@ -68,9 +65,7 @@ def update_ftau(old_F, old_tau, data, post_g, update_F=True):
                 if np.all(~ix1):
                     pass
                 else:
-                    g0, g1, g2 = np.sum(post_g[(ix1) & (~data.FLIPPED)], 0)
-                    f2, f1, f0 = np.sum(post_g[(ix1) & (data.FLIPPED)], 0)
-                    G0, G1, G2 = g0 + f0, g1 + f1, g2 + f2
+                    G0, G1, G2 = np.sum(post_g[ix1], 0)
 
             F[k] = 2 * G0 / (2 * G0 + G1 + 1e-300) - G1 / (2 * G2 + G1 + 1e-300)
         np.clip(F, 0, 1, out=F)  # round to [0, 1]
@@ -105,9 +100,8 @@ def update_eb(post_x, R, two_errors=True):
     bias = np.sum(post_x[:, 1] * (R == 0))
     errors = np.sum(post_x[:, 0] * (R == 1))
     if two_errors:
-        e = errors / (errors + not_errors)
-        b = bias / (bias + not_bias)
-        breakpoint()
+        e = errors / (errors + not_errors) if errors + not_errors > 0 else 0
+        b = bias / (bias + not_bias) if bias + not_bias > 0 else 0
     else:
         e = (errors + bias) / (errors + bias + not_errors + not_bias)
         b = e
@@ -149,6 +143,8 @@ def update_pars_reads(pars, data, controller):
 
     fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
     post_g = posterior_g(bwd_g, fwd_g)
+
+    breakpoint()
 
 
     if O.update_ftau:

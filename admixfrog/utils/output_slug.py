@@ -62,8 +62,7 @@ def write_vcf_header():
     return s
 
 
-def write_vcf_line(l, flipped):
-    aa = l.alt if flipped else l.ref
+def write_vcf_line(l):
     meta = l.chrom, l.pos, l.ref, l.alt, aa
     gts = l.random_read, (l.L0, l.L1, l.L2), (l.G0, l.G1, l.G2), l.tref + l.talt
     CHROM, POS, REF, ALT, ANC = meta
@@ -95,8 +94,8 @@ def write_vcf(df, data, posterior_gt, genotype_ll, sample_name="test", outname=N
         f.write(write_vcf_chroms(data.chroms))
         f.write("#CHROM	POS	ID	REF	ALT	QUAL	FILTER\tINFO\tFORMAT\t")
         f.write(f"{sample_name}\n")
-        for flipped, (_, l) in zip(data.FLIPPED, snp_df.iterrows()):
-            f.write(write_vcf_line(l, flipped))
+        for _, l in snp_df.iterrows():
+            f.write(write_vcf_line(l))
 
 
 def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
@@ -109,16 +108,11 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
         n_endo[sfs_] += 1 * (1 - pars.cont[rg])
 
     n_anc, n_der = defaultdict(int), defaultdict(int)
-    for (sfs_, read_, flipped) in zip(
-        data.READ2SFS, data.READS, data.FLIPPED[data.READ2SNP]
+    for (sfs_, read_) in zip(
+        data.READ2SFS, data.READS
     ):
-        if flipped:
-            n_anc[sfs_] += int(read_)
-            n_der[sfs_] += int(1 - read_)
-        else:
-            n_anc[sfs_] += int(1 - read_)  # 0 = anc -> 1-0 = 1 anc allele
-            n_der[sfs_] += int(read_)  # normal means 1==derived
-    breakpoint()
+        n_anc[sfs_] += int(1 - read_)  # 0 = anc -> 1-0 = 1 anc allele
+        n_der[sfs_] += int(read_)  # normal means 1==derived
 
     n_reads = pd.Series((n_reads[i] for i in sfs.index), dtype=int, name="n_reads")
     n_endo = pd.Series((n_endo[i] for i in sfs.index), dtype=float, name="n_endo")

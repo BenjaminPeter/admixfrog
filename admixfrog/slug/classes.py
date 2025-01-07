@@ -212,7 +212,6 @@ class SlugReads:
     READ2RG: np.ndarray  # which read is in which rg [R x 1]
     READ2SNP: np.ndarray  # which read belongs to which locus [R x 1]
     SNP2SFS: np.ndarray  # which snp belongs to which sfs entry [L x 1]
-    FLIPPED: np.ndarray  # which SNP are flipped around [L x 1]
 
     states: Any = None  # the SFS references used to generate the data
     rgs: Any = None  # the read group names used
@@ -228,10 +227,8 @@ class SlugReads:
         assert len(self.READ2RG) == len(self.READ2SNP)
         assert len(self.READS) == len(self.READ2RG)
         assert len(self.psi) == len(self.SNP2SFS)
-        assert len(self.FLIPPED) == len(self.SNP2SFS)
         super().__setattr__("READS", np.array(self.READS))
         super().__setattr__("psi", np.array(self.psi))
-        super().__setattr__("FLIPPED", np.array(self.FLIPPED, "bool"))
         super().__setattr__("READ2RG", np.array(self.READ2RG))
         super().__setattr__("READ2SNP", np.array(self.READ2SNP))
         super().__setattr__("SNP2SFS", np.array(self.SNP2SFS))
@@ -241,7 +238,6 @@ class SlugReads:
         if self.n_rgs is None:
             super().__setattr__("n_rgs", np.max(self.READ2RG) + 1)
         self.READS.flags.writeable = False
-        self.FLIPPED.flags.writeable = False
         self.psi.flags.writeable = False
         self.READ2RG.flags.writeable = False
         self.READ2SNP.flags.writeable = False
@@ -261,7 +257,6 @@ class SlugReads:
             READ2SNP=new_snp_ids,
             READ2RG=self.READ2RG[RSLICE],
             SNP2SFS=self.SNP2SFS[old_snp_ids],  # [SSLICE],
-            FLIPPED=self.FLIPPED[old_snp_ids],  # [SSLICE],
             haploid_snps=self.haploid_snps,
             states=self.states,
             rgs=self.rgs,
@@ -316,13 +311,7 @@ class SlugReads:
             .drop_duplicates()
         )
 
-        if flip and ancestral is not None:
-            sfs, SNP2SFS, FLIPPED = make_obs2sfs_folded(
-                snp, sfs_state_ix, anc_ref, anc_alt, max_states, states
-            )
-        else:
-            sfs, SNP2SFS = make_obs2sfs(snp[sfs_state_ix], max_states, states)
-            FLIPPED = np.zeros_like(SNP2SFS, bool)
+        sfs, SNP2SFS = make_obs2sfs(snp[sfs_state_ix], max_states, states)
 
         chroms = pd.unique(snp.chrom)
         haplo_chroms, haplo_snps = get_haploid_stuff(snp, chroms, sex)
@@ -337,7 +326,6 @@ class SlugReads:
             READ2RG=READ2RG,
             READ2SNP=READ2SNP,
             SNP2SFS=SNP2SFS,
-            FLIPPED=FLIPPED,
             psi=psi,
             haploid_snps=haplo_snps,
             states=sfs_state_ix,
