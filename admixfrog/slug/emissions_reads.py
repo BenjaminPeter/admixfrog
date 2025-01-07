@@ -270,6 +270,7 @@ def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
 
     post_c = x_cont / (x_cont + x_nocont)
     if np.any(np.isnan(post_c)):
+        breakpoint()
         raise ValueError()
 
     return post_c

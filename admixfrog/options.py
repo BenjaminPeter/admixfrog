@@ -41,6 +41,7 @@ REFFILE_OPTIONS = [
     "default_map",
     "chroms",
     "force_ref",
+    "haplo_chroms",
 ]
 
 # algorithm control options
@@ -444,6 +445,17 @@ def add_ref_options(parser):
         help="""The chromosomes to be used in vcf-mode.
         """,
     )
+    parser.add_argument(
+        "--haplo-chroms",
+        "--haploid-chroms",
+        default=None,
+        help="""The chromosomes to be used as haploid. If not set, the following rules apply:
+         - chromsomes starting wth one of X, x, Y, y are haploid for males
+         - chromsomes starting wth one of Z, z, W, w are haploid for females
+         - chromosomes starting with the string "hap" are haploid
+         - everything else is diploid
+        """,
+    )
     g.add_argument("--force-ref", "--force-vcf", default=False, action="store_true")
 
 
@@ -571,11 +583,11 @@ def add_estimation_options_slug(P):
         help="""estimate sequencing error per rg""",
     )
     parser.add_argument(
-        "--dont-est-bias",
-        action="store_false",
-        default=True,
+        "--est-bias",
+        action="store_true",
+        default=False,
         dest="est_bias",
-        help="""merge error rates ref -> alt and alt -> ref""",
+        help="""estimate reference bias independent from error""",
     )
     parser.add_argument(
         "--dont-est-F",

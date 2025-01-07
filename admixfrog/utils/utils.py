@@ -3,6 +3,7 @@ from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
 import yaml
+from .vcf import parse_chroms
 
 from numba import njit
 from scipy.linalg import expm
@@ -180,7 +181,7 @@ def data2probs(
     return P
 
 
-def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
+def bins_from_bed(df, bin_size, sex=None, snp_mode=False, haplo_chroms=None):
     """create a bunch of auxillary data frames for binning
 
     - bins: columns are chrom_id, chrom, bin_pos, bin_id, map
@@ -192,6 +193,7 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
         - IX.bin_sizes [n_chroms]: number of bins per chromosome
         - IX.RG2OBS [n_rgs] : [list] dict giving obs for each readgroup
         - IX.rgs : names of all libraries
+    - haplo_chroms : chromosoms to be haploid
     """
     IX = _IX()
     IX.rgs = pd.unique(df.rg)
@@ -202,21 +204,28 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False):
     chroms = pd.unique(snp.chrom)
     n_snps = len(snp.snp_id.unique())
 
-    haplo_chroms, diplo_chroms = [], []
-    if sex is None:
-        diplo_chroms = chroms
+
+    if haplo_chroms is not None:
+        haplo_chroms = parse_chroms(haplo_chroms)
+        haplo_chroms = [c for c in chroms if c in haplo_chroms]
+        diplo_chroms = [c for c in chroms if c not in haplo_chroms]
     else:
-        for c in chroms:
-            if c[0] in "YyWw":
-                haplo_chroms.append(c)
-            elif c[0] in "Xx" and sex == "m":
-                haplo_chroms.append(c)
-            elif c[0] in "Zz" and sex == "f":
-                haplo_chroms.append(c)
-            elif c.startswith("hap"):
-                haplo_chroms.append(c)
-            else:
-                diplo_chroms.append(c)
+        haplo_chroms, diplo_chroms = [], []
+        
+        if sex is None:
+            diplo_chroms = chroms
+        else:
+            for c in chroms:
+                if c[0] in "YyWw":
+                    haplo_chroms.append(c)
+                elif c[0] in "Xx" and sex == "m":
+                    haplo_chroms.append(c)
+                elif c[0] in "Zz" and sex == "f":
+                    haplo_chroms.append(c)
+                elif c.startswith("hap"):
+                    haplo_chroms.append(c)
+                else:
+                    diplo_chroms.append(c)
 
     IX.SNP2BIN = np.empty((n_snps), int)
     IX.OBS2SNP = obsix.snp_id.values

@@ -57,6 +57,18 @@ class TestVCFGT(object):
         print(ret.stderr)
         assert ret.success
 
+    def test_haplo_chroms(self, script_runner):
+        cmd = f'admixfrog --infile {self.out} --states AFR NEA --gt-mode '
+        cmd += f'--haplo-chroms 1-22,X '
+        cmd += f'-P --out {self.final} -b 100000 --ref {self.ref}'
+
+        args = cmd.split()
+        ret = script_runner.run(args, cwd='tests/')
+        print(ret.stdout)
+        print(ret.stderr)
+        assert ret.success
+
+
     def test_rle(self, script_runner):
         cmd = f'admixfrog-rle --in {self.final}.bin.xz --run-penalty 0.23 '
         cmd += f'--out {self.rle} '

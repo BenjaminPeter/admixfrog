@@ -108,7 +108,7 @@ def update_eb(post_x, R, two_errors=True):
         e = errors / (errors + not_errors)
         b = bias / (bias + not_bias)
     else:
-        e = errors + bias / (errors + bias + not_errors + not_bias)
+        e = (errors + bias) / (errors + bias + not_errors + not_bias)
         b = e
 
 

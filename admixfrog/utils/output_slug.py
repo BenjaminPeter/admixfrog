@@ -1,7 +1,7 @@
 import logging
 import yaml
 from numba import njit
-from collections import Counter
+from collections import defaultdict, Counter
 from scipy.stats import binom
 import pandas as pd
 import numpy as np
@@ -100,22 +100,22 @@ def write_vcf(df, data, posterior_gt, genotype_ll, sample_name="test", outname=N
 def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     n_snps = pd.DataFrame(pd.Series(dict(Counter(data.SNP2SFS))), columns=["n_snps"])
 
-    n_reads, n_endo = Counter(), Counter()
+    n_reads, n_endo = defaultdict(int), defaultdict(float)
 
     for (sfs_, rg) in zip(data.READ2SFS, data.READ2RG):
         n_reads[sfs_] += 1
         n_endo[sfs_] += 1 * (1 - pars.cont[rg])
 
-    n_anc, n_der = Counter(), Counter()
+    n_anc, n_der = defaultdict(int), defaultdict(int)
     for (sfs_, read_, flipped) in zip(
         data.READ2SFS, data.READS, data.FLIPPED[data.READ2SNP]
     ):
-        if flipped:
-            n_anc[sfs_] += read_
-            n_der[sfs_] += 1 - read_
-        else:
-            n_anc[sfs_] += 1 - read_  # 0 = anc -> 1-0 = 1 anc allele
-            n_der[sfs_] += read_  # normal means 1==derived
+            if flipped:
+                n_anc[sfs_] += int(read_)
+                n_der[sfs_] += int(1 - read_)
+            else:
+                n_anc[sfs_] += int(1 - read_)  # 0 = anc -> 1-0 = 1 anc allele
+                n_der[sfs_] += int(read_)  # normal means 1==derived
 
     n_reads = pd.Series((n_reads[i] for i in sfs.index), dtype=int, name="n_reads")
     n_endo = pd.Series((n_endo[i] for i in sfs.index), dtype=float, name="n_endo")

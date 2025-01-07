@@ -200,7 +200,7 @@ class AdmixfrogInput2(pg.ExtCoverage):
 
 class RefIter:
     def __init__(self, ref):
-        self.ref = pd.read_csv(ref)
+        self.ref = pd.read_csv(ref,  dtype={'chrom':'str'})
         self.bed = self.ref
 
     def __iter__(self):

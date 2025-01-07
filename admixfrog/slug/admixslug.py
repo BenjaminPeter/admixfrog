@@ -132,7 +132,7 @@ def run_admixslug(
             print(f"done with jackknife sample {i+1} / {controller.n_resamples}")
 
         jk_table = np.vstack(tuple(p.pars for p in jk_pars_list))
-        if output["output_jk_sfs"]:
+        if output["output_jk_sfs"] or output['output_fstats']:
             jk_sfs = pd.concat(jk_sfs)
 
         n = np.sum(~np.isnan(jk_table), 0)
@@ -143,6 +143,7 @@ def run_admixslug(
         se_pars = deepcopy(pars)
         se_pars._pars[:] = np.nan
 
+
     # output formating from here
     if output["output_fstats"]:
         f3s, f4s, pis = calc_fstats(jk_sfs, states, name=target)
@@ -150,7 +151,7 @@ def run_admixslug(
         df_f4 = write_f4_table(f4s, outname=f"{outname}.f4.jk.xz")
         pis.to_csv(f"{outname}.pi.xz", float_format="%.6f", index=False)
         f3_summary = summarize_f3(f3s)
-        f3_summary.to_csv(f"{outname}.f3.xz", float_format="%.6f", index=False)
+        f3_summary.to_csv(f"{outname}.f4.xz", float_format="%.6f", index=False)
         f4_summary = summarize_f4(f4s)
         f4_summary.to_csv(f"{outname}.f4.xz", float_format="%.6f", index=False)
 

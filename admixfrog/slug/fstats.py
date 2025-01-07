@@ -28,7 +28,7 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
     f3s = pd.concat(f3s).reset_index()
 
     # f4s without target
-    if len(pops >= 4):
+    if len(pops) >= 4:
         for A, B in itertools.combinations(pops, 2):
             for C, D in itertools.combinations(pops, 2):
                 if len(set((A, B, C, D))) == 4:
@@ -36,7 +36,7 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
 
     # f4s with target
     A = f"{SAMPLE_NAME}"
-    if len(pops >= 4):
+    if len(pops) >= 4:
         for B in pops:
             for C, D in itertools.combinations(pops, 2):
                 if len(set((A, B, C, D))) == 4:
@@ -44,6 +44,15 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
 
     f4s = pd.concat(f4s).reset_index()
     return f3s, f4s, pis
+
+def single_f3_sample(sfs, outgroup, pop, endo_weight=True):
+    """Calculate outgroup F3(pop1; sample, pop2) from sfs directly
+    """
+    f = sfs[f"{pop}_alt"] / (sfs[f"{pop}_alt"] + sfs[f"{pop}_ref"])
+    o = sfs[f"{outgroup}_alt"] / (sfs[f"{outgroup}_alt"] + sfs[f"{outgroup}_ref"])
+    stat_contrib = (f - o)(tau -o)
+
+
 
 
 def sfs_to_freq(sfs, ref_freq=False):

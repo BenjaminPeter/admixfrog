@@ -46,14 +46,6 @@ class SlugPars(object):
     def __sub__(self, other):
         return self.pars - other.pars
 
-    def not__sub__(self, other):  # replaced
-        return SlugPars(
-            cont=self.cont - other.cont,
-            tau=self.tau - other.tau,
-            F=self.F - other.F,
-            e=self.e - other.e,
-            b=self.b - other.b,
-        )
 
     @property
     def tau(self):
@@ -369,7 +361,7 @@ class SlugController:
     update_ftau: bool = True
     update_cont: bool = True
     update_delta: bool = False
-    update_bias: bool = True
+    update_bias: bool = False
     update_F: bool = True
     n_iter: int = 200
     ll_tol: float = 0.01
