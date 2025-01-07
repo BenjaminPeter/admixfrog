@@ -9,6 +9,8 @@ import itertools
 
 from .utils import posterior_table, posterior_table_slug
 
+import warnings
+warnings.filterwarnings("error")
 
 """reading and writing files"""
 
@@ -110,12 +112,13 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     for (sfs_, read_, flipped) in zip(
         data.READ2SFS, data.READS, data.FLIPPED[data.READ2SNP]
     ):
-            if flipped:
-                n_anc[sfs_] += int(read_)
-                n_der[sfs_] += int(1 - read_)
-            else:
-                n_anc[sfs_] += int(1 - read_)  # 0 = anc -> 1-0 = 1 anc allele
-                n_der[sfs_] += int(read_)  # normal means 1==derived
+        if flipped:
+            n_anc[sfs_] += int(read_)
+            n_der[sfs_] += int(1 - read_)
+        else:
+            n_anc[sfs_] += int(1 - read_)  # 0 = anc -> 1-0 = 1 anc allele
+            n_der[sfs_] += int(read_)  # normal means 1==derived
+    breakpoint()
 
     n_reads = pd.Series((n_reads[i] for i in sfs.index), dtype=int, name="n_reads")
     n_endo = pd.Series((n_endo[i] for i in sfs.index), dtype=float, name="n_endo")

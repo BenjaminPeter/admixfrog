@@ -4,6 +4,47 @@ from admixfrog.slug.em_reads import *
 import numpy as np
 import pytest 
 
+def test_error_bias_est():
+    """simple test dataset for ensuring algorithm is correct
+       SNP 1 has ref=anc, alt = derived (FLIPPED = False)
+       SNP 2 has ref=der, alt = anc (FLIPPED = TRUE)
+
+       - error is the probability a read has the alt allele when it really should
+           have reference
+        - bias is the prob a read has ref allele when it should have alt
+
+        both SNPs have truth = homozygous anc, i.e no error
+
+    """
+    data = SlugReads(
+        READS = [0, 0, 0, 1, 1, 1, 0, 1, 1, 1],
+        psi = [1, 1],
+        READ2RG = [0] * 10,
+        READ2SNP = [0] * 6 + [1] * 4,
+        FLIPPED = [False, True],
+        SNP2SFS = [0, 0])
+
+    pars = SlugPars(
+        cont = [.0],
+        tau = [0],
+        F = [0],
+        e = 0.50,
+        b = 0.55
+    )
+    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
+                                update_bias=True)
+    update_pars_reads(pars, data, controller)
+    print( f'e : {pars.prev_e} -> {pars.e}')
+    print( f'b : {pars.prev_b} -> {pars.b}')
+    print( f'll : {pars.prev_ll} -> {pars.ll}')
+    assert pars.e == 0.5
+    assert pars.b == 0.25
+
+    update_pars_reads(pars, data, controller)
+    assert pars.prev_ll == pars.ll
+    assert pars.e == pars.prev_e
+    assert pars.b == pars.prev_b
+
 def test_error_est():
     """simple test dataset for ensuring algorithm is correct
        SNP 1 has ref=anc, alt = derived (FLIPPED = False)
@@ -31,18 +72,61 @@ def test_error_est():
         e = 0.50,
         b = 0.25
     )
-    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False)
+    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
+                                update_bias=False)
     update_pars_reads(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
     print( f'll : {pars.prev_ll} -> {pars.ll}')
-    assert pars.e == 0.5
-    assert pars.b == 0.25
+    assert pars.e == 0.4
+    assert pars.b == pars.e
 
     update_pars_reads(pars, data, controller)
     assert pars.prev_ll == pars.ll
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
+
+def test_error_bias_est2():
+    """simple test dataset for ensuring algorithm is correct
+       SNP 1 has ref=anc, alt = derived (FLIPPED = False)
+       SNP 2 has ref=der, alt = anc (FLIPPED = TRUE)
+
+       - error is the probability a read has the alt allele when it really should
+           have reference
+        - bias is the prob a read has ref allele when it should have alt
+
+        both SNPs have truth = ref
+
+    """
+    data = SlugReads(
+        READS = [0, 0, 0, 1, 1, 1, 0, 1, 1, 1],
+        psi = [1, 1],
+        READ2RG = [0] * 10,
+        READ2SNP = [0] * 6 + [1] * 4,
+        FLIPPED = [False, True],
+        SNP2SFS = [0, 1])
+
+    pars = SlugPars(
+        cont = [.0],
+        tau = [0, 1],
+        F = [0, 0],
+        e = 0.50,
+        b = 0.25
+    )
+    controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
+                                update_bias=True)
+    update_pars_reads(pars, data, controller)
+    print( f'e : {pars.prev_e} -> {pars.e}')
+    print( f'b : {pars.prev_b} -> {pars.b}')
+    print( f'll : {pars.prev_ll} -> {pars.ll}')
+    assert pars.e == 0.4
+    assert pars.b == pars.e
+
+    update_pars_reads(pars, data, controller)
+    assert pars.prev_ll == pars.ll
+    assert pars.e == pars.prev_e
+    assert pars.b == pars.prev_b
+
 
 def test_cont_est():
     """simple test dataset for ensuring algorithm is correct

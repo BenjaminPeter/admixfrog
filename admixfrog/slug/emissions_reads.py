@@ -28,7 +28,6 @@ def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED, res=None):
     if res is None:
         res = np.empty((SNP2SFS.shape[0], 3))
 
-    # breakpoint()
     # F = np.array(F0) if len(F0) == 1 else F0[SNP2SFS]
     # tau = np.array(tau0) if len(tau0) == 1 else tau0[SNP2SFS]
     F = F0[SNP2SFS]
@@ -213,10 +212,6 @@ def fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
     P(X | G, C, A) = Pr(X | C=0, G) Pr(C=0) + Pr(X | C=1, A) Pr(C=1)
                    = Σ_G Pr(X | G, C=0) Pr(G, C=0) + Σ_A Pr(X |A, C=1) Pr(A, C=1)
     """
-
-    # numpy version
-    # res = (1 - fwd_c[READ2RG])[:, np.newaxis] * fwd_x_nocont
-    # res += fwd_c[READ2RG][:, np.newaxis] * fwd_x_cont
 
     res = np.empty_like(fwd_x_nocont)
     res[:, 0] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 0]

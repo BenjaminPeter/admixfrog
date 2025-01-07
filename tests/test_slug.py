@@ -142,13 +142,13 @@ def test_error_est():
     data = SlugReads(
         READS = [0, 0, 0, 0, 1, 1, 1, 1],
         psi = [1.],
-        READ2RG = [0, 0,0,0, 1, 1, 0, 0],
+        READ2RG = [0, 0,0,0, 0, 0, 1, 1],
         READ2SNP = np.zeros(8, dtype='i'),
         FLIPPED = np.zeros(1, dtype='bool'),
         SNP2SFS = [0])
 
     pars = SlugPars(
-        cont = [0, 1],
+        cont = [0, 0],
         tau = [0],
         F = [0],
         e = 0.01,
@@ -158,8 +158,8 @@ def test_error_est():
     update_pars_reads(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
-    assert pars.e == 1/3.
-    assert pars.b == 0
+    assert pars.e == 1/2.
+    assert pars.b == 1/2.
 
     update_pars_reads(pars, data, controller)
     assert pars.prev_ll <= pars.ll
