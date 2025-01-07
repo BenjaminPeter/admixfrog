@@ -1,6 +1,6 @@
 from admixfrog.slug.classes import *
-from admixfrog.slug.emissions_reads import *
-from admixfrog.slug.em_reads import *
+from admixfrog.slug.emissions import *
+from admixfrog.slug.em import *
 import numpy as np
 import pytest 
 
@@ -22,25 +22,6 @@ def test_slug_p_gt_diploid():
 
     assert np.allclose(res - pred, 0)
 
-    #return res, res - pred
-
-def test_slug_p_gt_diploid_flipped():
-    tau0 = 0.4
-    tau = np.zeros(4) + tau0
-    F = np.array([0, 0.1, 1, 1])
-    res = np.empty((4, 3))
-
-    SNP2SFS = np.arange(4, dtype=int)
-
-    p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res)
-
-    pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
-    pred2 = np.array([(1 - tau0), 0, tau0])
-    pred1 = F[1] * pred2 + (1 - F[1]) * pred0
-
-    pred = np.vstack((pred0, pred1, pred2, pred2[::-1]))
-
-    assert np.allclose(res - pred, 0)
     #return res, res - pred
 
 

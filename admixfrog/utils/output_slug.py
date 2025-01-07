@@ -63,11 +63,11 @@ def write_vcf_header():
 
 
 def write_vcf_line(l):
-    meta = l.chrom, l.pos, l.ref, l.alt, aa
+    meta = l.chrom, l.pos, l.ref, l.alt
     gts = l.random_read, (l.L0, l.L1, l.L2), (l.G0, l.G1, l.G2), l.tref + l.talt
-    CHROM, POS, REF, ALT, ANC = meta
+    CHROM, POS, REF, ALT = meta
     random_read, (l0, l1, l2), (g0, g1, g2), (depth) = gts
-    s = f"{CHROM}\t{POS}\t{CHROM}_{POS}\t{REF}\t{ALT}\t.\t.\tAA={ANC}\tGT:GL:GP:DP\t"
+    s = f"{CHROM}\t{POS}\t{CHROM}_{POS}\t{REF}\t{ALT}\t.\t.\tAA={REF}\tGT:GL:GP:DP\t"
     s += f"{random_read}:{l0:.4f},{l1:.4f},{l2:.4f}:{g0:.4f},{g1:.4f},{g2:.4f}:{int(depth)}"
     s += "\n"
     return s

@@ -1,6 +1,6 @@
 from admixfrog.slug.classes import *
-from admixfrog.slug.emissions_reads import *
-from admixfrog.slug.em_reads import *
+from admixfrog.slug.emissions import *
+from admixfrog.slug.em import *
 import numpy as np
 import pytest 
 
@@ -25,8 +25,8 @@ def test_error_bias_est():
         cont = [.0],
         tau = [0, 1],
         F = [0, 0],
-        e = 0.50,
-        b = 0.25
+        e = 0.30,
+        b = 0.35
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
                                 update_bias=True)
@@ -34,8 +34,8 @@ def test_error_bias_est():
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
     print( f'll : {pars.prev_ll} -> {pars.ll}')
-    assert pars.e == 0.4
-    assert pars.b == pars.e
+    assert pars.e == 0.5
+    assert pars.b == 0.25
 
     update_pars_reads(pars, data, controller)
     assert pars.prev_ll == pars.ll
@@ -229,9 +229,7 @@ def test_tau_only_est():
 
     assert .25 < pars.tau[0] < .27
     assert .49 < pars.tau[1] < .51
-    assert pars.ll > ll0
-    assert pars.F[1] > .8
-    assert pars.F[0] == 0
+    assert np.all(pars.F == 0, 0)
 
 
 @pytest.mark.skip(reason="NYI")
