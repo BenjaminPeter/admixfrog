@@ -11,9 +11,8 @@ def test_slug_p_gt_diploid():
     res = np.empty((4, 3))
 
     SNP2SFS = np.arange(4, dtype=int)
-    FLIP = np.zeros(4, dtype='bool')
 
-    res = p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res, FLIPPED=FLIP)
+    res = p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res)
 
     pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
     pred2 = np.array([(1 - tau0), 0, tau0])
@@ -32,10 +31,8 @@ def test_slug_p_gt_diploid_flipped():
     res = np.empty((4, 3))
 
     SNP2SFS = np.arange(4, dtype=int)
-    FLIPPED = np.zeros(4, bool)
-    FLIPPED[3] = True
 
-    p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res, FLIPPED=FLIPPED)
+    p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res)
 
     pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
     pred2 = np.array([(1 - tau0), 0, tau0])
@@ -50,10 +47,9 @@ def test_slug_p_gt_diploid_flipped():
 def test_slug_p_gt_haploid():
     tau0 = np.arange(10) / 10.0
     res = np.empty((10, 3))
-    FLIPPED = np.zeros_like(tau0, dtype='bool')
 
     p_gt_haploid(tau=tau0, SNP2SFS = np.arange(10, dtype=int), res=res,
-                 FLIPPED=FLIPPED)
+                 )
     assert np.allclose(res[:, 1], 0)
     assert np.allclose(res[:, 2], tau0)
     assert np.allclose(res[:, 0], 1 - tau0)
@@ -144,7 +140,6 @@ def test_error_est():
         psi = [1.],
         READ2RG = [0, 0,0,0, 0, 0, 1, 1],
         READ2SNP = np.zeros(8, dtype='i'),
-        FLIPPED = np.zeros(1, dtype='bool'),
         SNP2SFS = [0])
 
     pars = SlugPars(
@@ -178,7 +173,6 @@ def test_cont_est():
         READ2RG = [0,0,0,0,0,0,1,1,1,1, 2, 2],
         READ2SNP = [0] * 12,
         SNP2SFS = [0],
-        FLIPPED = [False],
     )
 
     pars = SlugPars(

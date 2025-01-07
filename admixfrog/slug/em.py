@@ -1,12 +1,12 @@
 from numba import njit
 import numpy as np
 from copy import deepcopy
-from .emissions_reads import fwd_p_g
-from .emissions_reads import bwd_p_o_given_x
-from .emissions_reads import bwd_p_one_o_given_g, bwd_p_all_o_given_g
-from .emissions_reads import fwd_p_x, fwd_p_x_cont, message_fwd_p_x_nocont
-from .emissions_reads import posterior_g, posterior_x, posterior_c
-from .emissions_reads import full_posterior_genotypes, calc_ll, calc_full_ll_reads
+from .emissions import fwd_p_g
+from .emissions import bwd_p_o_given_x
+from .emissions import bwd_p_one_o_given_g, bwd_p_all_o_given_g
+from .emissions import fwd_p_x, fwd_p_x_cont, message_fwd_p_x_nocont
+from .emissions import posterior_g, posterior_x, posterior_c
+from .emissions import full_posterior_genotypes, calc_ll, calc_full_ll_reads
 from ..utils.log import log_
 
 
@@ -139,7 +139,7 @@ def update_pars_reads(pars, data, controller):
 
     post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
     post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
-    from .emissions_reads import fwd_p_x
+    from .emissions import fwd_p_x
 
     fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
     post_g = posterior_g(bwd_g, fwd_g)
