@@ -39,7 +39,7 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
 
 def write_snp_table_slug(df, posterior_gt, data, outname=None):
     D = (
-        df.groupby(["chrom", "pos", "map", "ref", "alt"])
+        df.groupby(["chrom", "pos", "map", "ref", "alt"], observed=True)
         .agg({"tref": "sum", "talt": "sum"})
         .reset_index()
     )

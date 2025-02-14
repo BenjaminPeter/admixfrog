@@ -106,6 +106,7 @@ def run_admixslug(
     )
     logging.info("done loading data")
 
+
     data, sfs = SlugReads.load(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
     )
@@ -218,6 +219,7 @@ def load_admixslug_data_native(
     autosomes_only=False,
 ):
 
+
     data, ix = load_read_data(
         target_file,
         split_lib,
@@ -265,7 +267,7 @@ def load_admixslug_data_native(
 def make_snp_ids(df):
     """integer id for each SNP with available data"""
     df.reset_index("rg", inplace=True)
-    snp_ids = df[~df.index.duplicated()].groupby(df.index.names).ngroup()
+    snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=False).ngroup()
     snp_ids = snp_ids.rename("snp_id")
     snp_ids = pd.DataFrame(snp_ids)
     snp_ids.set_index("snp_id", append=True, inplace=True)

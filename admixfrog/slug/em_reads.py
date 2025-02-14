@@ -123,6 +123,7 @@ def update_pars_reads(pars, data, controller):
     """update all parameters; 1 EM step"""
     O = controller
 
+
     pars = deepcopy(pars) if controller.copy_pars else pars
 
     """ calc unconditional forward probs Pr(G), Pr(C), Pr(A)"""
