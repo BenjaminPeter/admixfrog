@@ -89,7 +89,7 @@ def load_ref(
 
         # ref0.chrom.cat.reorder_categories(pd.unique(ref0.chrom), inplace=True)
         ref0 = ref0.loc[~ref0.index.duplicated()]
-        ref0 = ref0[~np.isnan(ref0.reset_index("map").map.values)]
+        ref0 = ref0[~np.isnan(ref0.reset_index("map")['map'].values)]
 
         if i == 0:
             ref = ref0
