@@ -111,7 +111,6 @@ def run_admixslug(
     )
     logging.info("done loading data")
 
-    breakpoint()
 
     data, sfs = make_slug_reads_data(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
