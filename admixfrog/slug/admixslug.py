@@ -19,9 +19,8 @@ from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
 from ..utils.geno_io import read_geno_ref, read_geno
 from .classes import SlugController, SlugReads, SlugPars
-#from ..utils.utils import make_slug_reads_data
-from .em_reads import em, squarem
-from .emissions_reads import full_posterior_genotypes
+from .em import em, squarem
+from .emissions import full_posterior_genotypes
 from .fstats import calc_fstats, summarize_f3, summarize_f4
 
 EST_DEFAULT = dict(
