@@ -146,7 +146,6 @@ def update_pars_reads(pars, data, controller):
 
     post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
     post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
-    from .emissions_reads import fwd_p_x
 
     fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
     post_g = posterior_g(bwd_g, fwd_g)
