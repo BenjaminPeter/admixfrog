@@ -104,16 +104,14 @@ def update_eb(post_x, R, two_errors=True):
     not_errors = np.sum(post_x[:, 0] * (R == 0))
     bias = np.sum(post_x[:, 1] * (R == 0))
     errors = np.sum(post_x[:, 0] * (R == 1))
+
     if two_errors:
-        e = errors / (errors + not_errors)
-        b = bias / (bias + not_bias)
+        e = errors / (errors + not_errors) if errors + not_errors > 0 else 0
+        b = bias / (bias + not_bias) if bias + not_bias > 0 else 0
     else:
         e = (errors + bias) / (errors + bias + not_errors + not_bias)
         b = e
 
-
-    e = 0 if np.isnan(e) else e
-    b = 0 if np.isnan(b) else b
 
     return e, b
 

@@ -89,7 +89,9 @@ def test_error_est():
 def test_error_bias_est2():
     """simple test dataset for ensuring algorithm is correct
        SNP 1 has ref=anc, alt = derived (FLIPPED = False)
+            thus if tau=0 (only expect anc) error is the proportion of der
        SNP 2 has ref=der, alt = anc (FLIPPED = TRUE)
+            thus if tau=1 (only expect der) error is the proportion of alt)
 
        - error is the probability a read has the alt allele when it really should
            have reference
@@ -110,17 +112,18 @@ def test_error_bias_est2():
         cont = [.0],
         tau = [0, 1],
         F = [0, 0],
-        e = 0.50,
-        b = 0.25
+        e = 0.70,
+        b = 0.35
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
                                 update_bias=True)
     update_pars_reads(pars, data, controller)
+
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
     print( f'll : {pars.prev_ll} -> {pars.ll}')
-    assert pars.e == 0.4
-    assert pars.b == pars.e
+    assert pars.e == 6/10
+    assert pars.b == 0
 
     update_pars_reads(pars, data, controller)
     assert pars.prev_ll == pars.ll
