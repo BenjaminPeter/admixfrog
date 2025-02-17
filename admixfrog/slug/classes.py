@@ -288,6 +288,7 @@ class SlugReads:
 
     @classmethod
     def load(cls, df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True):
+
         ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
         sfs_state_ix = alt_ix + ref_ix  # states used in sfs
         all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral

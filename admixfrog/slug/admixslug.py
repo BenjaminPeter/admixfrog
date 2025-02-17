@@ -112,7 +112,6 @@ def run_admixslug(
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
-    breakpoint()
 
     pars = squarem(pars, data, controller)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
@@ -253,6 +252,7 @@ def load_admixslug_data_native(
     df = ref.join(data, how="inner")
     df = make_snp_ids(df)
 
+
     # sexing stuff
     if sex is None:
         sex = guess_sex(ref, data)
@@ -274,6 +274,8 @@ def make_snp_ids(df):
     snp_ids.set_index("snp_id", append=True, inplace=True)
     df = snp_ids.join(df)
     df.set_index("rg", inplace=True, append=True)
+
+    df.sort_index(inplace=True)
 
     return df
 
