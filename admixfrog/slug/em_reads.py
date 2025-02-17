@@ -111,7 +111,6 @@ def update_eb(post_x, R, two_errors=False):
 
 def update_pars_reads(pars, data, controller):
 
-    breakpoint()
 
     """update all parameters; 1 EM step"""
     O = controller
