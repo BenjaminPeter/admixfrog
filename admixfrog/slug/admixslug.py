@@ -116,6 +116,9 @@ def run_admixslug(
     data, sfs = make_slug_reads_data(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
     )
+
+    breakpoint()
+
     pars = init_pars_sfs(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 

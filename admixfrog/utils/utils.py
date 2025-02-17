@@ -551,6 +551,7 @@ def make_slug_reads_data(
         anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
         all_state_ix.update([anc_ref, anc_alt])
 
+
     df2 = df.reset_index()[["snp_id", "tref", "talt", "rg"]]
     rgs = np.unique(df2.rg)
     rg_dict = dict((l, i) for i, l in enumerate(rgs))
