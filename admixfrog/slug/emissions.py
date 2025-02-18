@@ -5,7 +5,7 @@ from copy import deepcopy
 
 
 @njit
-def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED, res=None):
+def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l})
 
     Parameters
@@ -33,8 +33,8 @@ def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED, res=None):
     F = F0[SNP2SFS]
     tau = tau0[SNP2SFS]
 
-    # if FLIPPED is not None:
-    tau[FLIPPED] = 1 - tau[FLIPPED]
+    if FLIPPED is not None:
+        tau[FLIPPED] = 1 - tau[FLIPPED]
 
     res[:, 0] = F * (1 - tau) + (1 - F) * (1 - tau) ** 2  # HOMO REF
     res[:, 2] = F * tau + (1 - F) * tau * tau  # HOMO ALT
