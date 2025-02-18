@@ -442,7 +442,7 @@ def run_admixfrog(
     ancestral=None,
     ancestral_prior=0,
     sex=None,
-    haplo_chroms = None,
+    haplo_chroms=None,
     pos_mode=False,
     autosomes_only=False,
     map_col="map",
@@ -516,8 +516,9 @@ def run_admixfrog(
 
     logging.info("done loading data")
 
-    bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex, snp_mode=snp_mode,
-                             haplo_chroms=haplo_chroms)
+    bins, IX = bins_from_bed(
+        df, bin_size=bin_size, sex=sex, snp_mode=snp_mode, haplo_chroms=haplo_chroms
+    )
     logging.info("done creating bins")
 
     P = data2probs(

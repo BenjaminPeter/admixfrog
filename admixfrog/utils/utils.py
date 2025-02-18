@@ -204,14 +204,13 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False, haplo_chroms=None):
     chroms = pd.unique(snp.chrom)
     n_snps = len(snp.snp_id.unique())
 
-
     if haplo_chroms is not None:
         haplo_chroms = parse_chroms(haplo_chroms)
         haplo_chroms = [c for c in chroms if c in haplo_chroms]
         diplo_chroms = [c for c in chroms if c not in haplo_chroms]
     else:
         haplo_chroms, diplo_chroms = [], []
-        
+
         if sex is None:
             diplo_chroms = chroms
         else:
@@ -460,7 +459,6 @@ def make_full_df(df, n_reads):
     return READS, READ2RG, READ2SNP
 
 
-
 def init_ftau(n_states, F0=0.5, tau0=0):
     """initializes F and tau, which exist for each homozygous state"""
     try:
@@ -489,7 +487,6 @@ def init_ce(c0=0.01, e0=0.001):
     cont = defaultdict(lambda: c0)
     error = defaultdict(lambda: e0)
     return cont, error
-
 
 
 def trans_mat_hap_to_dip(tmat):

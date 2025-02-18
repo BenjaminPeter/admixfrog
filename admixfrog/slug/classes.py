@@ -4,7 +4,12 @@ import logging
 from typing import Any
 from scipy.special import logit, expit
 import pandas as pd
-from ..utils.utils import make_full_df, make_obs2sfs, make_obs2sfs_folded, get_haploid_stuff
+from ..utils.utils import (
+    make_full_df,
+    make_obs2sfs,
+    make_obs2sfs_folded,
+    get_haploid_stuff,
+)
 
 
 class SlugPars(object):
@@ -45,7 +50,6 @@ class SlugPars(object):
 
     def __sub__(self, other):
         return self.pars - other.pars
-
 
     @property
     def tau(self):
@@ -287,7 +291,9 @@ class SlugReads:
         return self.SNP2SFS[self.READ2SNP]
 
     @classmethod
-    def load(cls, df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True):
+    def load(
+        cls, df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True
+    ):
 
         ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
         sfs_state_ix = alt_ix + ref_ix  # states used in sfs
@@ -350,7 +356,6 @@ class SlugReads:
 
         logging.debug("done creating data")
         return data, sfs
-
 
 
 @dataclass

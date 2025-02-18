@@ -100,7 +100,6 @@ def load_ref(
         ref = ref[ref.index.get_level_values("chrom") != "Y"]
         ref = ref[ref.index.get_level_values("chrom") != "mt"]
 
-
     return ref
 
 
@@ -264,7 +263,9 @@ def load_read_data(
         - len_bin: bin id for length (max 256 bins)
         - n_bin/n_exact (number of reads in each bin) or each category
     """
-    dtype_mandatory = dict(chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8)
+    dtype_mandatory = dict(
+        chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8
+    )
 
     dtype_optional = dict(
         lib=str, rg=str, score=int, deam=np.int16, len=np.uint8, dmgpos=bool

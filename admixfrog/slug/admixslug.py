@@ -10,7 +10,7 @@ from ..utils.input import load_read_data, load_ref, filter_ref
 from ..utils.output import write_pars_table
 from ..utils.output_slug import write_snp_table_slug, write_cont_table_slug
 from ..utils.output_slug import write_sfs2, write_vcf
-from ..utils.output_slug import write_f3_table, write_f4_table
+from ..utils.output_slug import write_f3_table, write_f4_table, write_f2_table
 from ..utils.utils import data2probs
 from ..utils.utils import guess_sex
 from ..utils.states import States
@@ -21,7 +21,7 @@ from ..utils.geno_io import read_geno_ref, read_geno
 from .classes import SlugController, SlugReads, SlugPars
 from .em import em, squarem
 from .emissions import full_posterior_genotypes
-from .fstats import calc_fstats, summarize_f3, summarize_f4
+from .fstats import calc_fstats, summarize_f3, summarize_f4, summarize_pi, summarize_f2
 
 EST_DEFAULT = dict(
     [
@@ -105,13 +105,11 @@ def run_admixslug(
     )
     logging.info("done loading data")
 
-
     data, sfs = SlugReads.load(
         df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
     )
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
-
 
     pars = squarem(pars, data, controller)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
@@ -133,7 +131,7 @@ def run_admixslug(
             print(f"done with jackknife sample {i+1} / {controller.n_resamples}")
 
         jk_table = np.vstack(tuple(p.pars for p in jk_pars_list))
-        if output["output_jk_sfs"] or output['output_fstats']:
+        if output["output_jk_sfs"] or output["output_fstats"]:
             jk_sfs = pd.concat(jk_sfs)
 
         n = np.sum(~np.isnan(jk_table), 0)
@@ -144,13 +142,28 @@ def run_admixslug(
         se_pars = deepcopy(pars)
         se_pars._pars[:] = np.nan
 
-
     # output formating from here
     if output["output_fstats"]:
-        f3s, f4s, pis = calc_fstats(jk_sfs, states, name=target)
+        f2s, f3s, f4s, pis = calc_fstats(jk_sfs, states, name=target)
+        df_f2 = write_f2_table(f2s, outname=f"{outname}.f2.jk.xz")
         df_f3 = write_f3_table(f3s, outname=f"{outname}.f3.jk.xz")
         df_f4 = write_f4_table(f4s, outname=f"{outname}.f4.jk.xz")
-        pis.to_csv(f"{outname}.pi.xz", float_format="%.6f", index=False)
+
+        pis_data = pis.T.reset_index(drop=True)
+        pis = pd.DataFrame(
+            pis.T.reset_index()["index"].str.split("|").tolist(),
+            columns=["pop1", "pop2"],
+        )
+        pis.pop1[pis.pop1 == "within"] = pis.pop2[pis.pop1 == "within"]
+        pis["is_between"] = pis.pop1 != pis.pop2
+        pis = pd.concat((pis, pis_data), axis=1)
+
+        pis.to_csv(f"{outname}.pi.jk.xz", float_format="%.6f", index=False)
+        pi_summary = summarize_pi(pis)
+        pi_summary.to_csv(f"{outname}.pi.xz", float_format="%.6f", index=False)
+
+        f2_summary = summarize_f2(f2s)
+        f2_summary.to_csv(f"{outname}.f2.xz", float_format="%.6f", index=False)
         f3_summary = summarize_f3(f3s)
         f3_summary.to_csv(f"{outname}.f3.xz", float_format="%.6f", index=False)
         f4_summary = summarize_f4(f4s)
@@ -219,7 +232,6 @@ def load_admixslug_data_native(
     autosomes_only=False,
 ):
 
-
     data, ix = load_read_data(
         target_file,
         split_lib,
@@ -252,7 +264,6 @@ def load_admixslug_data_native(
     df = ref.join(data, how="inner")
     df = make_snp_ids(df)
 
-
     # sexing stuff
     if sex is None:
         sex = guess_sex(ref, data)
@@ -268,7 +279,9 @@ def load_admixslug_data_native(
 def make_snp_ids(df):
     """integer id for each SNP with available data"""
     df.reset_index("rg", inplace=True)
-    snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=False).ngroup()
+    snp_ids = (
+        df[~df.index.duplicated()].groupby(df.index.names, observed=False).ngroup()
+    )
     snp_ids = snp_ids.rename("snp_id")
     snp_ids = pd.DataFrame(snp_ids)
     snp_ids.set_index("snp_id", append=True, inplace=True)
