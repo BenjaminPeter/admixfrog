@@ -152,7 +152,7 @@ def single_f4(pis, A, B, C, D):
 
 
 def summarize_f2(df):
-    cols = ["A", "B", "f3", "sd"]
+    cols = ["A", "B", "f2", "sd"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f2s = summarize_f(df, stat="f2", pops=["A", "B"])
