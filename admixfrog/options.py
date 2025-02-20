@@ -853,6 +853,13 @@ def add_base_options_slug(P):
         help="""The chromosomes to be used in vcf-mode.
         """,
     )
+    parser.add_argument(
+        "--sex-chroms",
+        default=None,
+        help="""The chromosomes to be used as sex chromosomes. If not set, 
+         - chromsomes starting wth any of [XYZW] are sex chromosomes
+        """,
+    )
 
 
 def add_filter_options(parser):

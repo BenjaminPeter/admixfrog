@@ -5,9 +5,10 @@ from typing import Any
 from scipy.special import logit, expit
 import pandas as pd
 from ..utils.utils import (
-    make_full_df,
-    make_obs2sfs,
-    make_obs2sfs_folded,
+    make_full_read_df,
+    make_flipped,
+    obs2sfs,
+    polarize,
     get_haploid_stuff,
 )
 
@@ -154,8 +155,10 @@ class SlugData:
     states: Any = None  # the SFS references used to generate the data
     rgs: Any = None  # the read group names used
     chroms: Any = None  # the chromosome names used
-    haplo_chroms: Any = None  # names of haploid chromosomes
+    haploid_chroms: Any = None  # names of haploid chromosomes
     haploid_snps: Any = None  # which snp are haploid
+    sex_chroms: Any = None  # names of sex chromosomes; will be analyzed sepeartely
+    sex_snps: Any = None  # id of snps on (recombining) sex chromosomes
     sex: str = "m"
 
     def __post_init__(self):
@@ -221,8 +224,10 @@ class SlugReads:
     states: Any = None  # the SFS references used to generate the data
     rgs: Any = None  # the read group names used
     chroms: Any = None  # the chromosome names used
-    haplo_chroms: Any = None  # names of haploid chromosomes
+    haploid_chroms: Any = None  # names of haploid chromosomes
     haploid_snps: Any = None  # which snp are haploid
+    sex_chroms: Any = None  # names of sex chromosomes; will be analyzed sepeartely
+    sex_snps: Any = None  # id of snps on (recombining) sex chromosomes
     sex: str = "m"
 
     n_sfs: Any = None
@@ -271,7 +276,7 @@ class SlugReads:
             rgs=self.rgs,
             psi=self.psi[old_snp_ids],
             chroms=self.chroms,
-            haplo_chroms=self.haplo_chroms,
+            haploid_chroms=self.haploid_chroms,
             n_sfs=self.n_sfs,
             n_rgs=self.n_rgs,
             sex=self.sex,
@@ -290,12 +295,20 @@ class SlugReads:
     def READ2SFS(self):
         return self.SNP2SFS[self.READ2SNP]
 
+    @property
+    def FLIPPED_READS(self):
+        return self.FLIPPED[self.READ2SNP]
+
     @classmethod
     def load(
-        cls, df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True
+        cls, df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True,
+        sex_chroms=None,
     ):
+        if sex_chroms is not None:
+            raise NotImplemented("dealing with sex chromosomes is not implemented yet")
 
         ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
+
         sfs_state_ix = alt_ix + ref_ix  # states used in sfs
         all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral
 
@@ -311,7 +324,7 @@ class SlugReads:
         rg_dict = dict((l, i) for i, l in enumerate(rgs))
         df2["rg"] = [rg_dict[rg] for rg in df2.rg]
         n_reads = np.sum(df2.tref + df2.talt)
-        READS, READ2RG, READ2SNP = make_full_df(df2.to_numpy(), n_reads)
+        READS, READ2RG, READ2SNP = make_full_read_df(df2.to_numpy(), n_reads)
 
         assert np.sum(df.talt) == np.sum(READS == 1)
         assert np.sum(df.tref) == np.sum(READS == 0)
@@ -324,34 +337,36 @@ class SlugReads:
         )
 
         if flip and ancestral is not None:
-            sfs, SNP2SFS, FLIPPED = make_obs2sfs_folded(
-                snp, sfs_state_ix, anc_ref, anc_alt, max_states, states
-            )
+            flipped = make_flipped(snp, anc_ref, anc_alt)
         else:
-            sfs, SNP2SFS = make_obs2sfs(snp[sfs_state_ix], max_states, states)
-            FLIPPED = np.zeros_like(SNP2SFS, bool)
+            flipped = np.zeros_like(SNP2SFS, bool)
+
+        sfs, SNP2SFS = obs2sfs(
+            snp, flipped, states, max_states
+        )
 
         chroms = pd.unique(snp.chrom)
-        haplo_chroms, haplo_snps = get_haploid_stuff(snp, chroms, sex)
+        haploid_chroms, haploid_snps = get_haploid_stuff(snp, chroms, sex)
 
         if cont_id is None:
             psi = np.zeros_like(SNP2SFS)
         else:
-            psi = snp[cont_alt] / (snp[cont_alt] + snp[cont_ref] + 1e-100)
+            df_cont = polarize(snp, cont_id, flipped)
+            psi = df_cont[f'{cont_id}_der'] / (df_cont[f'{cont_id}_anc'] + df_cont[f'{cont_id}_der'] + 1e-100)
 
         data = cls(
             READS=READS,
             READ2RG=READ2RG,
             READ2SNP=READ2SNP,
             SNP2SFS=SNP2SFS,
-            FLIPPED=FLIPPED,
+            FLIPPED=flipped,
             psi=psi,
-            haploid_snps=haplo_snps,
+            haploid_snps=haploid_snps,
             states=sfs_state_ix,
             rgs=rg_dict,
             sex=sex,
             chroms=chroms,
-            haplo_chroms=haplo_chroms,
+            haploid_chroms=haploid_chroms,
         )
 
         logging.debug("done creating data")

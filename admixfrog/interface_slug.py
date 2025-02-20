@@ -21,7 +21,7 @@ from .options import INFILE_OPTIONS, REFFILE_OPTIONS, GENO_OPTIONS
 from .options import ALGORITHM_OPTIONS_SLUG
 from .options import add_target_file_options, add_rle_options
 from .options import add_filter_options
-from .options import add_geno_options, add_ref_options
+from .options import add_ref_options
 from .options import add_pop_options, add_base_options_slug
 from .options import add_output_options_slug, add_estimation_options_slug
 
@@ -249,6 +249,7 @@ def run_sfs():
     logging.info(f"admixslug {__version__}")
 
     # run stuff
+
     run_admixslug(
         **V,
         **algo_pars,

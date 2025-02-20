@@ -5,7 +5,7 @@ from copy import deepcopy
 
 
 @njit
-def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
+def p_gt_diploid(tau0, F0, SNP2SFS, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l})
 
     Parameters
@@ -16,8 +16,6 @@ def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
         expected derived allele frequency, of length S
     SNP2SFS : np.ndarray[L x 1] int
         index array assigning each SNP to it's SFS entry
-    FLIPPED : np.ndarray[L x 1] bool, optional
-        index array asserting whether a SNP is flipped with respect to reference allele
 
     Returns
     -------
@@ -33,9 +31,6 @@ def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
     F = F0[SNP2SFS]
     tau = tau0[SNP2SFS]
 
-    if FLIPPED is not None:
-        tau[FLIPPED] = 1 - tau[FLIPPED]
-
     res[:, 0] = F * (1 - tau) + (1 - F) * (1 - tau) ** 2  # HOMO REF
     res[:, 2] = F * tau + (1 - F) * tau * tau  # HOMO ALT
     res[:, 1] = (1 - F) * 2 * tau * (1 - tau)
@@ -47,34 +42,34 @@ def p_gt_diploid(tau0, F0, SNP2SFS, FLIPPED=None, res=None):
 
 
 @njit
-def p_gt_haploid(tau, SNP2SFS, FLIPPED=None, res=None):
+def p_gt_haploid(tau, SNP2SFS, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l}) for haploid genotypes"""
     F0 = np.ones_like(tau)
-    res = p_gt_diploid(tau, F0, FLIPPED=FLIPPED, SNP2SFS=SNP2SFS, res=res)
+    res = p_gt_diploid(tau, F0, SNP2SFS=SNP2SFS, res=res)
     return res
 
 
 def fwd_p_g(data, pars):
     """calculate forward probabilities of genotypes"""
     fwd_g = p_gt_diploid(
-        pars.tau, pars.F, FLIPPED=data.FLIPPED, SNP2SFS=data.SNP2SFS
+        pars.tau, pars.F, SNP2SFS=data.SNP2SFS
     )  # size [L x 3]
     if data.haploid_snps is not None:
         fwd_g[data.haploid_snps] = p_gt_haploid(
             pars.tau,
-            FLIPPED=data.FLIPPED[data.haploid_snps],
             SNP2SFS=data.SNP2SFS[data.haploid_snps],
         )
     return fwd_g
 
 
 @njit
-def bwd_p_o_given_x(READS, e, b):
+def bwd_p_o_given_x(R, F, e, b):
     """Caluclate Pr(O | X, e, b)
 
     Parameters
     ----------
-    READS : np.ndarray[R x 1] int
+    R : READS; np.ndarray[R x 1] int
+    F : Flipped, np.ndarray[R x 1] bool: whether read is flipped
     e : float
         error rate from reference to alt allele
     b : float
@@ -82,14 +77,20 @@ def bwd_p_o_given_x(READS, e, b):
 
     Returns
     -------
-    res : np.ndarray [R x 1]
+    res : np.ndarray [R x 2]
         Pr(O_i | X_i = j)
     """
-    res = np.empty((READS.shape[0], 2))
-    res[READS == 1, 0] = e
-    res[READS == 1, 1] = 1 - b
-    res[READS == 0, 0] = 1 - e
-    res[READS == 0, 1] = b
+
+    res = np.empty((R.shape[0], 2))
+    res[R == 0 & ~F , 0] = 1-e #ref=anc, obs=ref, X=anc
+    res[R == 1 & ~F , 0] = e   #ref=anc, obs=alt, X=anc, error away from ref
+    res[R == 0 & ~F , 1] = b   #ref=anc, obs=ref, X=der, error towards ref
+    res[R == 1 & ~F , 1] = 1-b #ref=anc, obs=alt, X=der
+
+    res[R == 0 & F , 0] = b    #ref=der, obs=ref, X=anc, error towards ref
+    res[R == 1 & F , 0] = 1-b  #ref=der, obs=ref, X=anc
+    res[R == 0 & F , 1] = 1-e  #ref=der, obs=ref, X=anc
+    res[R == 1 & F , 1] = e    #ref=der, obs=ref, X=anc, error away from ref
     return res
 
 
@@ -119,6 +120,9 @@ def bwd_p_one_o_given_g(bwd_x, fwd_a, fwd_c, READ2SNP, READ2RG, n_reads):
         underlying SNP, not taking info from other Reads into account
     """
 
+    #A is matrix with contamination panel allele freq
+    #A[,0] is Pr(X_i=0 |psi_i)
+    #A[,1] is Pr(X_i=1 |psi_i) = psi_i
     fwd_a_mat = np.vstack((1 - fwd_a, fwd_a)).T[READ2SNP]
     p_o_cont = np.sum(fwd_a_mat * bwd_x, 1) * fwd_c[READ2RG]
 
@@ -149,6 +153,7 @@ def bwd_p_all_o_given_g(bwd_g1, READ2SNP, n_snps):
     return bwd_g
 
 
+@njit
 def fwd_p_x_cont(psi, READ2SNP):
     """fwd_p_x_cont calculate Pr(X | C=1, psi)
 
@@ -244,7 +249,7 @@ def posterior_x(bwd_x, *args, **kwargs):
 
 def full_posterior_genotypes(data, pars):
     fwd_g = fwd_p_g(data, pars)
-    bwd_x = bwd_p_o_given_x(data.READS, e=pars.e, b=pars.b)
+    bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b)
     bwd_g1 = bwd_p_one_o_given_g(
         bwd_x, data.psi, pars.cont, data.READ2SNP, data.READ2RG, data.n_reads
     )
@@ -265,7 +270,6 @@ def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
 
     post_c = x_cont / (x_cont + x_nocont)
     if np.any(np.isnan(post_c)):
-        breakpoint()
         raise ValueError()
 
     return post_c
@@ -273,7 +277,7 @@ def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
 
 def calc_full_ll_reads(data, pars):
     fwd_g = fwd_p_g(data, pars)
-    bwd_x = bwd_p_o_given_x(data.READS, e=pars.e, b=pars.b)  # Pr(O_lrj | G_lrj)
+    bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b)  # Pr(O_lrj | G_lrj)
     bwd_g1 = bwd_p_one_o_given_g(
         bwd_x, data.psi, pars.cont, data.READ2SNP, data.READ2RG, data.n_reads
     )

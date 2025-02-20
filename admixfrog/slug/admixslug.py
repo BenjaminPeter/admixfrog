@@ -60,14 +60,15 @@ def run_admixslug(
     max_iter=100,
     jk_resamples=0,
     target="admixslug",
+    sex_chroms=None,
     **kwargs,
 ):
     """contamination estimation using sfs"""
 
-    pprint(kwargs)
     # numpy config
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
+
 
     controller = SlugController(
         update_eb=est["est_error"],
@@ -106,12 +107,14 @@ def run_admixslug(
     logging.info("done loading data")
 
     data, sfs = SlugReads.load(
-        df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True
+        df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True,
+        sex_chroms=sex_chroms
     )
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
     pars = squarem(pars, data, controller)
+    #pars = em(pars, data, controller)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
 
     if controller.n_resamples > 0 or output["output_fstats"]:
@@ -121,6 +124,7 @@ def run_admixslug(
         for i in range(controller.n_resamples):
             jk_data = data.jackknife_sample(i, controller.n_resamples)
             jk_pars = squarem(pars0, jk_data, controller)
+            #jk_pars = em(pars0, jk_data, controller)
             jk_pars_list.append(jk_pars)
 
             if output["output_jk_sfs"] or output["output_fstats"]:
@@ -230,6 +234,7 @@ def load_admixslug_data_native(
     deam_bin_size=20_000,
     len_bin_size=5000,
     autosomes_only=False,
+    sex_chroms=None
 ):
 
     data, ix = load_read_data(

@@ -5,59 +5,35 @@ import numpy as np
 import pytest 
 
 def test_slug_p_gt_diploid():
-    tau0 = 0.4
-    tau = np.zeros(4) + tau0
+    tau = np.array([0.4, 0.2, 0, 1])
     F = np.array([0, 0.1, 1, 1])
     res = np.empty((4, 3))
 
     SNP2SFS = np.arange(4, dtype=int)
-    FLIP = np.zeros(4, dtype='bool')
 
-    res = p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res, FLIPPED=FLIP)
+    res = p_gt_diploid(tau, F, SNP2SFS=SNP2SFS)
 
-    pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
-    pred2 = np.array([(1 - tau0), 0, tau0])
-    pred1 = F[1] * pred2 + (1 - F[1]) * pred0
+    pred0 = F * ( 1- tau) + (1-F) * (1-tau)**2
+    pred1 = 2 * (1-F) * tau * (1-tau)
+    pred2 = F * tau + (1-F) * tau ** 2
 
-    pred = np.vstack((pred0, pred1, pred2, pred2))
-
-    assert np.allclose(res - pred, 0)
-
-    #return res, res - pred
-
-def test_slug_p_gt_diploid_flipped():
-    tau0 = 0.4
-    tau = np.zeros(4) + tau0
-    F = np.array([0, 0.1, 1, 1])
-    res = np.empty((4, 3))
-
-    SNP2SFS = np.arange(4, dtype=int)
-    FLIPPED = np.zeros(4, bool)
-    FLIPPED[3] = True
-
-    p_gt_diploid(tau, F, SNP2SFS=SNP2SFS, res=res, FLIPPED=FLIPPED)
-
-    pred0 = np.array([(1 - tau0) ** 2, 2 * tau0 * (1 - tau0), tau0 ** 2])
-    pred2 = np.array([(1 - tau0), 0, tau0])
-    pred1 = F[1] * pred2 + (1 - F[1]) * pred0
-
-    pred = np.vstack((pred0, pred1, pred2, pred2[::-1]))
+    pred = np.vstack((pred0, pred1, pred2)).T
 
     assert np.allclose(res - pred, 0)
-    #return res, res - pred
 
 
 def test_slug_p_gt_haploid():
     tau0 = np.arange(10) / 10.0
     res = np.empty((10, 3))
-    FLIPPED = np.zeros_like(tau0, dtype='bool')
 
-    p_gt_haploid(tau=tau0, SNP2SFS = np.arange(10, dtype=int), res=res,
-                 FLIPPED=FLIPPED)
+    res = p_gt_haploid(tau=tau0, SNP2SFS = np.arange(10, dtype=int))
     assert np.allclose(res[:, 1], 0)
     assert np.allclose(res[:, 2], tau0)
     assert np.allclose(res[:, 0], 1 - tau0)
 
+
+def test_update_ftau():
+    pass
 
 def test_slug_fwd_p_x():
     pg = np.array([[0, .5, .5], [1, 0, 0]])
