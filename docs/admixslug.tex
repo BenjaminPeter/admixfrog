@@ -6,7 +6,7 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
-\author{Benjamin Peter}
+\author{Benjamin Peter, Arev}
 
 \newcommand{\BE}[1]{\mathbb{E}\left[#1\right]}
 \newcommand{\BFZ}{\mathbf{Z}}
@@ -17,16 +17,15 @@
 \begin{document}
 	\maketitle
 \section*{Model Overview}
-	Here, we present a graphical model for the joint estimation of contamination and a conditional site-frequency spectrum, implemented in a program called \texttt{admixslug}.
+Here, we present a graphical model for the joint estimation of contamination and a conditional site-frequency spectrum, implemented in a program called \texttt{admixslug}.
 	
-	The model aims to combine information from both sequences and relatedness to other populations.
+The model aims to combine information from both sequences and relatedness to other populations.
 	
-	In brief, we assume we have NGS-data from $L$ SNPs, and a set of one or more reference populations $Z_i$ with reference genotypes at these loci. 
+We assume we have NGS-data from $L$ SNPs, and a set of one or more reference populations $Z_i$ with reference genotypes at these loci, we also assume we have an ancestral allele . 
 	
-	
-	
-	
-	Finally, we assume that for each SNP we have zero or more reads sampled from $R$ disjoint read groups. The total number of reads from a particular read group at a particular SNP $G_{sl}$ is $n_{rsl}$, and the random variable denoting the number of non-reference alleles is $O_{rsl}$. Each read group will have its own contamination rate $c_r$ and error parameter $e_r$, that are estimated directly from the data.
+Finally, we assume that for each SNP we have zero or more reads sampled from $R$ disjoint read groups. The total number of reads from a particular read group at a particular SNP $G_{sl}$ is $n_{rsl}$, and the random variable denoting the number of non-reference alleles is $O_{rsl}$. Each read group will have its own contamination rate $c_r$ that is estimated directly from the data. In addition, there is an error and bias parameter that is shared between all libraries.
+
+
 	
 	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination and error rate for each read group, the substructure in each source $\tau_k$, and the average drift since admixture from each source $F_k$. 
 \section*{Notation overview}
@@ -48,22 +47,48 @@
 
 \section*{Model details}
 \subsection*{Error model}
-We consider sequencing error, contamination and reference bias.
+We consider sequencing error,and reference bias
 
-The random variable $X_{lri}$ reflects the base on the $i$-th sequence from read group $r$ at SNP locus $l$, $X_{lri}=0$ means the sequence carries the reference allele, and $X_{lri}=1$ means the sequence carries the alt allele. $O_{rli}$ is the base on the resulting sequencing read
+The random variable $X_{lri}$ reflects the base on the $i$-th sequence from read group $r$ at SNP locus $l$, and  $O_{rli}$ is the base on the resulting sequencing read. $X$ is based on ancestral/derived alleles, whereas $O$ is codified by reference/alternative alleles. We further have a variable $W_l$ that is 1 if the reference allele is flipped, i.e.
 
-\begin{align}
-P(O_{lri}=0 | X_{lri}=0) &= 1-e\nonumber\\
-P(O_{lri}=1 | X_{lri}=0) &= e\nonumber\\
-P(O_{lri}=1 | X_{lri}=1) &= b\nonumber\\
-P(O_{lri}=1 | X_{lri}=1) &= 1-b
-\end{align}
+\begin{align*}
+W_l = \begin{cases}
+0 & \text{ if REF = Ancestral allele}\\
+1&  \text{ if REF = Derived allele}
+\end{cases}
+\end{align*}
+
+The eight possible cases are then:
+
+\begin{table}[!ht]
+\begin{center}
+
+\begin{tabular}{r r r l | r}
+Observed base & base on seq & flipped & alleles & probability\\
+$O_{li}$ & $X_{li}$ & $W_l$ &\\
+\hline
+0 (ref) & 0 (anc)& 0 &ref = anc, alt = der & 1 - e\\
+1 (alt) & 0 (anc)& 0 &ref = anc, alt = der& e\\
+0 (ref) & 1 (der)& 0 &ref = anc, alt = der& b\\
+1 (alt) & 1 (der)& 0 &ref = anc, alt = der& 1 - b\\
+0 (ref) & 0 (anc)& 1 &ref = der, alt = anc& b \\
+1 (alt) & 0 (anc)& 1 &ref = der, alt = anc& 1 - b\\
+0 (ref) & 1 (der)& 1 &ref = der, alt = anc& 1 - e\\
+1 (alt) & 1 (der)& 1 &ref = der, alt = anc& e \\
+\end{tabular}
+\end{center}
+\end{table}
+
+
 We can think of $e$ as the sequencing error, and $b$ as the reference bias + sequencing error.
+
+This is implemented in \texttt{bwd\_p\_o\_given\_x}, which calculates a matrix of size R x 2 containing the entries
+$P(O_i | X_i = j)$
 
 \subsection*{Sequence model}
 
 There are two possible origins for each sequence $X_{lri}$, it is either a contaminant, or endogenous. 
-Let $C_{lri} =1 $ mean that $X_{lri}$ is contaminant, and $C_{lri} =0 $ mean it is not. Furthermore, let $\psi_l$ be the alt allele frequency in a reference contamination panel, which we assume to be known. Let $G_l$ be the genotype of the target individual at SNP $l$ (which is either 0, 1 or 2).
+Let $C_{lri} =1 $ mean that $X_{lri}$ is contaminant, and $C_{lri} =0 $ mean it is not. Furthermore, let $\psi_l$ be the alt allele frequency in a reference contamination panel, which we assume to be known. Let $G_l$ be the genotype of the target individual at SNP $l$ (which is either 0, 1 or 2 in diploid individuals).
 
 
 \begin{align}
@@ -73,14 +98,16 @@ P(X_{lri} = 0 | C_{lri} = 0, G_l) &= 1 - \frac{G_l}{2}\nonumber\\
 P(X_{lri} = 1 | C_{lri} = 0, G_l) &= \frac{G_l}{2}
 \end{align}
 
-\paragraph{Faunal contamination}
-For faunal contamination, we might expect always the ancestral allele. Let $\phi_l=0$ mean the reference allele at locus $l$ is ancestral, in which case faunal contamination would have the reference allele. Likewise, if the derived allele is ancestral, then  $\phi_l=1$. 
+In haploid regions (or more generally, in regions with different ploidy) we divide $G_l$ by the ploidy instead.
 
-If we add faunal contamination, we extend $C_{lri}$ to an additional state, and add
-\begin{align}
-P(X_{lri} = 0 | C_{lri} = 2, \phi_l) &= 1-\phi_l\nonumber\\ 
-P(X_{lri} = 1 | C_{lri} = 2, \phi_l) &= \phi_l
-\end{align}
+%\paragraph{Faunal contamination}
+%For faunal contamination, we might expect always the ancestral allele. Let $\phi_l=0$ mean the reference allele at locus $l$ is ancestral, in which case faunal contamination would have the reference allele. Likewise, if the derived allele is ancestral, then  $\phi_l=1$. 
+
+%If we add faunal contamination, we extend $C_{lri}$ to an additional state, and add
+%\begin{align}
+%P(X_{lri} = 0 | C_{lri} = 2, \phi_l) &= 1-\phi_l\nonumber\\ 
+%P(X_{lri} = 1 | C_{lri} = 2, \phi_l) &= \phi_l
+%\end{align}
 
 \subsection*{Contamination model}
 For read-group $r$, the probability that a read from that read group is a contaminant is 
@@ -90,14 +117,53 @@ P(C_{lri} = 1 | c_r) &= c_r
 \end{align}
 independent of the locus.
 
+\subsection*{Genotype likelihoods}
+The genotype likelihood for locus $l$ can be written as $P(O_l | G_l) = \prod_{rj} P(O_{lrj} | G_l)$, where the product is over all reads aligning to this locus (double indexing because we multiply over all read-groups (indexed by $r$) and all reads per read-group (indicated by $j$).
+
+
+The backwards probabilities 
+\begin{equation}
+P(O_{lrj} | G_l) = P(O | C_{lrj}=1)c_{lrj} + P(O | G_l, C_{lrj}=0)(1 - c_{lrj})
+\end{equation}
+where 
+\begin{equation*}
+ P(O | C_{lrj}=1) = \begin{cases}
+\psi_l &\text{ if } O=1\\ (1-\psi_l) &\text{ if } O=0
+ \end{cases}
+\end{equation*}
+
 \subsection*{Genotype model}
 We estimate the genotype given the conditional-SFS entry $Z_l=k$, $F_k$ is the probability that both alleles are IBD, and $\tau_k$ is the probability that the individual has a derived allele at position $k$
 Thus
 \begin{align}
 P(G_l = 0| Z_l=k, \tau_k, F_k) &= F_k (1-\tau_k) + (1-F_k) (1-\tau_k)^2\nonumber\\
 P(G_l = 1| Z_l=k, \tau_k, F_k) &= 2(1-F_k) \tau(1-\tau_k)\nonumber\\
-P(G_l = 2| Z_l=k, \tau_k, F_k) &= F_k \tau_k + (1-F_k) \tau_k^2
+P(G_l = 2| Z_l=k, \tau_k, F_k) &= F_k \tau_k + (1-F_k) \tau_k^2\label{eq:prg}
 \end{align}
+
+Estimating all the $\tau_k$ is one of the main goals of \texttt{admixslug}, as they can be used to calculate $F$-statistics and other quantities of interest.
+
+For example, if we compare with the Altai Neandertal and Denisova 3 genomes, we would have the following Z states:
+\begin{table}[!ht]
+	\begin{center}
+		
+		\begin{tabular}{r r r }
+			$Z_l=k$ & Altai & Denisova 3 \\
+			0 & 0 & 0 \\
+			1 & 0 & 1 \\
+			2 & 0 & 2 \\
+			3 & 1 & 0 \\
+			4 & 1 & 1 \\
+			5 & 1 & 2 \\
+			6 & 2 & 0 \\
+			7 & 2 & 1 \\
+			8 & 2 & 2 \\
+		\end{tabular}
+	\end{center}
+\end{table}
+
+This is implemented in \texttt{p\_gt\_diploid} and tested in \texttt{tests/test\_slug.py:test\_slug\_p\_gt\_diploid}
+
 
 \subsection*{Likelihood}
 We observe the data $\mathbf{O}$, and we know the parameters $\theta = (\tau_k, F_k, c_r, e,b)$, the 
@@ -118,14 +184,68 @@ We estimate parameters using the complete-data log-likelihood using an EM-algori
 &+ \sum_{l} \log P( G_l | Z_l, \tau_k, F_k)
 \end{align*}
 
+The corresponding Q-function is \begin{align*}
+Q(\theta | \theta') &= \mathbb{E}\big[\log P(\mathbf{O}, \mathbf{X}, \mathbf{C}, \mathbf{G} | \theta, \psi, \mathbf{Z}) | P(\mathbf{O, X, C, G}) | \theta', \mathbf{Z} \big]\\ &= 
+\sum_{lri} \log P(O_{lri} | X_{lri}, e, b) P(\mathbf{X} | \theta')\\
+&+ \sum_{lri}\log P(C_{lri} | c_r) P(\mathbf{C} | \theta')\\
+&+ \sum_{lri}\log P(X_{lri} | C_{lri}, \psi_l, G_l)P(\mathbf{C,G} | \theta')\\
+&+ \sum_{l} \log P( G_l | Z_l, \tau_k, F_k) P(\mathbf{G} | \theta')
+\end{align*}
 
-\subsection*{F-stats}
+
+\subsubsection*{Estimating $e$ and $b$}
+Let $n_{a,b,c}$ be the number of reads where $O_{lri}=0, X_{lri}=b, W_l=c$
+\begin{align*}
+\hat{e} & = \frac{n_{1,0,0} + n_{1,1,1}}{n_{1,0,0} + n_{1,1,1} + n_{0,0,0} +n_{0, 1, 1}}\\
+\hat{b} & = \frac{n_{0,1,0} + n_{0, 0,1}}{n_{0, 1, 0} + n_{0, 0, 1} + n_{1, 1, 0} +n_{1, 0, 1}}
+\end{align*}
+\subsubsection*{Estimating $c_k$}
+\begin{align*}
+c_r =  \sum_{li} P(C| O, c')
+\end{align*},
+i.e. we average over the posterior contamination estimates from all reads in the read group
+\subsubsection*{Estimating $\tau_k$ and $F_k$}
+Done numerically by optimizing
+\begin{align*}
+Q(\tau_k, F_k | \tau_k', F_k') 
+&= \sum_{l} I[Z_l=k] \log P( G_l | Z_l, \tau_k, F_k) P(\mathbf{G} | \tau_k', F_k') \\
+&= \sum_{l} I[Z_l=k]\sum_{g=0}^2 \log P( G_l=g | Z_l=k, \tau_k, F_k)P(G=g | \tau_k', F_k')
+\end{align*}
+where $I$ is an indicator function, $P(G=g | \tau_k', F_k')$ are the estimates from the previous iteration and $ P( G_l=g | Z_l=k, \tau_k, F_k)$ are given by eq \ref{eq:prg}
+
+\subsection*{Calculating F-statistics}
+We can calculate \emph{some} $F$-statistics directly from the \texttt{admixslug} output. We use the estimates based on pairwise differences \citep{peter2016}:
 \begin{align}
-F_4(Y, X_2; X_3, X_4) = \pi_{y3} +\pi_{y4} - \pi_{23} - \pi_{24}\\
-F_3(O; Y, X_2) = \pi_{OY} +\pi_{O2} - \pi_{Y2} - \pi_{OO}
+F_2(X, Y) &= 2\pi_{xy} -\pi_{xx} - \pi_{yy}\\
+F_3(X; Y, Z) &= \pi_{xy} +\pi_{xz} - \pi_{yz} - \pi_{xx}\\
+F_4(X, Y; Z, W) &= \pi_{xz} +\pi_{yw} - \pi_{xw} - \pi_{yz}.
 \end{align}
-from admixslug one can calculate $\pi_{yj}$:
-$$\pi_{yj} = n_0(X_j) \times \tau_0(X_j) + n_1(X_j)(.5 \tau_1 + .5(1-\tau_2(X_j)) + n_2(X_j)(1-\tau_2(X_j))$$
+Assume we have $L$ loci, and population $a_{il}, d_{il}$ are the ancestral/derived counts in population $i$ at locus $l$, respectively, such that $n_{il} = a_{il} + d_{il}$. Then
+\begin{equation}
+\pi_{ij} = \begin{cases}
+\frac{1}{L}\sum_l \frac{a_{il}d_{jl} + d_{il}a_{jl}} {n_{il}n_{jl}} ,& \text{if } i \neq j\\
+\frac{1}{L}\sum_l \frac{a_{il}d_{il}}{n_{il}(n_{il} -1)},              & \text{if }i =j
+\end{cases}
+\end{equation}
+
+using the conditonal SFS from \texttt{admixslug}, we can write equivalently
+\begin{equation}
+\pi_{ij} = \begin{cases}
+\sum_k c_k \frac{a_{ik}d_{jk} + d_{ik}a_{jk}} {n_{ik}n_{jk}} ,& \text{if } i \neq j\\
+\sum_k c_k \frac{a_{ik}d_{ik}}{n_{ik}(n_{ik} -1)},              & \text{if }i =j
+\end{cases},
+\end{equation}
+where $a_{ik}, d_{ik}, n_{ik}$ are now the counts of ancestral/derived/total alleles in population $i$ and SFS-category $k$, and $c_k$ is the (estimated) proportion of SNPs of this category.
+
+These equations can directly be used to calculate $\pi$ within and between pairs of reference populations. To calculate $\pi$ between a reference population and the target individual, we use the estimator
+
+\begin{equation}
+\pi_{is} = \sum_k \frac{c_k}{n_i} \left[\tau_k a_i+ (1-\tau_k) d_i\right],
+\end{equation}
+since $\tau_k$ is the expected proportion of SNPs carrying a derived allele in SFS-category $k$.
+
+
+One caveat is that we cannot calculate $\pi{ss}$, the heterozygosity in the target individual. Also, for references without heterozygosity (e.g. the chimp-outgroup, or pseudo-haploid reference individuals), $\pi_{ii}$ cannot be calculated. By convention, we set these to zero. Thus, $F$-statistics involving these heterozygosities ($F_2$-statistics, and $F_3$-statistics using these individuals as samples) will be overestimated by a constant.
 
 \bibliography{main}
 \bibliographystyle{plainnat}
