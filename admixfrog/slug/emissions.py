@@ -205,7 +205,7 @@ def message_fwd_p_x_nocont(fwd_g, bwd_g, bwd_g1, READ2SNP):
     return res
 
 
-@njit
+#@njit
 def fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
     """Forward probability Pr(X_{lrj} = 1 | G_l, c_lr, a_lr)
 
@@ -219,11 +219,8 @@ def fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
     """
 
     res = np.empty_like(fwd_x_nocont)
-    res[:, 0] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 0]
-    res[:, 1] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 1]
-
-    res[:, 0] += fwd_c[READ2RG] * fwd_x_cont[:, 0]
-    res[:, 1] += fwd_c[READ2RG] * fwd_x_cont[:, 1]
+    res[:, 0] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 0] + fwd_c[READ2RG] * fwd_x_cont[:, 0]
+    res[:, 1] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 1] + fwd_c[READ2RG] * fwd_x_cont[:, 1]
 
     return res
 
@@ -258,7 +255,7 @@ def full_posterior_genotypes(data, pars):
     return bwd_g, posterior_g(bwd_g, fwd_g)
 
 
-# @njit
+@njit
 def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
     """calculate Pr(C | O) = Pr(C, O) / Pr (O)
     with Pr(C, O)  = Σ_X  Pr(O | X) Pr(X | C) Pr(C)

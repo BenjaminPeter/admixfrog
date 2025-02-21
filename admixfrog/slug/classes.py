@@ -339,7 +339,7 @@ class SlugReads:
         if flip and ancestral is not None:
             flipped = make_flipped(snp, anc_ref, anc_alt)
         else:
-            flipped = np.zeros_like(SNP2SFS, bool)
+            flipped = np.zeros(snp.shape[0], bool)
 
         sfs, SNP2SFS = obs2sfs(
             snp, flipped, states, max_states
