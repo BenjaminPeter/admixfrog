@@ -158,7 +158,7 @@ def run_admixslug(
             pis.T.reset_index()["index"].str.split("|").tolist(),
             columns=["pop1", "pop2"],
         )
-        pis.pop1[pis.pop1 == "within"] = pis.pop2[pis.pop1 == "within"]
+        pis.loc[pis.pop1 == "within", 'pop1'] = pis.pop2[pis.pop1 == "within"]
         pis["is_between"] = pis.pop1 != pis.pop2
         pis = pd.concat((pis, pis_data), axis=1)
 

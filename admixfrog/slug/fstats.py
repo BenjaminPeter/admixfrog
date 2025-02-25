@@ -41,25 +41,22 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
     else:
         f3s = pd.DataFrame(columns=["rep", "f3", "X", "A", "B"])
 
-    # f4s without target
-    if len(pops) >= 4:
-        for A, B in itertools.combinations(pops, 2):
-            for C, D in itertools.combinations(pops, 2):
+    pops2 = [*pops, f'{name}']
+    if len(pops2) >= 4:
+        for A, B in itertools.combinations(pops2, 2):
+            for C, D in itertools.combinations(pops2, 2):
                 if len(set((A, B, C, D))) == 4:
-                    f4s.append(single_f4(pis, A, B, C, D))
+                    f4s.append(single_f4_permuted(pis, A, B, C, D))
 
-    # f4s with target
-    A = f"{name}"
-    if len(pops) >= 3:
-        for B in pops:
-            for C, D in itertools.combinations(pops, 2):
-                if len(set((A, B, C, D))) == 4:
-                    f4s.append(single_f4(pis, A, B, C, D))
+
 
     if len(f4s) > 0:
         f4s = pd.concat(f4s).reset_index()
     else:
         f4s = pd.DataFrame(columns=["rep", "f4", "A", "B", "C", "D"])
+
+
+    #add all the permutations
     return f2s, f3s, f4s, pis
 
 
@@ -70,12 +67,14 @@ def sfs_to_freq(sfs, ref_freq=False):
     """
 
     sfs = deepcopy(sfs)
-    pops = [p[:-4] for p in sfs.columns if p.endswith("_alt")]
+    pops = [p[:-4] for p in sfs.columns if p.endswith("_der")]
+    if len(pops) == 0:
+        raise ValueError("no reference populations")
     for pop in pops:
-        f = sfs[f"{pop}_alt"] / (sfs[f"{pop}_alt"] + sfs[f"{pop}_ref"])
-        sfs[f"within|{pop}"] = 2 * f * sfs[f"{pop}_ref"]
-        sfs[f"within|{pop}"] /= sfs[f"{pop}_alt"] + sfs[f"{pop}_ref"] - 1
-        del sfs[f"{pop}_alt"], sfs[f"{pop}_ref"]
+        f = sfs[f"{pop}_der"] / (sfs[f"{pop}_der"] + sfs[f"{pop}_anc"])
+        sfs[f"within|{pop}"] = 2 * f * sfs[f"{pop}_anc"]
+        sfs[f"within|{pop}"] /= sfs[f"{pop}_der"] + sfs[f"{pop}_anc"] - 1
+        del sfs[f"{pop}_der"], sfs[f"{pop}_anc"]
         sfs[pop] = 1 - f if ref_freq else f
     return sfs, pops
 
@@ -113,14 +112,16 @@ def freq_to_pi(freqs, pops, name="XXX"):
     fg = freqs.groupby("rep")
 
     for p1, p2 in itertools.combinations(pops, 2):
-        df[f"{p1}|{p2}"] = fg.apply(f_calc_pi(p1, p2))
+        df[f"{p1}|{p2}"] = fg.apply(f_calc_pi(p1, p2), include_groups=False)
         df[f"{p2}|{p1}"] = df[f"{p1}|{p2}"]
 
     # pw to target and within
     for pop in pops:
-        df[f"{name}|{pop}"] = fg.apply(f_calc_pi("tau", pop))
+        df[f"{name}|{pop}"] = fg.apply(f_calc_pi("tau", pop),
+                                       include_groups=False)
         df[f"{pop}|{name}"] = df[f"{name}|{pop}"]
-        df[f"within|{pop}"] = fg.apply(f_calc_pi_within(pop))
+        df[f"within|{pop}"] = fg.apply(f_calc_pi_within(pop),
+                                       include_groups=False)
 
     df[f"within|{name}"] = 0
 
@@ -142,6 +143,31 @@ def single_f3(pis, X, A, B):
     f3["X"], f3["A"], f3["B"] = X, A, B
     return f3
 
+def f4_rot(df, pops):
+    x = df.loc[:, ['f4', *pops]].reset_index().to_numpy()
+    return x
+
+def single_f4_permuted(*args):
+    f4 = single_f4(*args)
+    pops0 = [['A', 'B', 'C', 'D'],
+             ['B', 'A', 'D', 'C'],
+             ['C', 'D', 'A', 'B'],
+             ['D', 'C', 'B', 'A']]
+    pops1 = [['A', 'B', 'D', 'C'],
+             ['B', 'A', 'C', 'D'],
+             ['C', 'D', 'B', 'A'],
+             ['D', 'C', 'A', 'B']]
+
+
+    rots0 = [f4_rot(f4, p) for p in pops0]
+
+    #flipped sign combinations
+    f4.f4 = -f4.f4
+    rots1 = [f4_rot(f4, p) for p in pops1]
+ 
+    f4_full = pd.DataFrame(np.vstack([*rots0, *rots1]), columns=f4.reset_index().columns)
+    f4_full.set_index("rep", inplace=True)
+    return f4_full
 
 def single_f4(pis, A, B, C, D):
     f4 = pis[f"{A}|{D}"] + pis[f"{B}|{C}"] - pis[f"{A}|{C}"] - pis[f"{B}|{D}"]
@@ -177,7 +203,7 @@ def summarize_pi(pis):
 
 
 def summarize_f4(df):
-    cols = ["A", "B", "D", "C", "f4", "sd"]
+    cols = ["A", "B", "C", "D", "f4", "sd"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f4s = summarize_f(df, stat="f4", pops=["A", "B", "C", "D"])
@@ -188,7 +214,7 @@ def summarize_f(df, stat, pops):
     fg = df.groupby(pops)
     m = fg[stat].mean()
     m.name = stat
-    sd = fg.apply(f_jk_sd(stat))
+    sd = fg.apply(f_jk_sd(stat), include_groups=False)
     sd.name = "sd"
 
     return pd.concat((m, sd), axis=1).reset_index(drop=False)
