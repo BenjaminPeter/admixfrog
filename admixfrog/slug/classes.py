@@ -281,6 +281,7 @@ class SlugReads:
             n_rgs=self.n_rgs,
             sex=self.sex,
         )
+
         return sr
 
     @property

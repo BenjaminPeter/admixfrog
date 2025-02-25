@@ -7,7 +7,10 @@ import pandas as pd
 def calc_fstats(sfs, pop_list=None, name="XXX"):
     """should calculate a table with all f2/f3/f4 between source states and target"""
 
+
     freqs, pops = sfs_to_freq(sfs)
+
+    breakpoint()
 
     f2s, f3s, f4s = [], [], []
     if pop_list is not None:  # only calc subset of stats
@@ -18,6 +21,7 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
         freqs["n_snps"] = 1
     if "tau" not in freqs:
         freqs["tau"] = np.nan
+    breakpoint()
     pis = freq_to_pi(freqs, pops, name)
 
     # f2s
@@ -63,20 +67,21 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
     return f2s, f3s, f4s, pis
 
 
-def sfs_to_freq(sfs, ref_freq=False):
+def sfs_to_freq(sfs):
     """calculate frequencies for each row in an SFS table
 
     by default, alt allele frequency is calculated, ref_freq gives inverse
     """
 
+    breakpoint()
+
     sfs = deepcopy(sfs)
-    pops = [p[:-4] for p in sfs.columns if p.endswith("_alt")]
+    pops = [p[:-4] for p in sfs.columns if p.endswith("_der")]
     for pop in pops:
-        f = sfs[f"{pop}_alt"] / (sfs[f"{pop}_alt"] + sfs[f"{pop}_ref"])
-        sfs[f"within|{pop}"] = 2 * f * sfs[f"{pop}_ref"]
-        sfs[f"within|{pop}"] /= sfs[f"{pop}_alt"] + sfs[f"{pop}_ref"] - 1
-        del sfs[f"{pop}_alt"], sfs[f"{pop}_ref"]
-        sfs[pop] = 1 - f if ref_freq else f
+        f = sfs[f"{pop}_der"] / (sfs[f"{pop}_der"] + sfs[f"{pop}_anc"])
+        sfs[f"within|{pop}"] = 2 * f * sfs[f"{pop}_anc"]
+        sfs[f"within|{pop}"] /= sfs[f"{pop}_der"] + sfs[f"{pop}_anc"] - 1
+        del sfs[f"{pop}_der"], sfs[f"{pop}_anc"]
     return sfs, pops
 
 
