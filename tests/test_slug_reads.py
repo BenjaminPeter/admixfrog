@@ -11,9 +11,10 @@ def test_error_bias_est():
 
        - error is the probability a read has the alt allele when it really should
            have reference
-        - bias is the prob a read has ref allele when it should have alt
-
-        both SNPs have truth = homozygous anc, i.e no error
+       - bias is the prob a read has ref allele when it should have alt
+       - both SNPs have truth = homozygous anc, i.e no error
+       - SNP1 has 6 reads, half of which are derived
+       - SNP2 has 4 reads, one of which is derived
 
     """
     data = SlugReads(
@@ -33,14 +34,14 @@ def test_error_bias_est():
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
                                 update_bias=True)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
     print( f'll : {pars.prev_ll} -> {pars.ll}')
     assert pars.e == 0.5
     assert pars.b == 0.25
 
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     assert pars.prev_ll == pars.ll
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
@@ -74,14 +75,14 @@ def test_error_est():
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
                                 update_bias=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
     print( f'll : {pars.prev_ll} -> {pars.ll}')
     assert pars.e == 0.4
     assert pars.b == pars.e
 
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     assert pars.prev_ll == pars.ll
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
@@ -117,7 +118,7 @@ def test_error_bias_est2():
     )
     controller = SlugController(update_eb=True,  update_ftau=False, update_cont=False,
                                 update_bias=True)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
 
     print( f'e : {pars.prev_e} -> {pars.e}')
     print( f'b : {pars.prev_b} -> {pars.b}')
@@ -125,7 +126,7 @@ def test_error_bias_est2():
     assert pars.e == 6/10
     assert pars.b == 0
 
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     assert pars.prev_ll == pars.ll
     assert pars.e == pars.prev_e
     assert pars.b == pars.prev_b
@@ -134,13 +135,14 @@ def test_error_bias_est2():
 def test_cont_est():
     """simple test dataset for ensuring algorithm is correct
 
-    we have 2 SNP (1 flipped), with 3 RGs with 5 reads each; 
+    we have 2 SNP (1 flipped), with 3 RGs with 4 reads each; 
+    tau=0, psi=1, i.e. all contaminant reads are derived and endo are anc
     """
     data = SlugReads(
         READS = [0, 0, 0, 0, 
                  0, 0, 0, 1,
                  1, 1, 1, 1],
-        psi = [1, 0],
+        psi = [1, 1],
         READ2RG = [0] * 4 + [1] * 4 + [2] * 4,
         READ2SNP = [0] * 10 + [1] * 2,
         FLIPPED = [False, True],
@@ -155,12 +157,12 @@ def test_cont_est():
     )
     controller = SlugController(update_eb=False,  update_ftau=False,
                                 update_cont=True)
-    pars = update_pars_reads(pars, data, controller)
+    pars = update_pars(pars, data, controller)
     assert pars.cont[0] == 0
     assert pars.cont[1] == 0.25
     assert pars.cont[2] == 0.5
     print(f'C = {pars.cont}')
-    ll = calc_full_ll_reads(data, pars)
+    ll = calc_full_ll(data, pars)
     assert pars.ll  > pars.prev_ll
     print( f'll : {pars.ll} -> {ll}')
 
@@ -168,40 +170,45 @@ def test_cont_est():
 def test_ftau_est_hap():
     """simple test dataset for ensuring algorithm is correct
 
-    one RG with only endo (all ref) and one RG with only cont ( all 1)
+    2 SFS cats, 2  RG, 4 SNPs, no error; 
+    RGs have cont = 0, .0
+
     """
     data = SlugReads(
-        READS = [0, 0, 0, 0, 
-                 0, 0, 0, 1,
-                 1, 1, 1, 1,
-                 0, 0, 1],
-        psi = [1, 1, .5, 1],
-        READ2RG = [0] * 4 + [0] * 4 + [0] * 4 + [1] * 3,
+        READS = [0, 0, 0, 0, #SNP0, RG0, SFS0
+                 0, 0, 0, 1, #SNP1, RG0, SFS1
+                 1, 1, 1, 1, #SNP2, RG1, haploid, SFS0
+                 0, 0, 0],   #SNP3< from RG1, haploid, SFS1
+        psi = [1, 1, 1, 1],
+        READ2RG = [0] * 4 + [0] * 4 + [1] * 4 + [1] * 3,
         READ2SNP = [0] * 4 + [1] * 4 + [2] * 4 + [3] * 3,
         FLIPPED = [False] * 4,
         haploid_snps = [2,3],
-        SNP2SFS = [0, 0, 1, 1])
+        SNP2SFS = [0, 1, 0, 1])
 
     pars = SlugPars(
-        cont = [0.0, .1],
+        cont = [0.0, .0],
         tau = [0.4, .1],
         F = [0.5, .5],
         e = 0.00,
         b = 0.00
     )
-    ll0 = calc_full_ll_reads(data, pars)
+    ll0 = calc_full_ll(data, pars)
     controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
+    assert pars.ll > ll0
+    update_pars(pars, data, controller)
+    assert pars.ll > ll0
+    update_pars(pars, data, controller)
+    assert pars.ll > ll0
+
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
     print(f'tau = {pars.tau}')
     print( f'll : {ll0} -> {pars.ll} ')
-    assert .25 < pars.tau[0] < .26
-    assert .50 == pars.tau[1]
+    assert np.allclose(pars.tau, [.25, .5])
     assert pars.ll > ll0
-    #assert .3 < pars.F[1] < .4
-    #assert pars.F[0] == 0.5
 
 def test_ftau_est():
     """simple test dataset for ensuring algorithm is correct
@@ -225,9 +232,9 @@ def test_ftau_est():
         e = 0.00,
         b = 0.00
     )
-    ll0 = calc_full_ll_reads(data, pars)
+    ll0 = calc_full_ll(data, pars)
     controller = SlugController(update_eb=False,  update_ftau=True, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
@@ -261,12 +268,12 @@ def test_delta_est():
         b = 0.00
     )
     controller = SlugController(update_eb=False,  update_ftau=False, update_cont=False)
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print(f'eb= {pars.e}, {pars.b}')
     print(f'C = {pars.cont}')
     print(f'F = {pars.F}')
     print(f'tau = {pars.tau}')
-    update_pars_reads(pars, data, controller)
+    update_pars(pars, data, controller)
     print( f'll : {pars.prev_ll} -> {pars.ll}')
     assert .25 < pars.tau[0] < .26
     assert .64 < pars.tau[1] < .65

@@ -32,9 +32,6 @@ def test_slug_p_gt_haploid():
     assert np.allclose(res[:, 0], 1 - tau0)
 
 
-def test_update_ftau():
-    pass
-
 def test_slug_fwd_p_x():
     """test example to calculate P(X|.)
     - 3 SNPs, 
@@ -80,7 +77,7 @@ def test_slug_fwd_p_x():
 
     px_cont = fwd_p_x_cont(pa, READ2SNP) #all 1 in this case
     assert np.allclose(px_cont[:, 1], 1)
-    px_nocont = message_fwd_p_x_nocont(pg, bwd_g, bwd_g1, READ2SNP)
+    px_nocont = fwd_p_x_nocont(pg, READ2SNP)
     res = fwd_p_x(px_cont, px_nocont, pc, READ2RG)
 
     """fwd probabilities:
@@ -102,13 +99,14 @@ def test_slug_fwd_p_x():
                 P(X_1=1 X_2=1| .) = 53/80 
         ergo
                 p(X_1 = 0) = 14/80 = 0.175
-                p(X_2 = 0) = 14/80 = 0.175
+                p(X_2 = 0) = 20/80 = 0.25
+
+      - read3: endo is always 0, cont always 1
+            P(X_3=0) = 1 * .7 = 0.7
+      - read4: p(cont) = 0, pg is symmetric, P(X_4 = 0.5)
     """
+    assert np.allclose(res[:,0], [14/80, 20/80, 0.7, 0.5])
 
-
-    assert res[0, 1] == .3 * .3 + .75 * .7
-    assert res[1, 1] == .3 
-    assert res[2, 1] == 1
 
 def test_slug_fwd_p_x2():
     fwd_g = np.array([[0.5, .5,0]])
@@ -116,6 +114,7 @@ def test_slug_fwd_p_x2():
     pc = np.array([0.0])
 
     READS = np.array((0, 0, 0, 0, 1))
+    FLIPPED_READS = np.array([False] * 5)
     
     n_reads = len(READS)
     n_rgs = 1
@@ -124,41 +123,18 @@ def test_slug_fwd_p_x2():
     READ2SNP = np.array([0, 0, 0, 0, 0])
 
 
-    bwd_x = bwd_p_o_given_x(READS, 0.01, 0.01)
+
+    bwd_x = bwd_p_o_given_x(READS, FLIPPED_READS, 0.01, 0.01)
     bwd_g1 = bwd_p_one_o_given_g(bwd_x, pa, pc, READ2SNP,
                                       READ2RG, n_reads)
     bwd_g = bwd_p_all_o_given_g(bwd_g1, READ2SNP, n_snps)
 
     px_cont = fwd_p_x_cont(pa, READ2SNP)
-    px_nocont = message_fwd_p_x_nocont(fwd_g, bwd_g, bwd_g1, READ2SNP)
+    px_nocont = fwd_p_x_nocont(fwd_g,  READ2SNP)
     res = fwd_p_x(px_cont, px_nocont, pc, READ2RG)
 
-    assert 0.4 < res[0, 1]  < 0.5
-    assert 0.03 < res[4, 1]  < 0.04 
 
-def test_data1():
-    """simple test dataset for ensuring algorithm is correct
-
-    a single SNP with one derived allele
-    """
-    data = SlugData(
-        REF = [0, 9, 1],
-        ALT = [4, 1, 0],
-        psi = [0],
-        OBS2RG = [0, 1, 2],
-        OBS2SNP = [0, 0, 0],
-        SNP2SFS = [0])
-
-    pars0 = SlugPars(
-        cont = [0, 0.5, 1],
-        tau = [0],
-        F = [0],
-        e = 0,
-        b= 0
-    )
-
-
-    #return pars0, data
+    assert np.allclose(res[:,0], 3/4)
 
 def test_error_est():
     """simple test dataset for ensuring algorithm is correct
@@ -220,7 +196,7 @@ def test_cont_est():
     assert pars.cont[2] == 1
     assert pars.cont[1] == 0.5
     print(f'C = {pars.cont}')
-    ll = calc_full_ll_reads(reads, pars)
+    ll = calc_full_ll(reads, pars)
     assert pars.ll  <= ll
     print( f'll : {pars.ll} -> {ll}')
 

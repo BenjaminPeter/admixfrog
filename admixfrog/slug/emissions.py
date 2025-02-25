@@ -51,9 +51,7 @@ def p_gt_haploid(tau, SNP2SFS, res=None):
 
 def fwd_p_g(data, pars):
     """calculate forward probabilities of genotypes"""
-    fwd_g = p_gt_diploid(
-        pars.tau, pars.F, SNP2SFS=data.SNP2SFS
-    )  # size [L x 3]
+    fwd_g = p_gt_diploid(pars.tau, pars.F, SNP2SFS=data.SNP2SFS)  # size [L x 3]
     if data.haploid_snps is not None:
         fwd_g[data.haploid_snps] = p_gt_haploid(
             pars.tau,
@@ -82,15 +80,15 @@ def bwd_p_o_given_x(R, F, e, b):
     """
 
     res = np.empty((R.shape[0], 2))
-    res[R == 0 & ~F , 0] = 1-e #ref=anc, obs=ref, X=anc
-    res[R == 1 & ~F , 0] = e   #ref=anc, obs=alt, X=anc, error away from ref
-    res[R == 0 & ~F , 1] = b   #ref=anc, obs=ref, X=der, error towards ref
-    res[R == 1 & ~F , 1] = 1-b #ref=anc, obs=alt, X=der
+    res[R == 0 & ~F, 0] = 1 - e  # ref=anc, obs=ref, X=anc
+    res[R == 1 & ~F, 0] = e  # ref=anc, obs=alt, X=anc, error away from ref
+    res[R == 0 & ~F, 1] = b  # ref=anc, obs=ref, X=der, error towards ref
+    res[R == 1 & ~F, 1] = 1 - b  # ref=anc, obs=alt, X=der
 
-    res[R == 0 & F , 0] = b    #ref=der, obs=ref, X=anc, error towards ref
-    res[R == 1 & F , 0] = 1-b  #ref=der, obs=ref, X=anc
-    res[R == 0 & F , 1] = 1-e  #ref=der, obs=ref, X=anc
-    res[R == 1 & F , 1] = e    #ref=der, obs=ref, X=anc, error away from ref
+    res[R == 0 & F, 0] = b  # ref=der, obs=ref, X=anc, error towards ref
+    res[R == 1 & F, 0] = 1 - b  # ref=der, obs=ref, X=anc
+    res[R == 0 & F, 1] = 1 - e  # ref=der, obs=ref, X=anc
+    res[R == 1 & F, 1] = e  # ref=der, obs=ref, X=anc, error away from ref
     return res
 
 
@@ -120,9 +118,9 @@ def bwd_p_one_o_given_g(bwd_x, fwd_a, fwd_c, READ2SNP, READ2RG, n_reads):
         underlying SNP, not taking info from other Reads into account
     """
 
-    #A is matrix with contamination panel allele freq
-    #A[,0] is Pr(X_i=0 |psi_i)
-    #A[,1] is Pr(X_i=1 |psi_i) = psi_i
+    # A is matrix with contamination panel allele freq
+    # A[,0] is Pr(X_i=0 |psi_i)
+    # A[,1] is Pr(X_i=1 |psi_i) = psi_i
     fwd_a_mat = np.vstack((1 - fwd_a, fwd_a)).T[READ2SNP]
     p_o_cont = np.sum(fwd_a_mat * bwd_x, 1) * fwd_c[READ2RG]
 
@@ -176,36 +174,13 @@ def fwd_p_x_cont(psi, READ2SNP):
 
 
 @njit
-def message_fwd_p_x_nocont(fwd_g, bwd_g, bwd_g1, READ2SNP):
-    """message passing version of Pr(X_i | C=0, G_l, O)
-
-    calculate Pr(X_i | C=0, G_l, O) needed for updates;
-    taking into account that other reads will change our beliefe about a particular read
-
-    Parameters
-    ----------
-    fwd_g : np.ndarray [L x 1]
-        Pr(G_l | Z)
-    bwd_g : np.ndarray [L x 1]
-        Pr(O_i1, O_i2, O_i3 | G_i) for all observations from this SNP
-    bwd_g1 : np.ndarray [R x 1]
-        Pr(O_i | G) for a single SNP
-    READ2SNP : np.ndarray[R x 1]
-        index mapping each read to a SNP
-
-    Returns
-    -------
-    Pr(X_li | C=0, G_l, O_l1, O_l2, O_l...) : np.ndarray[R x 1]
-    """
-    M = np.array([[1.0, 0.5, 0.0], [0.0, 0.5, 1.0]]).T
-
-    res = (fwd_g * bwd_g)[READ2SNP] / (bwd_g1 + 1e-300) @ M
-    res = res / np.expand_dims(np.sum(res, 1), 1)
-
-    return res
+def fwd_p_x_nocont(fwd_g, READ2SNP):
+    """Pr(X_i=j | C=0, G_l)"""
+    M = np.array([[1.0, 0.5, 0.0], [0.0, 0.5, 1.0]]).T  # P(X=x | G=j)
+    return fwd_g[READ2SNP] @ M
 
 
-#@njit
+# @njit
 def fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
     """Forward probability Pr(X_{lrj} = 1 | G_l, c_lr, a_lr)
 
@@ -219,8 +194,12 @@ def fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
     """
 
     res = np.empty_like(fwd_x_nocont)
-    res[:, 0] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 0] + fwd_c[READ2RG] * fwd_x_cont[:, 0]
-    res[:, 1] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 1] + fwd_c[READ2RG] * fwd_x_cont[:, 1]
+    res[:, 0] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 0] + fwd_c[READ2RG] * fwd_x_cont[
+        :, 0
+    ]
+    res[:, 1] = (1 - fwd_c[READ2RG]) * fwd_x_nocont[:, 1] + fwd_c[READ2RG] * fwd_x_cont[
+        :, 1
+    ]
 
     return res
 
@@ -272,18 +251,20 @@ def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
     return post_c
 
 
-def calc_full_ll_reads(data, pars):
+def calc_full_ll(data, pars):
+    fwd_a = data.psi  # size [L x 1]
+    fwd_c = pars.cont  # size [O x 1]
     fwd_g = fwd_p_g(data, pars)
-    bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b)  # Pr(O_lrj | G_lrj)
-    bwd_g1 = bwd_p_one_o_given_g(
-        bwd_x, data.psi, pars.cont, data.READ2SNP, data.READ2RG, data.n_reads
-    )
-    bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
-
-    ll2 = calc_ll(fwd_g, bwd_g)
+    fwd_x_cont = fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [R x 1]
+    fwd_x_nocont = fwd_p_x_nocont(fwd_g, data.READ2SNP)  # size [R x 1]
+    fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
+    bwd_x = bwd_p_o_given_x(
+        data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b
+    )  # Pr(O_lrj | G_lrj)
+    ll2 = calc_ll(fwd_x, bwd_x)
     return ll2
 
 
-def calc_ll(fwd_g, bwd_g):
-    ll = np.sum(np.log(np.sum(fwd_g * bwd_g, 1)))
+def calc_ll(fwd_x, bwd_x):
+    ll = np.sum(np.log(np.sum(fwd_x * bwd_x, 1)))
     return ll
