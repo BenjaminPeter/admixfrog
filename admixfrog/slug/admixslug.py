@@ -85,7 +85,7 @@ def run_admixslug(
         cont_id = None
 
     states = States.from_commandline(
-        raw_states=states, state_file=state_file, ancestral=ancestral, cont_id=cont_id
+        raw_states=[*states, ancestral], state_file=state_file, ancestral=ancestral, cont_id=cont_id
     )
 
     df, ix, sex, n_sites = load_admixslug_data_native(
