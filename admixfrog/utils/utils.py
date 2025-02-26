@@ -372,6 +372,7 @@ def polarize(snp, pop, flipped):
     sfs.loc[flipped, f"{pop}_der"] = snp.loc[flipped, f"{pop}_ref"]
     return sfs
 
+
 def obs2sfs(snp, flipped, states, max_states=None, sex_chroms=["Z", "W", "X", "Y"]):
     """create sfs data structure taking ancestral allele into account
 
@@ -382,11 +383,10 @@ def obs2sfs(snp, flipped, states, max_states=None, sex_chroms=["Z", "W", "X", "Y
 
     """
 
-
     snp.reset_index(drop=True, inplace=True)
     sfs = pd.DataFrame()
     if sex_chroms is not None:
-        sfs['is_sex_chr'] = snp['chrom'].isin(sex_chroms)
+        sfs["is_sex_chr"] = snp["chrom"].isin(sex_chroms)
 
     """polarize all input data"""
     for s in states:

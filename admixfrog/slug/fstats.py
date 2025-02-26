@@ -7,7 +7,6 @@ import pandas as pd
 def calc_fstats(sfs, pop_list=None, name="XXX"):
     """should calculate a table with all f2/f3/f4 between source states and target"""
 
-
     freqs, pops = sfs_to_freq(sfs)
 
     breakpoint()

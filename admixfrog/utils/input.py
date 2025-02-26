@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import itertools
 
-from .utils import posterior_table, posterior_table_slug
+from .utils import posterior_table, posterior_table_slug, parse_chroms
 
 
 def load_ref(
@@ -97,6 +97,8 @@ def load_ref(
     ref = ref.rename(D, axis=1).T.groupby(level=0).sum().T
 
     if autosomes_only:
+        if type(sex_chroms) is not list:
+            sex_chroms = parse_chroms(sex_chroms)
         ref = ref[~ref.index.get_level_values("chrom").isin(sex_chroms)]
     return ref
 
