@@ -3,7 +3,6 @@ from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
 import yaml
-from .vcf import parse_chroms
 
 from numba import njit
 from scipy.linalg import expm
@@ -360,43 +359,20 @@ def get_haploid_stuff(snp, chroms, sex):
     return haplo_chroms, haploid_snps
 
 
-def make_obs2sfs(snp_states, max_states=None, states=None):
-    # create dict [sfs] - > column
-    if max_states is None:
-        sfs = snp_states.reset_index(drop=True).drop_duplicates().reset_index(drop=True)
-        data = snp_states
-    else:
-        data = pd.DataFrame()
-        for s in states:
-            freq = snp_states[f"{s}_alt"] / (
-                snp_states[f"{s}_alt"] + snp_states[f"{s}_ref"]
-            )
-            freq = np.nan_to_num(freq)
-            m = np.max((snp_states[f"{s}_alt"] + snp_states[f"{s}_ref"]))
-            m = min((m, max_states))
-            freq = np.round(freq * m).astype(np.uint8)
-            data[f"{s}_alt"], data[f"{s}_ref"] = freq, m - freq
-            sfs = data.drop_duplicates().reset_index(drop=True)
-
-    sfs_dict = dict((tuple(v.values()), k) for (k, v) in sfs.to_dict("index").items())
-    data = np.array(data)
-    SNP2SFS = np.array([sfs_dict[tuple(i)] for i in data], dtype=np.uint16)
-
-    return sfs, SNP2SFS
-
 def make_flipped(snp, anc_ref, anc_alt):
     FLIPPED = (snp[anc_ref] == 0) & (snp[anc_alt] > 0)
     return FLIPPED.to_numpy()
 
+
 def polarize(snp, pop, flipped):
     sfs = pd.DataFrame()
-    sfs[f'{pop}_anc'] = snp[f'{pop}_ref'] 
-    sfs[f'{pop}_der'] = snp[f'{pop}_alt'] 
-    sfs.loc[flipped, f'{pop}_anc'] = snp.loc[flipped, f'{pop}_alt'] 
-    sfs.loc[flipped, f'{pop}_der'] = snp.loc[flipped, f'{pop}_ref'] 
+    sfs[f"{pop}_anc"] = snp[f"{pop}_ref"]
+    sfs[f"{pop}_der"] = snp[f"{pop}_alt"]
+    sfs.loc[flipped, f"{pop}_anc"] = snp.loc[flipped, f"{pop}_alt"]
+    sfs.loc[flipped, f"{pop}_der"] = snp.loc[flipped, f"{pop}_ref"]
     return sfs
 
-def obs2sfs(snp, flipped, states, max_states=None, sex_chroms = ["X", "Y"]):
+def obs2sfs(snp, flipped, states, max_states=None, sex_chroms=["Z", "W", "X", "Y"]):
     """create sfs data structure taking ancestral allele into account
 
     basic strat
@@ -418,7 +394,9 @@ def obs2sfs(snp, flipped, states, max_states=None, sex_chroms = ["X", "Y"]):
         sfs = pd.concat((sfs, pol1), axis=1)
 
     sfs_rows = sfs.drop_duplicates().reset_index(drop=True)
-    sfs_dict = dict((tuple(v.values()), k) for (k, v) in sfs_rows.to_dict("index").items())
+    sfs_dict = dict(
+        (tuple(v.values()), k) for (k, v) in sfs_rows.to_dict("index").items()
+    )
     """use dicts to create SNP2SFS"""
     SNP2SFS = np.array([sfs_dict[tuple(i)] for i in sfs.to_numpy()], dtype=np.uint16)
 
@@ -429,7 +407,7 @@ def obs2sfs(snp, flipped, states, max_states=None, sex_chroms = ["X", "Y"]):
 def make_full_read_df(df, n_reads):
     """generate vectors relating read groups to allele they carry, read group and snp
 
-        returns vectors of length n_reads
+    returns vectors of length n_reads
     """
     READS = np.empty(n_reads, np.uint8)
     READ2RG = np.empty(n_reads, np.uint32)
@@ -710,3 +688,16 @@ def scale_mat3d(M):
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
+
+
+def parse_chroms(arg):
+    if arg is None:
+        return None
+    chroms = []
+    for s in arg.split(","):
+        if "-" in s:
+            a, b = s.split("-")
+            chroms.extend([str(s) for s in range(int(a), int(b) + 1)])
+        else:
+            chroms.append(s)
+    return chroms

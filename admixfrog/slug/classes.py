@@ -10,6 +10,7 @@ from ..utils.utils import (
     obs2sfs,
     polarize,
     get_haploid_stuff,
+    parse_chroms,
 )
 
 
@@ -158,7 +159,6 @@ class SlugData:
     haploid_chroms: Any = None  # names of haploid chromosomes
     haploid_snps: Any = None  # which snp are haploid
     sex_chroms: Any = None  # names of sex chromosomes; will be analyzed sepeartely
-    sex_snps: Any = None  # id of snps on (recombining) sex chromosomes
     sex: str = "m"
 
     def __post_init__(self):
@@ -257,7 +257,8 @@ class SlugReads:
         self.SNP2SFS.flags.writeable = False
 
     def jackknife_sample(self, i, n_samples=20):
-        """return a jackknife-subsample of the data"""
+        """returns jackknife-sample i out of n_samples"""
+        # sfs.is_sex_chrom[SNP2SFS]
         RSLICE = np.ones(self.n_reads, bool)
         lsp = np.linspace(0, self.n_reads, n_samples + 1, dtype=int)
         RSLICE[lsp[i] : lsp[i + 1]] = 0
@@ -293,6 +294,14 @@ class SlugReads:
         return len(self.READS)
 
     @property
+    def n_reads_auto(self):
+        return len(self.READS)
+
+    @property
+    def n_reads_sex(self):
+        return len(self.READS)
+
+    @property
     def READ2SFS(self):
         return self.SNP2SFS[self.READ2SNP]
 
@@ -302,11 +311,18 @@ class SlugReads:
 
     @classmethod
     def load(
-        cls, df, states, max_states=8, ancestral=None, cont_id=None, sex=None, flip=True,
+        cls,
+        df,
+        states,
+        max_states=8,
+        ancestral=None,
+        cont_id=None,
+        sex=None,
+        flip=True,
         sex_chroms=None,
     ):
-        if sex_chroms is not None:
-            raise NotImplemented("dealing with sex chromosomes is not implemented yet")
+        if type(sex_chroms) is not list:
+            sex_chroms = parse_chroms(sex_chroms)
 
         ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
 
@@ -342,9 +358,7 @@ class SlugReads:
         else:
             flipped = np.zeros(snp.shape[0], bool)
 
-        sfs, SNP2SFS = obs2sfs(
-            snp, flipped, states, max_states
-        )
+        sfs, SNP2SFS = obs2sfs(snp, flipped, states, max_states, sex_chroms=sex_chroms)
 
         chroms = pd.unique(snp.chrom)
         haploid_chroms, haploid_snps = get_haploid_stuff(snp, chroms, sex)
@@ -353,7 +367,9 @@ class SlugReads:
             psi = np.zeros_like(SNP2SFS)
         else:
             df_cont = polarize(snp, cont_id, flipped)
-            psi = df_cont[f'{cont_id}_der'] / (df_cont[f'{cont_id}_anc'] + df_cont[f'{cont_id}_der'] + 1e-100)
+            psi = df_cont[f"{cont_id}_der"] / (
+                df_cont[f"{cont_id}_anc"] + df_cont[f"{cont_id}_der"] + 1e-100
+            )
 
         data = cls(
             READS=READS,
@@ -368,6 +384,7 @@ class SlugReads:
             sex=sex,
             chroms=chroms,
             haploid_chroms=haploid_chroms,
+            sex_chroms=sex_chroms,
         )
 
         logging.debug("done creating data")
