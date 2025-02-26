@@ -16,10 +16,22 @@ def test_basic(script_runner):
     assert ret.success
 
 
+def test_sex_chr(script_runner):
+    """test case 1"""
+    cmd = "admixfrog --infile data/oase_chr9.in.xz --ref data/ref_A1240k_9X.csv.xz "
+    cmd += " --out res/test_sex_chr --seed 13 --force-infile  "
+    cmd += "--states AFR NEA -b 100000 -P --autosomes --sex-chroms X,Y,Z"
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(args, cwd="tests")
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
 def test_autosomes(script_runner):
     """test case 1"""
     cmd = "admixfrog --infile data/oase_chr9.in.xz --ref data/ref_A1240k_9X.csv.xz "
-    cmd += " --out res/test_basic --seed 13 --force-infile  "
+    cmd += " --out res/test_auto --seed 13 --force-infile  "
     cmd += "--states AFR NEA -b 100000 -P --autosomes"
     args = cmd.split()
     print(args)
