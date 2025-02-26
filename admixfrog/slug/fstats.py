@@ -88,6 +88,7 @@ def sfs_to_freq(sfs):
         sfs[f"within|{pop}"] = 2 * f * sfs[f"{pop}_anc"]
         sfs[f"within|{pop}"] /= sfs[f"{pop}_der"] + sfs[f"{pop}_anc"] - 1
         del sfs[f"{pop}_der"], sfs[f"{pop}_anc"]
+        sfs[pop] = f
     return sfs, pops
 
 
