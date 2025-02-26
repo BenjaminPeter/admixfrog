@@ -198,7 +198,6 @@ def test_ftau_est_hap():
     print(f"F = {pars.F}")
     print(f"tau = {pars.tau}")
     print(f"ll : {ll0} -> {pars.ll} ")
-    breakpoint()
     assert np.allclose(pars.tau, [0.5, 0.25], atol=1e-4)
     assert pars.ll > ll0
 
