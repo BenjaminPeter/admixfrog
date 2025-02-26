@@ -154,21 +154,21 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
 
 
 def write_f2_table(df, outname=None):
-    df = df[["A", "B", "f2", "rep"]]
+    df = df[["A", "B", "f2", "rep", "is_sex_chrom"]]
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False)
     return df
 
 
 def write_f3_table(df, outname=None):
-    df = df[["X", "A", "B", "f3", "rep"]]
+    df = df[["X", "A", "B", "f3", "rep", "is_sex_chrom"]]
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False)
     return df
 
 
 def write_f4_table(df, outname=None):
-    df = df[["A", "B", "C", "D", "f4", "rep"]]
+    df = df[["A", "B", "C", "D", "f4", "rep", "is_sex_chrom"]]
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False)
     return df

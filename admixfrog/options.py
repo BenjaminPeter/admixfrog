@@ -60,7 +60,7 @@ ALGORITHM_OPTIONS = [
     "ancestral_prior",
     "split_lib",
     "scale_probs",
-    "max_cov", 
+    "max_cov",
     "bin_reads",
     "len_bin_size",
     "deam_bin_size",
@@ -855,7 +855,7 @@ def add_base_options_slug(P):
     )
     parser.add_argument(
         "--sex-chroms",
-        default=None,
+        default="X,Y,Z,W",
         help="""The chromosomes to be used as sex chromosomes. If not set, 
          - chromsomes starting wth any of [XYZW] are sex chromosomes
         """,

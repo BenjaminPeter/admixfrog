@@ -5,7 +5,7 @@ from copy import deepcopy
 from .emissions import fwd_p_g
 from .emissions import bwd_p_o_given_x
 from .emissions import bwd_p_one_o_given_g, bwd_p_all_o_given_g
-from .emissions import fwd_p_x, fwd_p_x_cont, fwd_p_x_nocont 
+from .emissions import fwd_p_x, fwd_p_x_cont, fwd_p_x_nocont
 from .emissions import posterior_g, posterior_x, posterior_c
 from .emissions import calc_ll, calc_full_ll
 from ..utils.log import log_
@@ -159,18 +159,17 @@ def update_eb(post_x, R, F, two_errors=True):
     post_x : Pr(X_i = j |.)
     i.e. each row of post_x gives the prob that X is and, der, respectively
     """
-    R = R.astype('bool')
-    R = np.array(R, 'bool')
+    R = R.astype("bool")
+    R = np.array(R, "bool")
     # have error if i) not flipped , R==1, X=0 or ii) if flipped, R==1, X==1
-    errors = np.sum(post_x[ R & ~F, 0]) + np.sum(post_x[R & F, 1])
+    errors = np.sum(post_x[R & ~F, 0]) + np.sum(post_x[R & F, 1])
     # have no_error if i) not flipped , R==0, X=0 or ii) if flipped, R==0, X==1
-    not_errors = np.sum(post_x[ ~R & ~F, 0]) + np.sum(post_x[~R  & F, 1])
+    not_errors = np.sum(post_x[~R & ~F, 0]) + np.sum(post_x[~R & F, 1])
 
     # have bias if i) not flipped , R==0, X=1 or ii) if flipped, R==0, X==0
-    bias = np.sum(post_x[ ~R  & ~F, 1]) + np.sum(post_x[~R  & F, 0])
+    bias = np.sum(post_x[~R & ~F, 1]) + np.sum(post_x[~R & F, 0])
     # have no_bias if i) not flipped , R==1, X=1 or ii) if flipped, R==1, X==0
-    not_bias = np.sum(post_x[R  & ~F, 1]) + np.sum(post_x[R  & F, 0])
-
+    not_bias = np.sum(post_x[R & ~F, 1]) + np.sum(post_x[R & F, 0])
 
     if two_errors:
         e = errors / (errors + not_errors) if errors + not_errors > 0 else 0
@@ -178,7 +177,6 @@ def update_eb(post_x, R, F, two_errors=True):
     else:
         e = (errors + bias) / (errors + bias + not_errors + not_bias)
         b = e
-
 
     return e, b
 
@@ -233,7 +231,7 @@ def update_pars(pars, data, controller):
             post_x, data.READS, data.FLIPPED_READS, two_errors=O.update_bias
         )
 
-    if O.do_ll: #should be avoided since it runs the entire E-step
+    if O.do_ll:  # should be avoided since it runs the entire E-step
         pars.ll, pars.prev_ll = calc_full_ll(data, pars), pars.ll
 
     return pars
@@ -242,7 +240,7 @@ def update_pars(pars, data, controller):
 def squarem(pars0, data, controller):
     """squarem port from R"""
 
-    EPS = controller.param_tol
+    EPS = 1e-10
     controller.copy_pars = True  # required for squarem
     min_step = controller.squarem_min
     max_step = controller.squarem_max
@@ -251,14 +249,17 @@ def squarem(pars0, data, controller):
     for i in range(controller.n_iter):
         pars1 = update_pars(pars, data, controller)
         Δp1 = pars1 - pars
-        if norm(Δp1) < EPS:  #  or pars1.ll - pars1.prev_ll < EPS:
+        if (
+            norm(Δp1) < controller.param_tol
+            or pars1.ll - pars1.prev_ll < controller.ll_tol
+        ):
             pars = pars1
             log_.info(f"stopping since parameters did not change in Δp1: {norm(Δp1)} ")
             break
 
         pars2 = update_pars(pars1, data, controller)
         Δp2 = pars2 - pars1
-        if norm(Δp2) < EPS: #or pars2.ll - pars1.ll < EPS:
+        if norm(Δp2) < controller.param_tol or pars2.ll - pars1.ll < controller.ll_tol:
             pars = pars2
             log_.info(
                 f"stopping since parameters did not change in Δp2: {norm(Δp2)}, {pars2.ll -pars1.ll} "

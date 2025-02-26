@@ -69,7 +69,6 @@ def run_admixslug(
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
 
-
     controller = SlugController(
         update_eb=est["est_error"],
         update_ftau=est["est_tau"],
@@ -107,14 +106,19 @@ def run_admixslug(
     logging.info("done loading data")
 
     data, sfs = SlugReads.load(
-        df, states=states, ancestral=ancestral, sex=sex, cont_id=cont_id, flip=True,
-        sex_chroms=sex_chroms
+        df,
+        states=states,
+        ancestral=ancestral,
+        sex=sex,
+        cont_id=cont_id,
+        flip=True,
+        sex_chroms=sex_chroms,
     )
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
     pars = squarem(pars, data, controller)
-    #pars = em(pars, data, controller)
+    # pars = em(pars, data, controller)
     gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
 
     if controller.n_resamples > 0 or output["output_fstats"]:
@@ -124,7 +128,7 @@ def run_admixslug(
         for i in range(controller.n_resamples):
             jk_data = data.jackknife_sample(i, controller.n_resamples)
             jk_pars = squarem(pars0, jk_data, controller)
-            #jk_pars = em(pars0, jk_data, controller)
+            # jk_pars = em(pars0, jk_data, controller)
             jk_pars_list.append(jk_pars)
 
             if output["output_jk_sfs"] or output["output_fstats"]:
@@ -153,16 +157,8 @@ def run_admixslug(
         df_f3 = write_f3_table(f3s, outname=f"{outname}.f3.jk.xz")
         df_f4 = write_f4_table(f4s, outname=f"{outname}.f4.jk.xz")
 
-        pis_data = pis.T.reset_index(drop=True)
-        pis = pd.DataFrame(
-            pis.T.reset_index()["index"].str.split("|").tolist(),
-            columns=["pop1", "pop2"],
-        )
-        pis.loc[pis.pop1 == "within", 'pop1'] = pis.pop2[pis.pop1 == "within"]
-        pis["is_between"] = pis.pop1 != pis.pop2
-        pis = pd.concat((pis, pis_data), axis=1)
-
         pis.to_csv(f"{outname}.pi.jk.xz", float_format="%.6f", index=False)
+
         pi_summary = summarize_pi(pis)
         pi_summary.to_csv(f"{outname}.pi.xz", float_format="%.6f", index=False)
 
@@ -234,7 +230,7 @@ def load_admixslug_data_native(
     deam_bin_size=20_000,
     len_bin_size=5000,
     autosomes_only=False,
-    sex_chroms=None
+    sex_chroms=[],
 ):
 
     data, ix = load_read_data(
