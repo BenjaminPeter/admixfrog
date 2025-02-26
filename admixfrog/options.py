@@ -853,6 +853,14 @@ def add_base_options_slug(P):
         default=None,
         help="Assumes diploid X chromosome. Default is guess from coverage",
     )
+    parser.add_argument(
+        "--chroms",
+        "--chromosome-files",
+        default="1-22,X",
+        help="""The chromosomes to be used in vcf-mode.
+        """,
+    )
+
 
 
 def add_filter_options(parser):
