@@ -18,6 +18,7 @@ def load_ref(
     autosomes_only=False,
     map_col="map",
     large_ref=True,
+    sex_chroms=["X", "Y", "Z", "W", "mt"],
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files
@@ -96,10 +97,7 @@ def load_ref(
     ref = ref.rename(D, axis=1).T.groupby(level=0).sum().T
 
     if autosomes_only:
-        ref = ref[ref.index.get_level_values("chrom") != "X"]
-        ref = ref[ref.index.get_level_values("chrom") != "Y"]
-        ref = ref[ref.index.get_level_values("chrom") != "mt"]
-
+        ref = ref[~ref.index.get_level_values("chrom").isin(sex_chroms)]
     return ref
 
 

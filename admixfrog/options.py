@@ -456,6 +456,13 @@ def add_ref_options(parser):
          - everything else is diploid
         """,
     )
+    parser.add_argument(
+        "--sex-chroms",
+        default="X,Y,Z,W",
+        help="""The chromosomes to be used as sex chromosomes. If not set, 
+         - chromsomes starting wth any of [XYZW] are sex chromosomes
+        """,
+    )
     g.add_argument("--force-ref", "--force-vcf", default=False, action="store_true")
 
 
@@ -851,13 +858,6 @@ def add_base_options_slug(P):
         "--chromosome-files",
         default="1-22,X",
         help="""The chromosomes to be used in vcf-mode.
-        """,
-    )
-    parser.add_argument(
-        "--sex-chroms",
-        default="X,Y,Z,W",
-        help="""The chromosomes to be used as sex chromosomes. If not set, 
-         - chromsomes starting wth any of [XYZW] are sex chromosomes
         """,
     )
 

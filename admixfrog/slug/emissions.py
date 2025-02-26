@@ -4,7 +4,7 @@ from math import lgamma, exp, pow
 from copy import deepcopy
 
 
-@njit
+@njit(cache=True)
 def p_gt_diploid(tau0, F0, SNP2SFS, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l})
 
@@ -41,7 +41,7 @@ def p_gt_diploid(tau0, F0, SNP2SFS, res=None):
     return res
 
 
-@njit
+@njit(cache=True)
 def p_gt_haploid(tau, SNP2SFS, res=None):
     """calculate Pr(G_l | F_{Z_l}, tau_{Z_l}) for haploid genotypes"""
     F0 = np.ones_like(tau)
@@ -60,7 +60,7 @@ def fwd_p_g(data, pars):
     return fwd_g
 
 
-@njit
+@njit(cache=True)
 def bwd_p_o_given_x(R, F, e, b):
     """Caluclate Pr(O | X, e, b)
 
@@ -92,7 +92,7 @@ def bwd_p_o_given_x(R, F, e, b):
     return res
 
 
-@njit
+@njit(cache=True)
 def bwd_p_one_o_given_g(bwd_x, fwd_a, fwd_c, READ2SNP, READ2RG, n_reads):
     """calculate Pr(O_i | G )
 
@@ -135,7 +135,7 @@ def bwd_p_one_o_given_g(bwd_x, fwd_a, fwd_c, READ2SNP, READ2RG, n_reads):
     return bwd_g
 
 
-@njit
+@njit(cache=True)
 def bwd_p_all_o_given_g(bwd_g1, READ2SNP, n_snps):
     """
     calculate  ℙ(O_l | G_l) = ∏_r ∏_j ℙ(O_lrj | G_l)
@@ -151,7 +151,7 @@ def bwd_p_all_o_given_g(bwd_g1, READ2SNP, n_snps):
     return bwd_g
 
 
-@njit
+@njit(cache=True)
 def fwd_p_x_cont(psi, READ2SNP):
     """fwd_p_x_cont calculate Pr(X | C=1, psi)
 
@@ -173,14 +173,14 @@ def fwd_p_x_cont(psi, READ2SNP):
     return res
 
 
-@njit
+@njit(cache=True)
 def fwd_p_x_nocont(fwd_g, READ2SNP):
     """Pr(X_i=j | C=0, G_l)"""
     M = np.array([[1.0, 0.5, 0.0], [0.0, 0.5, 1.0]]).T  # P(X=x | G=j)
     return fwd_g[READ2SNP] @ M
 
 
-# @njit
+@njit(cache=True)
 def fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, READ2RG):
     """Forward probability Pr(X_{lrj} = 1 | G_l, c_lr, a_lr)
 
@@ -234,7 +234,7 @@ def full_posterior_genotypes(data, pars):
     return bwd_g, posterior_g(bwd_g, fwd_g)
 
 
-@njit
+@njit(cache=True)
 def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
     """calculate Pr(C | O) = Pr(C, O) / Pr (O)
     with Pr(C, O)  = Σ_X  Pr(O | X) Pr(X | C) Pr(C)
@@ -252,19 +252,16 @@ def posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, READ2RG):
 
 
 def calc_full_ll(data, pars):
-    fwd_a = data.psi  # size [L x 1]
-    fwd_c = pars.cont  # size [O x 1]
     fwd_g = fwd_p_g(data, pars)
-    fwd_x_cont = fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [R x 1]
-    fwd_x_nocont = fwd_p_x_nocont(fwd_g, data.READ2SNP)  # size [R x 1]
-    fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
-    bwd_x = bwd_p_o_given_x(
-        data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b
-    )  # Pr(O_lrj | G_lrj)
-    ll2 = calc_ll(fwd_x, bwd_x)
+    bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, pars.e, pars.b)
+    bwd_g1 = bwd_p_one_o_given_g(
+        bwd_x, data.psi, pars.cont, data.READ2SNP, data.READ2RG, data.n_reads
+    )
+    bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
+    ll2 = calc_ll(fwd_g, bwd_g)
     return ll2
 
 
-def calc_ll(fwd_x, bwd_x):
-    ll = np.sum(np.log(np.sum(fwd_x * bwd_x, 1)))
+def calc_ll(fwd_g, bwd_g):
+    ll = np.sum(np.log(np.sum(fwd_g * bwd_g, 1)))
     return ll

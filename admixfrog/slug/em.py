@@ -1,4 +1,3 @@
-from numba import njit
 from scipy.optimize import minimize
 import numpy as np
 from copy import deepcopy
@@ -197,6 +196,7 @@ def update_pars(pars, data, controller):
                 L x 1 vector, with entry (i) giving P(G_i=1 | contaminant)
     """
     fwd_g = fwd_p_g(data, pars)
+
     fwd_a = data.psi  # size [L x 1]
     fwd_c = pars.cont  # size [O x 1]
 
