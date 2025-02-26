@@ -9,7 +9,6 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
 
     freqs, pops = sfs_to_freq(sfs)
 
-    breakpoint()
 
     f2s, f3s, f4s = [], [], []
     if pop_list is not None:  # only calc subset of stats
@@ -78,7 +77,6 @@ def sfs_to_freq(sfs):
     by default, alt allele frequency is calculated, ref_freq gives inverse
     """
 
-    breakpoint()
 
     sfs = deepcopy(sfs)
     pops = [p[:-4] for p in sfs.columns if p.endswith("_der")]
@@ -127,7 +125,7 @@ def f_jk_sd(stat="f3"):
 
 def freq_to_pi(freqs, pops, name="XXX"):
     df = pd.DataFrame()
-    fg = freqs.groupby(["rep", "is_sex_chrom"])
+    fg = freqs.groupby(["rep", "sex_chrom"])
 
     for p1, p2 in itertools.combinations(pops, 2):
         df[f"{p1}|{p2}"] = fg.apply(f_calc_pi(p1, p2), include_groups=False)
@@ -202,7 +200,7 @@ def single_f4(pis, A, B, C, D):
 
 
 def summarize_f2(df):
-    cols = ["is_sex_chrom", "A", "B", "f2", "sd"]
+    cols = ["sex_chrom", "A", "B", "f2", "sd"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f2s = summarize_f(
@@ -217,7 +215,7 @@ def summarize_f2(df):
 
 
 def summarize_f3(df):
-    cols = ["is_sex_chrom", "X", "A", "B", "f3", "sd"]
+    cols = ["sex_chrom", "X", "A", "B", "f3", "sd"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f3s = summarize_f(df, stat="f3", pops=["X", "A", "B"])
@@ -231,7 +229,7 @@ def summarize_pi(pis):
 
 
 def summarize_f4(df):
-    cols = ["is_sex_chrom", "A", "B", "C", "D", "f4", "sd"]
+    cols = ["sex_chrom", "A", "B", "C", "D", "f4", "sd"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f4s = summarize_f(df, stat="f4", pops=["A", "B", "C", "D"])
@@ -239,7 +237,7 @@ def summarize_f4(df):
 
 
 def summarize_f(df, stat, pops):
-    fg = df.groupby(["is_sex_chrom", *pops])
+    fg = df.groupby(["sex_chrom", *pops])
     m = fg[stat].mean()
     m.name = stat
     sd = fg.apply(f_jk_sd(stat), include_groups=False)

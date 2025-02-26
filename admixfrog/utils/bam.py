@@ -94,7 +94,6 @@ class AdmixfrogInput(pg.ExtCoverage):
                 # lib = f"{rg}_{len_}_{deam}"
                 lib = f"{rg}_{len_}_{deam}"
             if self.report_alleles:
-                # breakpoint()
                 alleles = "".join(sorted(snp.ref + snp.alt))
                 lib = f"{lib}_{alleles}"
             print(

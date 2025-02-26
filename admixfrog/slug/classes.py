@@ -258,7 +258,6 @@ class SlugReads:
 
     def jackknife_sample(self, i, n_samples=20):
         """returns jackknife-sample i out of n_samples"""
-        # sfs.is_sex_chrom[SNP2SFS]
         RSLICE = np.ones(self.n_reads, bool)
         lsp = np.linspace(0, self.n_reads, n_samples + 1, dtype=int)
         RSLICE[lsp[i] : lsp[i + 1]] = 0

@@ -386,7 +386,7 @@ def obs2sfs(snp, flipped, states, max_states=None, sex_chroms=["Z", "W", "X", "Y
     snp.reset_index(drop=True, inplace=True)
     sfs = pd.DataFrame()
     if sex_chroms is not None:
-        sfs["is_sex_chr"] = snp["chrom"].isin(sex_chroms)
+        sfs['sex_chrom'] = np.where(snp['chrom'].isin(sex_chroms), 'sex', 'autosome')
 
     """polarize all input data"""
     for s in states:
