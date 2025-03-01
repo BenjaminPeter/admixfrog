@@ -6,7 +6,7 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
-\author{Benjamin Peter, Arev}
+\author{Benjamin Peter, Arev Sümer}
 
 \newcommand{\BE}[1]{\mathbb{E}\left[#1\right]}
 \newcommand{\BFZ}{\mathbf{Z}}
@@ -27,7 +27,7 @@ Finally, we assume that for each SNP we have zero or more reads sampled from $R$
 
 
 	
-	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination and error rate for each read group, the substructure in each source $\tau_k$, and the average drift since admixture from each source $F_k$. 
+	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the contamination rate ($c_r$), error rate ($e), and the reference bias ($b$) for each read group, the substructure in each source $\tau_k$, and the average drift since admixture from each source $F_k$. 
 \section*{Notation overview}
 	To summarize, the notation is as follows: 
 	\begin{itemize}
@@ -117,27 +117,13 @@ P(C_{lri} = 1 | c_r) &= c_r
 \end{align}
 independent of the locus.
 
-\subsection*{Genotype likelihoods}
-The genotype likelihood for locus $l$ can be written as $P(O_l | G_l) = \prod_{rj} P(O_{lrj} | G_l)$, where the product is over all reads aligning to this locus (double indexing because we multiply over all read-groups (indexed by $r$) and all reads per read-group (indicated by $j$).
-
-
-The backwards probabilities 
-\begin{equation}
-P(O_{lrj} | G_l) = P(O | C_{lrj}=1)c_{lrj} + P(O | G_l, C_{lrj}=0)(1 - c_{lrj})
-\end{equation}
-where 
-\begin{equation*}
- P(O | C_{lrj}=1) = \begin{cases}
-\psi_l &\text{ if } O=1\\ (1-\psi_l) &\text{ if } O=0
- \end{cases}
-\end{equation*}
 
 \subsection*{Genotype model}
 We estimate the genotype given the conditional-SFS entry $Z_l=k$, $F_k$ is the probability that both alleles are IBD, and $\tau_k$ is the probability that the individual has a derived allele at position $k$
 Thus
 \begin{align}
 P(G_l = 0| Z_l=k, \tau_k, F_k) &= F_k (1-\tau_k) + (1-F_k) (1-\tau_k)^2\nonumber\\
-P(G_l = 1| Z_l=k, \tau_k, F_k) &= 2(1-F_k) \tau(1-\tau_k)\nonumber\\
+P(G_l = 1| Z_l=k, \tau_k, F_k) &= 2(1-F_k) \tau_k(1-\tau_k)\nonumber\\
 P(G_l = 2| Z_l=k, \tau_k, F_k) &= F_k \tau_k + (1-F_k) \tau_k^2\label{eq:prg}
 \end{align}
 
@@ -166,7 +152,7 @@ This is implemented in \texttt{p\_gt\_diploid} and tested in \texttt{tests/test\
 
 
 \subsection*{Likelihood}
-We observe the data $\mathbf{O}$, and we know the parameters $\theta = (\tau_k, F_k, c_r, e,b)$, the 
+We observe the data $\mathbf{O}$, we provide initial values (and later estimate values using an EM algorithm) for the parameters $\theta = (\tau_k, F_k, c_r, e,b)$, and we know the 
 contamination panel $\psi$ and the conditional SFS $\mathbf{Z}$. The variables
 $C_r, X_{lri}$ and $G_l$ are latent variables we need to sum over.
 \begin{align}
@@ -177,16 +163,16 @@ P(\mathbf{O} | \theta, \psi, \mathbf{Z}) &=
 \subsection*{Forward Probabilities}
 \paragraph{Read probabilities}
 \begin{align*}
- P(X_{lrj} | G_l, C_r, \psi_l) &=  P(X_{lrj} | C=0) Pr( C=0) +  \sum P(X_{lrj} | C=1) Pr(C=1) \\
- P(X_{lrj} | C=0) &= \sum_{g=0}^2 P(X_{lrj} | G_{lrj}=g)P(G_l=g | Z_l) \frac{ P(O_l | G_l=g)} {P(O_{lrj} | G_l=g) } 
+ P(X_{lrj} | G_l, C_r, \psi_l) &=  P(X_{lrj} | C=0) Pr( C=0) + P(X_{lrj} | C=1) Pr(C=1) \\
+ P(X_{lrj} | C=0) &= \sum_{g=0}^2 P(X_{lrj} | G_{lrj}=g)P(G_l=g | Z_l) 
 \end{align*}
-the ratio in the last equation is the probability of all other observations given the genotype
+where $g$ is all possible genotypes.
 
 \subsection*{Backward Probabilities}
 Calculate the probability of all observations given a genotype (interpreted as function of the genotype $G_l = 0,1,2$
 \begin{align*}
 P(O_{l} | G_l) &= \prod_{rj} P(O_{lrj} | G_l)\\
-P(O_{lrj} | G_l) &= \sum_a P(O_{lrj}|X_{lrj}=a)  P(X_{lrj}=a | G_l, C_r, \psi_l)\\
+P(O_{lrj} | G_l) &= \sum_x P(O_{lrj}|X_{lrj}=x)  P(X_{lrj}=x | G_l, C_r, \psi_l)\\
 P(X_{lrj} | G_l, C_r, \psi_l) &= P(X_{lrj} | C_{lrj}=0)P(C_{lrj}=0)  + P(X_{lrj} | \psi_l, C_{lrj}=1)P(C_{lrj}=1)]
 \end{align*}
 
@@ -200,8 +186,8 @@ The probability that read $X_{lrj}$ carries a derived allele
 $$P(X_{lrj} | O) \propto P(X_{lrj} | C, G, Z, \psi) P(O_{lrj} | X_{lrj})$$
 \paragraph{Posterior Contamination}
 Calculate the posterior probability that read $rij$ is contamination
-$$P(C_{rij})  = \frac{\sum_a P(X=a|C_r=1) P(O|X=a) P(C_r=1)}{\sum_i \big[ P(X=a|C=1) P(O|X=a)P(C_r=1) +  P(X=a|C=0) P(O|X=ia)P(C_r=0)\big]}$$
-where $a=0,1$
+$$P(C_{rij})  = \frac{\sum_x P(X=a|C_r=1) P(O|X=x) P(C_r=1)}{\sum_i \big[ P(X=x|C=1) P(O|X=x)P(C_r=1) +  P(X=x|C=0) P(O|X=ix)P(C_r=0)\big]}$$
+where $x=0,1$, the states X can have.
 
 \subsection*{Parameter estimation}
 We estimate parameters using the complete-data log-likelihood using an EM-algorithm.
@@ -223,7 +209,7 @@ Q(\theta | \theta') &= \mathbb{E}\big[\log P(\mathbf{O}, \mathbf{X}, \mathbf{C},
 
 
 \subsubsection*{Estimating $e$ and $b$}
-Let $n_{a,b,c}$ be the number of reads where $O_{lri}=0, X_{lri}=b, W_l=c$
+Let $n_{a,b,c}$ be the number of reads where $O_{lri}=a, X_{lri}=b, W_l=c$
 \begin{align*}
 \hat{e} & = \frac{n_{1,0,0} + n_{1,1,1}}{n_{1,0,0} + n_{1,1,1} + n_{0,0,0} +n_{0, 1, 1}}\\
 \hat{b} & = \frac{n_{0,1,0} + n_{0, 0,1}}{n_{0, 1, 0} + n_{0, 0, 1} + n_{1, 1, 0} +n_{1, 0, 1}}
