@@ -251,6 +251,6 @@ def summarize_f(df, stat, pops):
     sd = fg.apply(f_jk_sd(stat), include_groups=False)
     sd.name = "sd"
     sterr = fg.apply(f_jk_sterr(stat), include_groups=False)
-    sterr.name = "sderr"
+    sterr.name = "sterr"
 
     return pd.concat((m, sd, sterr), axis=1).reset_index(drop=False)
