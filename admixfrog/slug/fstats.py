@@ -123,6 +123,13 @@ def f_jk_sd(stat="f3"):
 
     return f
 
+def f_jk_sterr(stat="f3"):
+    def f(df):
+        n = df.shape[0]
+        m = np.mean(df[stat])
+        return np.sqrt((n - 1) / n * np.sum((m - df[stat]) ** 2)) / np.sqrt(n)
+
+    return f
 
 def freq_to_pi(freqs, pops, name="XXX"):
     df = pd.DataFrame()
@@ -243,5 +250,7 @@ def summarize_f(df, stat, pops):
     m.name = stat
     sd = fg.apply(f_jk_sd(stat), include_groups=False)
     sd.name = "sd"
+    sterr = fg.apply(f_jk_sterr(stat), include_groups=False)
+    sterr.name = "sderr"
 
-    return pd.concat((m, sd), axis=1).reset_index(drop=False)
+    return pd.concat((m, sd, sterr), axis=1).reset_index(drop=False)
