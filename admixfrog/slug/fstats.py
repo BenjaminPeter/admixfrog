@@ -149,17 +149,17 @@ def freq_to_pi(freqs, pops, name="XXX"):
 
     return df
 
-
+# as in Peter 2016, equation 17
 def single_f2(pis, A, B):
-    f2 = 2 * pis[f"{A}|{B}"] - pis[f"within|{A}"] - pis[f"within|{B}"]
+    f2 = pis[f"{A}|{B}"] - (pis[f"within|{A}"]/2) - (pis[f"within|{B}"]/2)
     f2.name = "f2"
     f2 = pd.DataFrame(f2)
     f2["A"], f2["B"] = A, B
     return f2
 
-
+# as in Peter 2016, equation 20b
 def single_f3(pis, X, A, B):
-    f3 = pis[f"{X}|{A}"] + pis[f"{X}|{B}"] - pis[f"{A}|{B}"] - pis[f"within|{X}"]
+    f3 = (pis[f"{X}|{A}"] + pis[f"{X}|{B}"] - pis[f"{A}|{B}"] - pis[f"within|{X}"])/2
     f3.name = "f3"
     f3 = pd.DataFrame(f3)
     f3["X"], f3["A"], f3["B"] = X, A, B
@@ -198,9 +198,9 @@ def single_f4_permuted(*args):
     f4_full.set_index(f4.index.names, inplace=True)
     return f4_full
 
-
+# as in Peter 2016, equation 24b
 def single_f4(pis, A, B, C, D):
-    f4 = pis[f"{A}|{D}"] + pis[f"{B}|{C}"] - pis[f"{A}|{C}"] - pis[f"{B}|{D}"]
+    f4 = (pis[f"{A}|{D}"] + pis[f"{B}|{C}"] - pis[f"{A}|{C}"] - pis[f"{B}|{D}"])/2
     f4.name = "f4"
     f4 = pd.DataFrame(f4)
     f4["A"], f4["B"], f4["C"], f4["D"] = A, B, C, D
