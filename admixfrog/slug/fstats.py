@@ -127,7 +127,7 @@ def f_jk_sterr(stat="f3"):
     def f(df):
         n = df.shape[0]
         m = np.mean(df[stat])
-        return np.sqrt((n - 1) / n * np.sum((m - df[stat]) ** 2)) / np.sqrt(n)
+        return np.sqrt(np.sqrt((n - 1) / n * np.sum((m - df[stat]) ** 2)))
 
     return f
 
