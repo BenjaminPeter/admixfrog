@@ -5,7 +5,6 @@ packages = \
 ['admixfrog',
  'admixfrog.frog',
  'admixfrog.gll',
- 'admixfrog.old',
  'admixfrog.slug',
  'admixfrog.utils',
  'admixfrog.utils.pgdirect']
