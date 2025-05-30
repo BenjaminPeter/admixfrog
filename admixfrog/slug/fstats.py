@@ -201,7 +201,7 @@ def single_f4(pis, A, B, C, D):
 
 
 def summarize_f2(df):
-    cols = ["sex_chrom", "A", "B", "f2", "sd"]
+    cols = ["sex_chrom", "A", "B", "f2", "sterr"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f2s = summarize_f(
@@ -216,7 +216,7 @@ def summarize_f2(df):
 
 
 def summarize_f3(df):
-    cols = ["sex_chrom", "X", "A", "B", "f3", "sd"]
+    cols = ["sex_chrom", "X", "A", "B", "f3", "sterr"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f3s = summarize_f(df, stat="f3", pops=["X", "A", "B"])
