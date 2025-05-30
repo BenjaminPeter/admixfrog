@@ -230,7 +230,7 @@ def summarize_pi(pis):
 
 
 def summarize_f4(df):
-    cols = ["sex_chrom", "A", "B", "C", "D", "f4", "sd", "sterr"]
+    cols = ["sex_chrom", "A", "B", "C", "D", "f4", "sterr"]
     if len(df) == 0:  # empty case
         return pd.DataFrame(columns=cols)
     f4s = summarize_f(df, stat="f4", pops=["A", "B", "C", "D"])
