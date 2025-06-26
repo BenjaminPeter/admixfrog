@@ -300,6 +300,7 @@ def load_admixfrog_data(
     bin_reads=False,
     deam_bin_size=100000,
     len_bin_size=10000,
+    sex_chroms="X,Y,Z,W",
 ):
     """
     we have the following possible input files
@@ -328,7 +329,13 @@ def load_admixfrog_data(
 
         # load reference first
         ref = load_ref(
-            ref_files, states, cont_id, ancestral, autosomes_only, map_col=map_col
+            ref_files,
+            states,
+            cont_id,
+            ancestral,
+            autosomes_only,
+            map_col=map_col,
+            sex_chroms=sex_chroms,
         )
         ref = filter_ref(ref, states, ancestral=ancestral, **filter)
 
@@ -442,7 +449,7 @@ def run_admixfrog(
     ancestral=None,
     ancestral_prior=0,
     sex=None,
-    haplo_chroms = None,
+    haplo_chroms=None,
     pos_mode=False,
     autosomes_only=False,
     map_col="map",
@@ -460,6 +467,7 @@ def run_admixfrog(
     bin_reads=False,
     deam_bin_size=50000,
     len_bin_size=1000,
+    sex_chroms="X,Y,Z,W",
     **kwargs,
 ):
     """admixture fragment inference
@@ -512,12 +520,14 @@ def run_admixfrog(
         bin_reads=bin_reads,
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
+        sex_chroms=sex_chroms,
     )
 
     logging.info("done loading data")
 
-    bins, IX = bins_from_bed(df, bin_size=bin_size, sex=sex, snp_mode=snp_mode,
-                             haplo_chroms=haplo_chroms)
+    bins, IX = bins_from_bed(
+        df, bin_size=bin_size, sex=sex, snp_mode=snp_mode, haplo_chroms=haplo_chroms
+    )
     logging.info("done creating bins")
 
     P = data2probs(

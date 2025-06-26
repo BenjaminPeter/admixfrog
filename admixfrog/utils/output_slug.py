@@ -10,6 +10,7 @@ import itertools
 from .utils import posterior_table, posterior_table_slug
 
 import warnings
+
 warnings.filterwarnings("error")
 
 """reading and writing files"""
@@ -152,15 +153,22 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     return sfs_df
 
 
+def write_f2_table(df, outname=None):
+    df = df[["A", "B", "f2", "rep", "sex_chrom"]]
+    if outname is not None:
+        df.to_csv(outname, float_format="%.6f", index=False)
+    return df
+
+
 def write_f3_table(df, outname=None):
-    df = df[["X", "A", "B", "f3", "rep"]]
+    df = df[["X", "A", "B", "f3", "rep", "sex_chrom"]]
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False)
     return df
 
 
 def write_f4_table(df, outname=None):
-    df = df[["A", "B", "C", "D", "f4", "rep"]]
+    df = df[["A", "B", "C", "D", "f4", "rep", "sex_chrom"]]
     if outname is not None:
         df.to_csv(outname, float_format="%.6f", index=False)
     return df

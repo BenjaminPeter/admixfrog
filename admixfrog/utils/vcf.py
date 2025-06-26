@@ -7,21 +7,9 @@ from collections import defaultdict
 import pandas as pd
 import yaml
 from pprint import pprint, pformat
+from .utils import parse_chroms
 
 EXT = "ref", "alt"
-
-
-def parse_chroms(arg):
-    if arg is None:
-        return None
-    chroms = []
-    for s in arg.split(","):
-        if "-" in s:
-            a, b = s.split("-")
-            chroms.extend([str(s) for s in range(int(a), int(b) + 1)])
-        else:
-            chroms.append(s)
-    return chroms
 
 
 def load_pop_file(pop_file=None, pops=None):

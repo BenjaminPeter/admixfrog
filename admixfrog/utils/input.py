@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import itertools
 
-from .utils import posterior_table, posterior_table_slug
+from .utils import posterior_table, posterior_table_slug, parse_chroms
 
 
 def load_ref(
@@ -18,6 +18,7 @@ def load_ref(
     autosomes_only=False,
     map_col="map",
     large_ref=True,
+    sex_chroms=["X", "Y", "Z", "W", "mt"],
 ):
     """loads reference in custom (csv) format
     ref_files: paths to files
@@ -96,11 +97,9 @@ def load_ref(
     ref = ref.rename(D, axis=1).T.groupby(level=0).sum().T
 
     if autosomes_only:
-        ref = ref[ref.index.get_level_values("chrom") != "X"]
-        ref = ref[ref.index.get_level_values("chrom") != "Y"]
-        ref = ref[ref.index.get_level_values("chrom") != "mt"]
-
-
+        if type(sex_chroms) is not list:
+            sex_chroms = parse_chroms(sex_chroms)
+        ref = ref[~ref.index.get_level_values("chrom").isin(sex_chroms)]
     return ref
 
 
@@ -264,7 +263,9 @@ def load_read_data(
         - len_bin: bin id for length (max 256 bins)
         - n_bin/n_exact (number of reads in each bin) or each category
     """
-    dtype_mandatory = dict(chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8)
+    dtype_mandatory = dict(
+        chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8
+    )
 
     dtype_optional = dict(
         lib=str, rg=str, score=int, deam=np.int16, len=np.uint8, dmgpos=bool

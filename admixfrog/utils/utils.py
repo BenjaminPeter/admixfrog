@@ -3,7 +3,6 @@ from collections import namedtuple, defaultdict, Counter
 import numpy as np
 import pandas as pd
 import yaml
-from .vcf import parse_chroms
 
 from numba import njit
 from scipy.linalg import expm
@@ -204,14 +203,13 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False, haplo_chroms=None):
     chroms = pd.unique(snp.chrom)
     n_snps = len(snp.snp_id.unique())
 
-
     if haplo_chroms is not None:
         haplo_chroms = parse_chroms(haplo_chroms)
         haplo_chroms = [c for c in chroms if c in haplo_chroms]
         diplo_chroms = [c for c in chroms if c not in haplo_chroms]
     else:
         haplo_chroms, diplo_chroms = [], []
-        
+
         if sex is None:
             diplo_chroms = chroms
         else:
@@ -361,85 +359,56 @@ def get_haploid_stuff(snp, chroms, sex):
     return haplo_chroms, haploid_snps
 
 
-def make_obs2sfs(snp_states, max_states=None, states=None):
-    # create dict [sfs] - > column
-    if max_states is None:
-        sfs = snp_states.reset_index(drop=True).drop_duplicates().reset_index(drop=True)
-        data = snp_states
-    else:
-        data = pd.DataFrame()
-        for s in states:
-            freq = snp_states[f"{s}_alt"] / (
-                snp_states[f"{s}_alt"] + snp_states[f"{s}_ref"]
-            )
-            freq = np.nan_to_num(freq)
-            m = np.max((snp_states[f"{s}_alt"] + snp_states[f"{s}_ref"]))
-            m = min((m, max_states))
-            freq = np.round(freq * m).astype(np.uint8)
-            data[f"{s}_alt"], data[f"{s}_ref"] = freq, m - freq
-            sfs = data.drop_duplicates().reset_index(drop=True)
-
-    sfs_dict = dict((tuple(v.values()), k) for (k, v) in sfs.to_dict("index").items())
-    data = np.array(data)
-    SNP2SFS = np.array([sfs_dict[tuple(i)] for i in data], dtype=np.uint16)
-
-    return sfs, SNP2SFS
+def make_flipped(snp, anc_ref, anc_alt):
+    FLIPPED = (snp[anc_ref] == 0) & (snp[anc_alt] > 0)
+    return FLIPPED.to_numpy()
 
 
-def make_obs2sfs_folded(snp, ix_normal, anc_ref, anc_alt, max_states=None, states=None):
+def polarize(snp, pop, flipped):
+    sfs = pd.DataFrame()
+    sfs[f"{pop}_anc"] = snp[f"{pop}_ref"]
+    sfs[f"{pop}_der"] = snp[f"{pop}_alt"]
+    sfs.loc[flipped, f"{pop}_anc"] = snp.loc[flipped, f"{pop}_alt"]
+    sfs.loc[flipped, f"{pop}_der"] = snp.loc[flipped, f"{pop}_ref"]
+    return sfs
+
+
+def obs2sfs(snp, flipped, states, max_states=None, sex_chroms=["Z", "W", "X", "Y"]):
     """create sfs data structure taking ancestral allele into account
 
     basic strat
-    1. create FLIPPED, which is true for SNP that need to be flipped, i.e.
-        the ancestral allele is the alt-allele
-    2. make dict[state] : index for all possible indices
-    4. use dict to create SNP2SFS
+    1. make dict[state] : index for all possible indices
+    2. use dict to create SNP2SFS
 
 
     """
 
-    """1. create FLIPPED, which is true for SNP that need to be flipped"""
-    FLIPPED = (snp[anc_ref] == 0) & (snp[anc_alt] > 0)
-    FLIPPED.reset_index(drop=True, inplace=True)
     snp.reset_index(drop=True, inplace=True)
+    sfs = pd.DataFrame()
+    if sex_chroms is not None:
+        sfs['sex_chrom'] = np.where(snp['chrom'].isin(sex_chroms), 'sex', 'autosome')
 
-    """2. make data1, data2 which are flipped/non-flipped data"""
-    data1 = pd.DataFrame()
-    data2 = pd.DataFrame()
+    """polarize all input data"""
     for s in states:
-        data1[s] = snp.loc[~FLIPPED, f"{s}_alt"] / (
-            snp.loc[~FLIPPED, f"{s}_alt"] + snp.loc[~FLIPPED, f"{s}_ref"]
-        )
-        data2[s] = snp.loc[FLIPPED, f"{s}_ref"] / (
-            snp.loc[FLIPPED, f"{s}_alt"] + snp.loc[FLIPPED, f"{s}_ref"]
-        )
-        data1[s] = np.nan_to_num(data1[s])
-        data2[s] = np.nan_to_num(data2[s])
-        m = np.max((snp[f"{s}_alt"] + snp[f"{s}_ref"]))
-        m = m if max_states is None else min((m, max_states))
-        data1[s] = np.round(data1[s] * m).astype(np.uint8)
-        data2[s] = np.round(data2[s] * m).astype(np.uint8)
+        pol1 = polarize(snp, s, flipped)
+        sfs = pd.concat((sfs, pol1), axis=1)
 
-        data1[f"{s}_alt"], data1[f"{s}_ref"] = data1[s], m - data1[s]
-        data2[f"{s}_alt"], data2[f"{s}_ref"] = data2[s], m - data2[s]
-        del data1[s], data2[s]
-
-    data = pd.DataFrame(
-        np.vstack((data1.to_numpy(), data2.to_numpy())), columns=data1.columns
+    sfs_rows = sfs.drop_duplicates().reset_index(drop=True)
+    sfs_dict = dict(
+        (tuple(v.values()), k) for (k, v) in sfs_rows.to_dict("index").items()
     )
-    data[~FLIPPED] = data1
-    data[FLIPPED] = data2
-    sfs = data.drop_duplicates().reset_index(drop=True)
-    sfs_dict = dict((tuple(v.values()), k) for (k, v) in sfs.to_dict("index").items())
-    data = np.array(data)
-    """4. use dicts to create SNP2SFS"""
-    SNP2SFS = np.array([sfs_dict[tuple(i)] for i in data], dtype=np.uint16)
+    """use dicts to create SNP2SFS"""
+    SNP2SFS = np.array([sfs_dict[tuple(i)] for i in sfs.to_numpy()], dtype=np.uint16)
 
-    return sfs, SNP2SFS, FLIPPED
+    return sfs_rows, SNP2SFS
 
 
 @njit
-def make_full_df(df, n_reads):
+def make_full_read_df(df, n_reads):
+    """generate vectors relating read groups to allele they carry, read group and snp
+
+    returns vectors of length n_reads
+    """
     READS = np.empty(n_reads, np.uint8)
     READ2RG = np.empty(n_reads, np.uint32)
     READ2SNP = np.empty(n_reads, np.uint32)
@@ -458,7 +427,6 @@ def make_full_df(df, n_reads):
             i += 1
 
     return READS, READ2RG, READ2SNP
-
 
 
 def init_ftau(n_states, F0=0.5, tau0=0):
@@ -489,7 +457,6 @@ def init_ce(c0=0.01, e0=0.001):
     cont = defaultdict(lambda: c0)
     error = defaultdict(lambda: e0)
     return cont, error
-
 
 
 def trans_mat_hap_to_dip(tmat):
@@ -721,3 +688,16 @@ def scale_mat3d(M):
     assert np.allclose(np.max(M, (1, 2)), 1)
     log_scaling = np.sum(np.log(scaling))
     return log_scaling
+
+
+def parse_chroms(arg):
+    if arg is None:
+        return None
+    chroms = []
+    for s in arg.split(","):
+        if "-" in s:
+            a, b = s.split("-")
+            chroms.extend([str(s) for s in range(int(a), int(b) + 1)])
+        else:
+            chroms.append(s)
+    return chroms
