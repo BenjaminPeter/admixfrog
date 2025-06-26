@@ -415,6 +415,7 @@ def add_ref_options(parser):
         If file is split by chromosome, use {CHROM} as 
         wildcards where the chromosome id will be included
         """,
+        default = None
     )
     g.add_argument(
         "--rec-rate",
