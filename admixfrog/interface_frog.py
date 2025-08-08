@@ -40,7 +40,8 @@ def do_rle():
     import pandas as pd
 
     dtype_ = dict(chrom="category")
-    data = pd.read_csv(args.target_file, dtype=dtype_)
+    breakpoint()
+    data = pd.read_csv(args.target_file, dtype=dtype_, low_memory=False)
     states = list(data.columns)[7:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
     homo = States(homo)
