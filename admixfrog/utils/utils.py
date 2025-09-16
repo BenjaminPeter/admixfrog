@@ -230,9 +230,9 @@ def bins_from_bed(df, bin_size, sex=None, snp_mode=False, haplo_chroms=None):
 
     bin_loc = []
     bin0 = 0
-
+    # chrom could start with "chr", e.g. hg38 based analysis
     dtype_bin = np.dtype(
-        [("chrom", "U2"), ("map", float), ("pos", int), ("id", int), ("haploid", bool)]
+        [("chrom", "U5"), ("map", float), ("pos", int), ("id", int), ("haploid", bool)]
     )
 
     IX.bin_sizes = []
