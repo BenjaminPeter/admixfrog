@@ -6,7 +6,7 @@ from pprint import pprint
 from collections import Counter, defaultdict
 from copy import deepcopy
 from ..gll.read_emissions2 import p_snps_given_gt
-from ..utils.input import load_read_data, load_ref, filter_ref
+from ..utils.input import load_read_data, load_ref, filter_ref, load_gt_data
 from ..utils.output import write_pars_table
 from ..utils.output_slug import write_snp_table_slug, write_cont_table_slug
 from ..utils.output_slug import write_sfs2, write_vcf
@@ -61,9 +61,11 @@ def run_admixslug(
     jk_resamples=0,
     target="admixslug",
     sex_chroms=None,
+    gt_mode = False,
     **kwargs,
 ):
     """contamination estimation using sfs"""
+
 
     # numpy config
     np.set_printoptions(suppress=True, precision=4)
@@ -79,6 +81,7 @@ def run_admixslug(
         ll_tol=ll_tol,
         param_tol=ptol,
         n_resamples=jk_resamples,
+        gt_mode = gt_mode,
     )
 
     if not est["est_contamination"] and init["c0"] == 0:
@@ -102,18 +105,31 @@ def run_admixslug(
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
         autosomes_only=autosomes_only,
+        gt_mode=gt_mode
     )
     logging.info("done loading data")
 
-    data, sfs = SlugReads.load(
-        df,
-        states=states,
-        ancestral=ancestral,
-        sex=sex,
-        cont_id=cont_id,
-        flip=True,
-        sex_chroms=sex_chroms,
-    )
+    if gt_mode:
+        data, sfs = SlugReads.load_gt(
+            df,
+            states=states,
+            ancestral=ancestral,
+            sex=sex,
+            flip=True,
+            sex_chroms=sex_chroms,
+        )
+
+    else:
+        data, sfs = SlugReads.load(
+            df,
+            states=states,
+            ancestral=ancestral,
+            sex=sex,
+            cont_id=cont_id,
+            flip=True,
+            sex_chroms=sex_chroms,
+        )
+
 
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
@@ -231,18 +247,25 @@ def load_admixslug_data_native(
     deam_bin_size=20_000,
     len_bin_size=5000,
     autosomes_only=False,
+    gt_mode = False,
     sex_chroms=[],
 ):
 
-    data, ix = load_read_data(
-        target_file,
-        split_lib,
-        downsample,
-        deam_bin_size=deam_bin_size,
-        len_bin_size=len_bin_size,
-        high_cov_filter=filter.pop("filter_high_cov"),
-        make_bins=True,
-    )
+    if gt_mode:
+        data = load_gt_data(target_file)
+        data['rg'] = 'GT'
+        data.set_index('rg', append=True, inplace=True)
+        ix = None
+    else:
+        data, ix = load_read_data(
+            target_file,
+            split_lib,
+            downsample,
+            deam_bin_size=deam_bin_size,
+            len_bin_size=len_bin_size,
+            high_cov_filter=filter.pop("filter_high_cov"),
+            make_bins=True,
+        )
 
     ref = load_ref(
         ref_files,
@@ -262,9 +285,14 @@ def load_admixslug_data_native(
 
     n_sites = ref.shape[0]
 
+
     # workaround a pandas join bug
     df = ref.join(data, how="inner")
-    df = make_snp_ids(df)
+    if gt_mode:
+        df['snp_id'] = np.arange(df.shape[0])
+        df.set_index('snp_id', append=True)
+    else:
+        df = make_snp_ids(df)
 
     # sexing stuff
     if sex is None:

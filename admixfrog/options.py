@@ -76,6 +76,7 @@ ALGORITHM_OPTIONS_SLUG = [
     "jk_resamples" "deam_bin_size",
     "len_bin_size",
     "bin_reads",
+    "gt_mode"
 ]
 
 # geno format options
@@ -772,6 +773,14 @@ def add_base_options(P):
 
 def add_base_options_slug(P):
     parser = P.add_argument_group("options that control the algorithm behavior")
+    parser.add_argument(
+        "--gt-mode",
+        "--gt",
+        help="""Assume genotypes are known.
+        """,
+        action="store_true",
+        default=False,
+    )
     parser.add_argument(
         "--max-iter",
         "-m",

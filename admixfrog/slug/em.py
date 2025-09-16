@@ -200,17 +200,23 @@ def update_pars(pars, data, controller):
     fwd_a = data.psi  # size [L x 1]
     fwd_c = pars.cont  # size [O x 1]
 
-    """run backward algorithm to calculate Pr(O | .)"""
-    bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, pars.e, pars.b)
-    bwd_g1 = bwd_p_one_o_given_g(
-        bwd_x, fwd_a, fwd_c, data.READ2SNP, data.READ2RG, data.n_reads
-    )  # size [O x 3]
-    bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
+    if controller.gt_mode:
+        bwd_g = np.zeros((data.n_snps, 3))
+        bwd_g[:, 0] = data.READS==0
+        bwd_g[:, 1] = data.READS==1
+        bwd_g[:, 2] = data.READS==2
+    else:
+        """run backward algorithm to calculate Pr(O | .)"""
+        bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, pars.e, pars.b)
+        bwd_g1 = bwd_p_one_o_given_g(
+            bwd_x, fwd_a, fwd_c, data.READ2SNP, data.READ2RG, data.n_reads
+        )  # size [O x 3]
+        bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
 
-    """remaining forward probs Pr(X| C=0, G), Pr(X | C=1, A), Pr(X | C, A G) """
-    fwd_x_cont = fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [L x 1]
-    fwd_x_nocont = fwd_p_x_nocont(fwd_g, data.READ2SNP)  # size [L x 1]
-    fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
+        """remaining forward probs Pr(X| C=0, G), Pr(X | C=1, A), Pr(X | C, A G) """
+        fwd_x_cont = fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [L x 1]
+        fwd_x_nocont = fwd_p_x_nocont(fwd_g, data.READ2SNP)  # size [L x 1]
+        fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
 
     if O.update_ftau:
         post_g = posterior_g(bwd_g, fwd_g)
@@ -219,12 +225,13 @@ def update_pars(pars, data, controller):
             pars.F, pars.tau, data, post_g, update_F=controller.update_F
         )
 
-    if O.update_cont:
+
+    if O.update_cont and (not controller.gt_mode):
         post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
         pars.prev_cont[:] = pars.cont
         pars.cont = update_c(post_c, data.READ2RG, data.n_rgs)
 
-    if O.update_eb:
+    if O.update_eb and (not controller.gt_mode):
         post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
         pars.prev_e, pars.prev_b = pars.e, pars.b
         pars.e, pars.b = update_eb(
