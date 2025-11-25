@@ -80,15 +80,26 @@ def bwd_p_o_given_x(R, F, e, b):
     """
 
     res = np.empty((R.shape[0], 2))
-    res[R == 0 & ~F, 0] = 1 - e  # ref=anc, obs=ref, X=anc
-    res[R == 1 & ~F, 0] = e  # ref=anc, obs=alt, X=anc, error away from ref
-    res[R == 0 & ~F, 1] = b  # ref=anc, obs=ref, X=der, error towards ref
-    res[R == 1 & ~F, 1] = 1 - b  # ref=anc, obs=alt, X=der
+    res[(R == 0) & ~F, 0] = 1 - e  # ref=anc, obs=ref, X=anc
+    res[(R == 1) & ~F, 0] = e  # ref=anc, obs=alt, X=anc, error away from ref
+    res[(R == 0) & ~F, 1] = b  # ref=anc, obs=ref, X=der, error towards ref
+    res[(R == 1) & ~F, 1] = 1 - b  # ref=anc, obs=alt, X=der
 
-    res[R == 0 & F, 0] = b  # ref=der, obs=ref, X=anc, error towards ref
-    res[R == 1 & F, 0] = 1 - b  # ref=der, obs=ref, X=anc
-    res[R == 0 & F, 1] = 1 - e  # ref=der, obs=ref, X=anc
-    res[R == 1 & F, 1] = e  # ref=der, obs=ref, X=anc, error away from ref
+    res[(R == 0) & F, 0] = b  # ref=der, obs=ref, X=anc, error towards ref
+    res[(R == 1) & F, 0] = 1 - b  # ref=der, obs=ref, X=anc
+    res[(R == 0) & F, 1] = 1 - e  # ref=der, obs=ref, X=anc
+    res[(R == 1) & F, 1] = e  # ref=der, obs=ref, X=anc, error away from ref
+
+
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
+
     return res
 
 #@njit(cache=True)
@@ -111,25 +122,45 @@ def bwd_p_o_given_g_gt(R, F, e, b):
     """
 
     res = np.empty((R.shape[0], 3))
-    res[R == 0 & ~F, 0] = 1 - 2 * e  # ref=anc, obs=ref=anc, G=anc
-    res[R == 1 & ~F, 0] = e          # ref=anc, obs=het=het, G=anc, error away from ref
-    res[R == 2 & ~F, 0] = e          # ref=anc, obs=alt=der, G=anc, error away from ref
-    res[R == 0 & ~F, 1] = b          # ref=anc, obs=ref=anc, G=het, error towards ref
-    res[R == 1 & ~F, 1] = 1 - b - e  # ref=anc, obs=het=het, G=het, 
-    res[R == 2 & ~F, 1] = e          # ref=anc, obs=alt=der, G=het #error away from ref
-    res[R == 0 & ~F, 2] = b          # ref=anc, obs=ref=anc, G=der #error towards ref
-    res[R == 1 & ~F, 2] = b          # ref=anc, obs=het=het, G=der #error towars ref
-    res[R == 2 & ~F, 2] = 1 - 2 * b  # ref=anc, obs=alt=der, G=der
+    res[(R == 0) & ~F, 0] = 1 - 2 * e  # ref=anc, obs=ref=anc, G=anc
+    res[(R == 1) & ~F, 0] = e          # ref=anc, obs=het=het, G=anc, error away from ref
+    res[(R == 2) & ~F, 0] = e          # ref=anc, obs=alt=der, G=anc, error away from ref
+    res[(R == 0) & ~F, 1] = b          # ref=anc, obs=ref=anc, G=het, error towards ref
+    res[(R == 1) & ~F, 1] = 1 - b - e  # ref=anc, obs=het=het, G=het, 
+    res[(R == 2) & ~F, 1] = e          # ref=anc, obs=alt=der, G=het #error away from ref
+    res[(R == 0) & ~F, 2] = b          # ref=anc, obs=ref=anc, G=der #error towards ref
+    res[(R == 1) & ~F, 2] = b          # ref=anc, obs=het=het, G=der #error towars ref
+    res[(R == 2) & ~F, 2] = 1 - 2 * b  # ref=anc, obs=alt=der, G=der
 
-    res[R == 0 & F, 0] = b          # ref=der, obs=ref=der, G=anc, error towards ref
-    res[R == 1 & F, 0] = b          # ref=der, obs=het=het, G=anc, error towards ref
-    res[R == 2 & F, 0] = 1 - 2 * b  # ref=der, obs=alt=anc, G=anc, no error
-    res[R == 0 & F, 1] = b          # ref=der, obs=ref=der, G=het, error towards ref
-    res[R == 1 & F, 1] = 1 - b - e  # ref=der, obs=het=het, G=het, 
-    res[R == 2 & F, 1] = e          # ref=der, obs=alt=anc, G=het #error away from ref
-    res[R == 0 & F, 2] = 1 - 2 * e  # ref=der, obs=ref=der, G=der # correct
-    res[R == 1 & F, 2] = b          # ref=der, obs=het=het, G=der #error away from ref
-    res[R == 2 & F, 2] = b          # ref=der, obs=alt=anc, G=der #error away from ref
+    res[(R == 0) & F, 0] = b          # ref=der, obs=ref=der, G=anc, error towards ref
+    res[(R == 1) & F, 0] = b          # ref=der, obs=het=het, G=anc, error towards ref
+    res[(R == 2) & F, 0] = 1 - 2 * b  # ref=der, obs=alt=anc, G=anc, no error
+    res[(R == 0) & F, 1] = b          # ref=der, obs=ref=der, G=het, error towards ref
+    res[(R == 1) & F, 1] = 1 - b - e  # ref=der, obs=het=het, G=het, 
+    res[(R == 2) & F, 1] = e          # ref=der, obs=alt=anc, G=het #error away from ref
+    res[(R == 0) & F, 2] = 1 - 2 * e  # ref=der, obs=ref=der, G=der # correct
+    res[(R == 1) & F, 2] = e          # ref=der, obs=het=het, G=der #error away from ref
+    res[(R == 2) & F, 2] = e          # ref=der, obs=alt=anc, G=der #error away from ref
+
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
+    assert np.all(np.equal((R == 2) & F, np.logical_and(R==2, F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
+    assert np.all(np.equal((R == 2) & F, np.logical_and(R==2, F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
+    assert np.all(np.equal((R == 2) & F, np.logical_and(R==2, F)))
+
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
+    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R==2, ~F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
+    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R==2, ~F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
+    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R==2, ~F)))
 
     return res
 
@@ -272,6 +303,12 @@ def full_posterior_genotypes(data, pars):
         bwd_x, data.psi, pars.cont, data.READ2SNP, data.READ2RG, data.n_reads
     )
     bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
+
+    return bwd_g, posterior_g(bwd_g, fwd_g)
+
+def full_posterior_genotypes_gt(data, pars):
+    fwd_g = fwd_p_g(data, pars)
+    bwd_g = bwd_p_o_given_g_gt(data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b)
 
     return bwd_g, posterior_g(bwd_g, fwd_g)
 
