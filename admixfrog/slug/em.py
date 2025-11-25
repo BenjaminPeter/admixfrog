@@ -3,6 +3,7 @@ import numpy as np
 from copy import deepcopy
 from .emissions import fwd_p_g
 from .emissions import bwd_p_o_given_x
+from .emissions import bwd_p_o_given_g_gt
 from .emissions import bwd_p_one_o_given_g, bwd_p_all_o_given_g
 from .emissions import fwd_p_x, fwd_p_x_cont, fwd_p_x_nocont
 from .emissions import posterior_g, posterior_x, posterior_c
@@ -152,6 +153,32 @@ def update_c(post_c, READ2RG, n_rgs):
 
     return c
 
+def update_eb_gt(post_x, R, F, two_errors=True):
+    """
+    post_x : Pr(X_i = j |.)
+    i.e. each row of post_x gives the prob that X is anc, der, respectively
+    """
+    R = R.astype("bool")
+    R = np.array(R, "bool")
+    # have error if i) not flipped , R==1, X=0 or ii) if flipped, R==1, X==1
+    errors = np.sum(post_x[R & ~F, 0]) + np.sum(post_x[R & F, 1])
+    # have no_error if i) not flipped , R==0, X=0 or ii) if flipped, R==0, X==1
+    not_errors = np.sum(post_x[~R & ~F, 0]) + np.sum(post_x[~R & F, 1])
+
+    # have bias if i) not flipped , R==0, X=1 or ii) if flipped, R==0, X==0
+    bias = np.sum(post_x[~R & ~F, 1]) + np.sum(post_x[~R & F, 0])
+    # have no_bias if i) not flipped , R==1, X=1 or ii) if flipped, R==1, X==0
+    not_bias = np.sum(post_x[R & ~F, 1]) + np.sum(post_x[R & F, 0])
+
+    if two_errors:
+        e = errors / (errors + not_errors) if errors + not_errors > 0 else 0
+        b = bias / (bias + not_bias) if bias + not_bias > 0 else 0
+    else:
+        e = (errors + bias) / (errors + bias + not_errors + not_bias)
+        b = e
+
+    return e, b
+
 
 def update_eb(post_x, R, F, two_errors=True):
     """
@@ -200,23 +227,17 @@ def update_pars(pars, data, controller):
     fwd_a = data.psi  # size [L x 1]
     fwd_c = pars.cont  # size [O x 1]
 
-    if controller.gt_mode:
-        bwd_g = np.zeros((data.n_snps, 3))
-        bwd_g[:, 0] = data.READS==0
-        bwd_g[:, 1] = data.READS==1
-        bwd_g[:, 2] = data.READS==2
-    else:
-        """run backward algorithm to calculate Pr(O | .)"""
-        bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, pars.e, pars.b)
-        bwd_g1 = bwd_p_one_o_given_g(
-            bwd_x, fwd_a, fwd_c, data.READ2SNP, data.READ2RG, data.n_reads
-        )  # size [O x 3]
-        bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
+    """run backward algorithm to calculate Pr(O | .)"""
+    bwd_x = bwd_p_o_given_x(data.READS, data.FLIPPED_READS, pars.e, pars.b)
+    bwd_g1 = bwd_p_one_o_given_g(
+        bwd_x, fwd_a, fwd_c, data.READ2SNP, data.READ2RG, data.n_reads
+    )  # size [O x 3]
+    bwd_g = bwd_p_all_o_given_g(bwd_g1, data.READ2SNP, data.n_snps)
 
-        """remaining forward probs Pr(X| C=0, G), Pr(X | C=1, A), Pr(X | C, A G) """
-        fwd_x_cont = fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [L x 1]
-        fwd_x_nocont = fwd_p_x_nocont(fwd_g, data.READ2SNP)  # size [L x 1]
-        fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
+    """remaining forward probs Pr(X| C=0, G), Pr(X | C=1, A), Pr(X | C, A G) """
+    fwd_x_cont = fwd_p_x_cont(fwd_a, data.READ2SNP)  # size [L x 1]
+    fwd_x_nocont = fwd_p_x_nocont(fwd_g, data.READ2SNP)  # size [L x 1]
+    fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
 
     if O.update_ftau:
         post_g = posterior_g(bwd_g, fwd_g)
@@ -226,12 +247,50 @@ def update_pars(pars, data, controller):
         )
 
 
-    if O.update_cont and (not controller.gt_mode):
+    if O.update_cont:
         post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
         pars.prev_cont[:] = pars.cont
         pars.cont = update_c(post_c, data.READ2RG, data.n_rgs)
 
-    if O.update_eb and (not controller.gt_mode):
+    if O.update_eb:
+        post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
+        pars.prev_e, pars.prev_b = pars.e, pars.b
+        pars.e, pars.b = update_eb(
+            post_x, data.READS, data.FLIPPED_READS, two_errors=O.update_bias
+        )
+
+    if O.do_ll:  # should be avoided since it runs the entire E-step
+        pars.ll, pars.prev_ll = calc_full_ll(data, pars), pars.ll
+
+    return pars
+
+def update_pars_gt(pars, data, controller):
+    """update all parameters; 1 EM step"""
+    O = controller
+
+    assert O.gt_mode
+
+    pars = deepcopy(pars) if controller.copy_pars else pars
+
+    """ calc unconditional forward probs Pr(G), Pr(C), Pr(A)
+        - Pr(G | Z) are the probabilities of observing genotype G given what we know about the SFS,
+            assuming its not contaminant.
+                it's a L x 3 matrix, with entry (i,j) giving  P(G_i=j) for i=0,...L, j=0,1,2
+    """
+
+    breakpoint()
+    fwd_g = fwd_p_g(data, pars)
+
+    bwd_g = bwd_p_o_given_g_gt(data.READS, data.FLIPPED_READS, pars.e, pars.b)
+
+    if O.update_ftau:
+        post_g = posterior_g(bwd_g, fwd_g)
+        pars.prev_F[:], pars.prev_tau[:] = pars.F, pars.tau
+        pars.F, pars.tau = update_ftau_numeric(
+            pars.F, pars.tau, data, post_g, update_F=controller.update_F
+        )
+
+    if O.update_eb:
         post_x = posterior_x(bwd_x, fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
         pars.prev_e, pars.prev_b = pars.e, pars.b
         pars.e, pars.b = update_eb(
@@ -289,6 +348,76 @@ def squarem(pars0, data, controller):
             pars_sq.pars[pars_sq.pars > 1] = 1 - EPS
 
         pars_sq = update_pars(pars_sq, data, controller)
+
+        log_.info(
+            f"LLs p0 {pars.ll:.4f} | p1 {pars1.ll-pars.ll:.4f} | p2 {pars2.ll-pars1.ll:.4f} | psq {pars_sq.ll-pars2.ll:.4f}"
+        )
+
+        # ll did not improve
+        if pars_sq.ll <= pars2.ll:
+            pars = pars2
+            if step_size >= max_step:
+                max_step = np.maximum(
+                    controller.squarem_max, max_step / controller.squarem_mstep
+                )
+        else:
+            pars = pars_sq
+            if step_size == max_step:
+                max_step *= controller.squarem_mstep
+
+        s = f"iter {i}: step: {step_size:.3f} | ll: {pars.ll:4f} "
+        s += f"Δll : {pars.delta_ll:.6f} | e={pars.e[0]:.4f} | b={pars.b[0]:.4f}"
+        s += f" | Δc : {pars.delta_cont:.4f} | Δtau : {pars.delta_tau:.4f} | ΔF : {pars.delta_F:.4f}"
+        s += f" | Δ1 : {norm(Δp1):.4f}| Δ2:{norm(Δp2):.4f} "
+        log_.info(s)
+
+    return pars
+
+def squarem_gt(pars0, data, controller):
+    """squarem for gtmode"""
+
+    EPS = 1e-10
+    controller.copy_pars = True  # required for squarem
+    min_step = controller.squarem_min
+    max_step = controller.squarem_max
+    pars = pars0
+
+    for i in range(controller.n_iter):
+        pars1 = update_pars_gt(pars, data, controller)
+        Δp1 = pars1 - pars
+        if (
+            norm(Δp1) < controller.param_tol
+            or pars1.ll - pars1.prev_ll < controller.ll_tol
+        ):
+            pars = pars1
+            log_.info(f"stopping since parameters did not change in Δp1: {norm(Δp1)} ")
+            break
+
+        pars2 = update_pars_gt(pars1, data, controller)
+        Δp2 = pars2 - pars1
+        if norm(Δp2) < controller.param_tol or pars2.ll - pars1.ll < controller.ll_tol:
+            pars = pars2
+            log_.info(
+                f"stopping since parameters did not change in Δp2: {norm(Δp2)}, {pars2.ll -pars1.ll} "
+            )
+            break
+
+        Δp3 = Δp2 - Δp1
+
+        step_size = norm(Δp1) / norm(Δp3)
+        step_size = np.clip(step_size, min_step, max_step)
+
+        pars_sq = deepcopy(pars2)
+        pars_sq.pars[:] = pars.pars + 2 * step_size * Δp1 + step_size * step_size * Δp3
+
+        # "stabilization step if all parameters are in bounds
+        if np.all(0 <= pars_sq.pars) and np.all(pars_sq.pars <= 1):
+            pass
+        else:
+            pars_sq.pars[pars_sq.pars < 0] = EPS
+            pars_sq.pars[pars_sq.pars > 1] = 1 - EPS
+
+        pars_sq = update_pars_gt(pars_sq, data, controller)
 
         log_.info(
             f"LLs p0 {pars.ll:.4f} | p1 {pars1.ll-pars.ll:.4f} | p2 {pars2.ll-pars1.ll:.4f} | psq {pars_sq.ll-pars2.ll:.4f}"

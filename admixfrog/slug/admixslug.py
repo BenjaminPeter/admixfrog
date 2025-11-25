@@ -19,7 +19,7 @@ from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
 from ..utils.geno_io import read_geno_ref, read_geno
 from .classes import SlugController, SlugReads, SlugPars
-from .em import em, squarem
+from .em import em, squarem, squarem_gt
 from .emissions import full_posterior_genotypes
 from .fstats import calc_fstats, summarize_f3, summarize_f4, summarize_pi, summarize_f2
 
@@ -119,6 +119,14 @@ def run_admixslug(
             sex_chroms=sex_chroms,
         )
 
+        #each SNP has only at most one gt
+        assert Counter(data.READ2SNP).most_common(1)[0][1] == 1
+        # each SNP has a GT
+        assert data.READ2SNP.shape[0] - 1 == np.max(data.READ2SNP)
+
+        # no RGs
+        assert np.all(data.READ2RG == 0)
+
     else:
         data, sfs = SlugReads.load(
             df,
@@ -134,9 +142,15 @@ def run_admixslug(
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
-    pars = squarem(pars, data, controller)
-    # pars = em(pars, data, controller)
-    gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
+    if gt_mode:
+        pars = squarem_gt(pars, data, controller)
+        # pars = em(pars, data, controller)
+        gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
+    else:
+        pars = squarem(pars, data, controller)
+        # pars = em(pars, data, controller)
+        gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
+
 
     if controller.n_resamples > 0 or output["output_fstats"]:
         jk_pars_list = []
