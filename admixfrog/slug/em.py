@@ -288,7 +288,6 @@ def update_pars_gt(pars, data, controller):
     fwd_g = fwd_p_g(data, pars)
 
     #Pr(O | G) for all genotypes
-    breakpoint()
     bwd_g = bwd_p_o_given_g_gt(data.READS, data.FLIPPED_READS, pars.e, pars.b)
 
     # both are probabilities, should sum to one
