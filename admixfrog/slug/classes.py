@@ -389,11 +389,86 @@ class SlugReads:
         logging.debug("done creating data")
         return data, sfs
 
+    @classmethod
+    def load_gt(
+        cls,
+        df,
+        states,
+        max_states=8,
+        ancestral=None,
+        sex=None,
+        flip=True,
+        sex_chroms=None,
+    ):
+        if type(sex_chroms) is not list:
+            sex_chroms = parse_chroms(sex_chroms)
+
+        ref_ix, alt_ix = [f"{s}_ref" for s in states], [f"{s}_alt" for s in states]
+
+        sfs_state_ix = alt_ix + ref_ix  # states used in sfs
+        all_state_ix = set(alt_ix + ref_ix)  # states in sfs + contamination + ancestral
+
+        if ancestral is not None:
+            anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
+            all_state_ix.update([anc_ref, anc_alt])
+
+
+
+        df2 = df.reset_index()[["snp_id", "tref", "talt", "rg"]]
+        rgs = pd.unique(df2.rg)
+        rg_dict = dict((l, i) for i, l in enumerate(rgs))
+        df2["rg"] = [rg_dict[rg] for rg in df2.rg]
+        n_reads = df.talt.shape[0]
+        READS = np.array(df.talt)
+        READ2RG = np.zeros(READS.shape, dtype='int')
+        READ2SNP = np.arange(READS.shape[0])
+
+        snp = (
+            df[list(all_state_ix)]
+            .reset_index("rg", drop=True)
+            .reset_index()
+            .drop_duplicates()
+        )
+
+        if flip and ancestral is not None:
+            flipped = make_flipped(snp, anc_ref, anc_alt)
+        else:
+            flipped = np.zeros(snp.shape[0], bool)
+
+        sfs, SNP2SFS = obs2sfs(snp, flipped, states, max_states, sex_chroms=sex_chroms)
+
+        chroms = pd.unique(snp.chrom)
+        #haploid_chroms, haploid_snps = get_haploid_stuff(snp, chroms, sex)
+        haploid_chroms, haploid_snps = [], []
+
+        psi = np.zeros_like(SNP2SFS)
+
+        data = cls(
+            READS=READS,
+            READ2RG=READ2RG,
+            READ2SNP=READ2SNP,
+            SNP2SFS=SNP2SFS,
+            FLIPPED=flipped,
+            psi=psi,
+            haploid_snps=haploid_snps,
+            states=sfs_state_ix,
+            rgs=rg_dict,
+            sex=sex,
+            chroms=chroms,
+            haploid_chroms=haploid_chroms,
+            sex_chroms=sex_chroms,
+        )
+
+
+        logging.debug("done creating data")
+        return data, sfs
+
 
 @dataclass
 class SlugController:
     """class for options for the admixslug em"""
 
+    gt_mode:bool = False
     do_ll: bool = True
     update_eb: bool = True
     update_ftau: bool = True

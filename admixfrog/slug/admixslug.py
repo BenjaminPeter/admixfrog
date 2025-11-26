@@ -6,10 +6,10 @@ from pprint import pprint
 from collections import Counter, defaultdict
 from copy import deepcopy
 from ..gll.read_emissions2 import p_snps_given_gt
-from ..utils.input import load_read_data, load_ref, filter_ref
+from ..utils.input import load_read_data, load_ref, filter_ref, load_gt_data
 from ..utils.output import write_pars_table
 from ..utils.output_slug import write_snp_table_slug, write_cont_table_slug
-from ..utils.output_slug import write_sfs2, write_vcf
+from ..utils.output_slug import write_sfs2, write_vcf, write_sfs2_gt
 from ..utils.output_slug import write_f3_table, write_f4_table, write_f2_table
 from ..utils.utils import data2probs
 from ..utils.utils import guess_sex
@@ -19,8 +19,8 @@ from ..gll.genotype_emissions import update_emissions
 from ..gll.read_emissions import update_contamination
 from ..utils.geno_io import read_geno_ref, read_geno
 from .classes import SlugController, SlugReads, SlugPars
-from .em import em, squarem
-from .emissions import full_posterior_genotypes
+from .em import em, squarem, squarem_gt
+from .emissions import full_posterior_genotypes, full_posterior_genotypes_gt
 from .fstats import calc_fstats, summarize_f3, summarize_f4, summarize_pi, summarize_f2
 
 EST_DEFAULT = dict(
@@ -61,16 +61,18 @@ def run_admixslug(
     jk_resamples=0,
     target="admixslug",
     sex_chroms=None,
+    gt_mode = False,
     **kwargs,
 ):
     """contamination estimation using sfs"""
+
 
     # numpy config
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
 
     controller = SlugController(
-        update_eb=est["est_error"],
+        update_eb=False if gt_mode else est["est_error"] , # error and gtmode   dont work together
         update_ftau=est["est_tau"],
         update_F=est["est_F"],
         update_cont=est["est_contamination"],
@@ -79,6 +81,7 @@ def run_admixslug(
         ll_tol=ll_tol,
         param_tol=ptol,
         n_resamples=jk_resamples,
+        gt_mode = gt_mode,
     )
 
     if not est["est_contamination"] and init["c0"] == 0:
@@ -102,25 +105,51 @@ def run_admixslug(
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
         autosomes_only=autosomes_only,
+        gt_mode=gt_mode
     )
     logging.info("done loading data")
 
-    data, sfs = SlugReads.load(
-        df,
-        states=states,
-        ancestral=ancestral,
-        sex=sex,
-        cont_id=cont_id,
-        flip=True,
-        sex_chroms=sex_chroms,
-    )
+    if gt_mode:
+        data, sfs = SlugReads.load_gt(
+            df,
+            states=states,
+            ancestral=ancestral,
+            sex=sex,
+            flip=True,
+            sex_chroms=sex_chroms,
+        )
+
+        #each SNP has only at most one gt
+        assert Counter(data.READ2SNP).most_common(1)[0][1] == 1
+        # each SNP has a GT
+        assert data.READ2SNP.shape[0] - 1 == np.max(data.READ2SNP)
+
+        # no RGs
+        assert np.all(data.READ2RG == 0)
+
+    else:
+        data, sfs = SlugReads.load(
+            df,
+            states=states,
+            ancestral=ancestral,
+            sex=sex,
+            cont_id=cont_id,
+            flip=True,
+            sex_chroms=sex_chroms,
+        )
+
 
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
-    pars = squarem(pars, data, controller)
-    # pars = em(pars, data, controller)
-    gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
+    if gt_mode:
+        pars = squarem_gt(pars, data, controller)
+        gt_ll, posterior_gt = full_posterior_genotypes_gt(data, pars)
+    else:
+        pars = squarem(pars, data, controller)
+        # pars = em(pars, data, controller)
+        gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
+
 
     if controller.n_resamples > 0 or output["output_fstats"]:
         jk_pars_list = []
@@ -128,12 +157,17 @@ def run_admixslug(
 
         for i in range(controller.n_resamples):
             jk_data = data.jackknife_sample(i, controller.n_resamples)
-            jk_pars = squarem(pars0, jk_data, controller)
-            # jk_pars = em(pars0, jk_data, controller)
+            if gt_mode:
+                jk_pars = squarem_gt(pars0, jk_data, controller)
+            else:
+                jk_pars = squarem(pars0, jk_data, controller)
             jk_pars_list.append(jk_pars)
 
             if output["output_jk_sfs"] or output["output_fstats"]:
-                jk_sfs_row = write_sfs2(sfs, jk_pars, jk_data)
+                if gt_mode:
+                    jk_sfs_row = write_sfs2_gt(sfs, jk_pars, jk_data)
+                else:
+                    jk_sfs_row = write_sfs2(sfs, jk_pars, jk_data)
                 jk_sfs_row["rep"] = i
                 jk_sfs.append(jk_sfs_row)
 
@@ -173,7 +207,7 @@ def run_admixslug(
     if output["output_pars"]:
         df_pars = write_pars_table(pars, outname=f"{outname}.pars.yaml")
 
-    if output["output_cont"]:
+    if output["output_cont"] and not gt_mode:
         df_cont = write_cont_table_slug(
             ix,
             data.rgs,
@@ -185,14 +219,24 @@ def run_admixslug(
         ix.to_csv(f"{outname}.ix.xz", index=False)
 
     if output["output_sfs"]:
-        write_sfs2(
-            sfs,
-            pars,
-            data,
-            se_tau=se_pars.tau,
-            se_F=se_pars.F,
-            outname=f"{outname}.sfs.xz",
-        )
+        if gt_mode:
+            write_sfs2_gt(
+                sfs,
+                pars,
+                data,
+                se_tau=se_pars.tau,
+                se_F=se_pars.F,
+                outname=f"{outname}.sfs.xz",
+            )
+        else:
+            write_sfs2(
+                sfs,
+                pars,
+                data,
+                se_tau=se_pars.tau,
+                se_F=se_pars.F,
+                outname=f"{outname}.sfs.xz",
+            )
 
     if output["output_jk_sfs"]:
         jk_sfs.to_csv(f"{outname}.jksfs.xz", float_format="%5f", index=False)
@@ -231,18 +275,25 @@ def load_admixslug_data_native(
     deam_bin_size=20_000,
     len_bin_size=5000,
     autosomes_only=False,
+    gt_mode = False,
     sex_chroms=[],
 ):
 
-    data, ix = load_read_data(
-        target_file,
-        split_lib,
-        downsample,
-        deam_bin_size=deam_bin_size,
-        len_bin_size=len_bin_size,
-        high_cov_filter=filter.pop("filter_high_cov"),
-        make_bins=True,
-    )
+    if gt_mode:
+        data = load_gt_data(target_file)
+        data['rg'] = 'GT'
+        data.set_index('rg', append=True, inplace=True)
+        ix = None
+    else:
+        data, ix = load_read_data(
+            target_file,
+            split_lib,
+            downsample,
+            deam_bin_size=deam_bin_size,
+            len_bin_size=len_bin_size,
+            high_cov_filter=filter.pop("filter_high_cov"),
+            make_bins=True,
+        )
 
     ref = load_ref(
         ref_files,
@@ -262,9 +313,14 @@ def load_admixslug_data_native(
 
     n_sites = ref.shape[0]
 
+
     # workaround a pandas join bug
     df = ref.join(data, how="inner")
-    df = make_snp_ids(df)
+    if gt_mode:
+        df['snp_id'] = np.arange(df.shape[0])
+        df.set_index('snp_id', append=True)
+    else:
+        df = make_snp_ids(df)
 
     # sexing stuff
     if sex is None:
