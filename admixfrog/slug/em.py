@@ -3,7 +3,7 @@ import numpy as np
 from copy import deepcopy
 from .emissions import fwd_p_g
 from .emissions import bwd_p_o_given_x
-from .emissions import bwd_p_o_given_g_gt
+from .emissions import bwd_p_o_given_g_gt, bwd_p_o_given_g_gt_rr
 from .emissions import bwd_p_one_o_given_g, bwd_p_all_o_given_g
 from .emissions import fwd_p_x, fwd_p_x_cont, fwd_p_x_nocont
 from .emissions import posterior_g, posterior_x, posterior_c
@@ -153,6 +153,7 @@ def update_c(post_c, READ2RG, n_rgs):
 
     return c
 
+
 def update_eb_gt(post_g, R, F, two_errors=True):
     """
     post_g : Pr(G_i = j |.)
@@ -160,22 +161,20 @@ def update_eb_gt(post_g, R, F, two_errors=True):
     """
     # have error if i) not flipped , R==1, X=0 or ii) if flipped, R==1, X==1
     errors = 0
-    errors += np.sum(post_g[(R != 0) & ~F, 0]) #case 2 and 3
-    #errors += np.sum(post_g[(R == 2), 1])      #case 6 and 15
-    errors += np.sum(post_g[(R != 0) & F, 2])  #case 17 and 18
+    errors += np.sum(post_g[(R != 0) & ~F, 0])  # case 2 and 3
+    # errors += np.sum(post_g[(R == 2), 1])      #case 6 and 15
+    errors += np.sum(post_g[(R != 0) & F, 2])  # case 17 and 18
 
-    bias = 0.
-    #bias += np.sum(post_g[(R == 0), 1])      #case 4 and 13
-    bias += np.sum(post_g[(R != 2) & ~F, 2])      #case 7 and 8
-    bias += np.sum(post_g[(R != 2) & F, 0])      #case 10 and 11
+    bias = 0.0
+    # bias += np.sum(post_g[(R == 0), 1])      #case 4 and 13
+    bias += np.sum(post_g[(R != 2) & ~F, 2])  # case 7 and 8
+    bias += np.sum(post_g[(R != 2) & F, 0])  # case 10 and 11
 
+    not_errors = np.sum(post_g[(R == 0) & ~F, 0])  # case 1
+    not_errors += np.sum(post_g[(R == 0) & F, 2])  # case 16
 
-    not_errors = np.sum(post_g[(R == 0) & ~F, 0]) #case 1
-    not_errors += np.sum(post_g[(R == 0) & F, 2]) #case 16
-
-    not_bias = np.sum(post_g[(R == 2) & ~F, 2])      #case 9
-    not_bias += np.sum(post_g[(R == 2) & F, 0])      #case 12
-
+    not_bias = np.sum(post_g[(R == 2) & ~F, 2])  # case 9
+    not_bias += np.sum(post_g[(R == 2) & F, 0])  # case 12
 
     if two_errors:
         e = errors / (errors + not_errors) if errors + not_errors > 0 else 0
@@ -253,7 +252,6 @@ def update_pars(pars, data, controller):
             pars.F, pars.tau, data, post_g, update_F=controller.update_F
         )
 
-
     if O.update_cont:
         post_c = posterior_c(bwd_x, fwd_x_nocont, fwd_x_cont, fwd_c, data.READ2RG)
         pars.prev_cont[:] = pars.cont
@@ -271,6 +269,7 @@ def update_pars(pars, data, controller):
 
     return pars
 
+
 def update_pars_gt(pars, data, controller):
     """update all parameters; 1 EM step"""
     O = controller
@@ -287,13 +286,13 @@ def update_pars_gt(pars, data, controller):
 
     fwd_g = fwd_p_g(data, pars)
 
-    #Pr(O | G) for all genotypes
-    bwd_g = bwd_p_o_given_g_gt(data.READS, data.FLIPPED_READS, pars.e, pars.b)
+    # Pr(O | G) for all genotypes
+    if controller.random_read:
+        bwd_g = bwd_p_o_given_g_gt_rr(data.READS, data.FLIPPED_READS, pars.e, pars.b)
+    else:
+        bwd_g = bwd_p_o_given_g_gt(data.READS, data.FLIPPED_READS, pars.e, pars.b)
 
-    # both are probabilities, should sum to one
-    assert np.allclose(np.sum(bwd_g,1), 1)
-    assert np.allclose(np.sum(fwd_g,1), 1)
-
+    assert np.allclose(np.sum(fwd_g, 1), 1)
 
     if O.update_ftau or O.update_eb:
         post_g = posterior_g(bwd_g, fwd_g)
@@ -310,7 +309,7 @@ def update_pars_gt(pars, data, controller):
             post_g, data.READS, data.FLIPPED_READS, two_errors=O.update_bias
         )
 
-    if O.do_ll:  
+    if O.do_ll:
         pars.ll, pars.prev_ll = calc_ll(fwd_g, bwd_g), pars.ll
 
     print(pars.tau, pars.e, pars.b)
@@ -387,6 +386,7 @@ def squarem(pars0, data, controller):
 
     return pars
 
+
 def squarem_gt(pars0, data, controller):
     """squarem for gtmode"""
 
@@ -395,7 +395,6 @@ def squarem_gt(pars0, data, controller):
     min_step = controller.squarem_min
     max_step = controller.squarem_max
     pars = pars0
-
 
     for i in range(controller.n_iter):
         pars1 = update_pars_gt(pars, data, controller)

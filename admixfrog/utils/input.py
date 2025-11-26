@@ -233,6 +233,7 @@ def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
 
     return ix
 
+
 def load_gt_data(infile):
     dtype_mandatory = dict(
         chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8

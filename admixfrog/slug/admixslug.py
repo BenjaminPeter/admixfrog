@@ -61,18 +61,23 @@ def run_admixslug(
     jk_resamples=0,
     target="admixslug",
     sex_chroms=None,
-    gt_mode = False,
+    gt_mode=False,
+    rrgt=False,  # gt-mode, and random read sampling
     **kwargs,
 ):
     """contamination estimation using sfs"""
 
+    if rrgt:
+        gt_mode = True
 
     # numpy config
     np.set_printoptions(suppress=True, precision=4)
     np.seterr(divide="ignore", invalid="ignore")
 
     controller = SlugController(
-        update_eb=False if gt_mode else est["est_error"] , # error and gtmode   dont work together
+        update_eb=(
+            False if gt_mode else est["est_error"]
+        ),  # error and gtmode   dont work together
         update_ftau=est["est_tau"],
         update_F=est["est_F"],
         update_cont=est["est_contamination"],
@@ -81,14 +86,18 @@ def run_admixslug(
         ll_tol=ll_tol,
         param_tol=ptol,
         n_resamples=jk_resamples,
-        gt_mode = gt_mode,
+        gt_mode=gt_mode,
+        random_read=rrgt,
     )
 
     if not est["est_contamination"] and init["c0"] == 0:
         cont_id = None
 
     states = States.from_commandline(
-        raw_states=[*states, ancestral], state_file=state_file, ancestral=ancestral, cont_id=cont_id
+        raw_states=[*states, ancestral],
+        state_file=state_file,
+        ancestral=ancestral,
+        cont_id=cont_id,
     )
 
     df, ix, sex, n_sites = load_admixslug_data_native(
@@ -105,7 +114,7 @@ def run_admixslug(
         deam_bin_size=deam_bin_size,
         len_bin_size=len_bin_size,
         autosomes_only=autosomes_only,
-        gt_mode=gt_mode
+        gt_mode=gt_mode,
     )
     logging.info("done loading data")
 
@@ -119,8 +128,7 @@ def run_admixslug(
             sex_chroms=sex_chroms,
         )
 
-
-        #each SNP has only at most one gt
+        # each SNP has only at most one gt
         assert Counter(data.READ2SNP).most_common(1)[0][1] == 1
         # each SNP has a GT
         assert data.READ2SNP.shape[0] - 1 == np.max(data.READ2SNP)
@@ -139,18 +147,18 @@ def run_admixslug(
             sex_chroms=sex_chroms,
         )
 
-
     pars = SlugPars.from_n(data.n_sfs, data.n_rgs, **init)
     pars0 = deepcopy(pars)
 
     if gt_mode:
         pars = squarem_gt(pars, data, controller)
-        gt_ll, posterior_gt = full_posterior_genotypes_gt(data, pars)
+        gt_ll, posterior_gt = full_posterior_genotypes_gt(
+            data, pars, controller.random_read
+        )
     else:
         pars = squarem(pars, data, controller)
         # pars = em(pars, data, controller)
         gt_ll, posterior_gt = full_posterior_genotypes(data, pars)
-
 
     if controller.n_resamples > 0 or output["output_fstats"]:
         jk_pars_list = []
@@ -166,7 +174,9 @@ def run_admixslug(
 
             if output["output_jk_sfs"] or output["output_fstats"]:
                 if gt_mode:
-                    jk_sfs_row = write_sfs2_gt(sfs, jk_pars, jk_data)
+                    jk_sfs_row = write_sfs2_gt(
+                        sfs, jk_pars, jk_data, random_read=controller.random_read
+                    )
                 else:
                     jk_sfs_row = write_sfs2(sfs, jk_pars, jk_data)
                 jk_sfs_row["rep"] = i
@@ -228,6 +238,7 @@ def run_admixslug(
                 se_tau=se_pars.tau,
                 se_F=se_pars.F,
                 outname=f"{outname}.sfs.xz",
+                random_read=controller.random_read,
             )
         else:
             write_sfs2(
@@ -276,14 +287,14 @@ def load_admixslug_data_native(
     deam_bin_size=20_000,
     len_bin_size=5000,
     autosomes_only=False,
-    gt_mode = False,
+    gt_mode=False,
     sex_chroms=[],
 ):
 
     if gt_mode:
         data = load_gt_data(target_file)
-        data['rg'] = 'GT'
-        data.set_index('rg', append=True, inplace=True)
+        data["rg"] = "GT"
+        data.set_index("rg", append=True, inplace=True)
         ix = None
     else:
         data, ix = load_read_data(
@@ -314,12 +325,11 @@ def load_admixslug_data_native(
 
     n_sites = ref.shape[0]
 
-
     # workaround a pandas join bug
     df = ref.join(data, how="inner")
     if gt_mode:
-        df['snp_id'] = np.arange(df.shape[0])
-        df.set_index('snp_id', append=True)
+        df["snp_id"] = np.arange(df.shape[0])
+        df.set_index("snp_id", append=True)
     else:
         df = make_snp_ids(df)
 

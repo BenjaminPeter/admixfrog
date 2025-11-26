@@ -404,8 +404,6 @@ class SlugReads:
             anc_ref, anc_alt = f"{ancestral}_ref", f"{ancestral}_alt"
             all_state_ix.update([anc_ref, anc_alt])
 
-
-
         df2 = df.reset_index()[["snp_id", "tref", "talt", "rg"]]
         rgs = pd.unique(df2.rg)
         assert len(rgs) == 1, "Error: more than one readgroup in gt mode"
@@ -413,7 +411,7 @@ class SlugReads:
         df2["rg"] = [rg_dict[rg] for rg in df2.rg]
         n_reads = df.talt.shape[0]
         READS = np.array(df.talt)
-        READ2RG = np.zeros(READS.shape, dtype='int')
+        READ2RG = np.zeros(READS.shape, dtype="int")
         READ2SNP = np.arange(READS.shape[0])
 
         snp = (
@@ -432,7 +430,7 @@ class SlugReads:
         sfs, SNP2SFS = obs2sfs(snp, flipped, states, max_states, sex_chroms=sex_chroms)
 
         chroms = pd.unique(snp.chrom)
-        #haploid_chroms, haploid_snps = get_haploid_stuff(snp, chroms, sex)
+        # haploid_chroms, haploid_snps = get_haploid_stuff(snp, chroms, sex)
         haploid_chroms, haploid_snps = [], []
 
         psi = np.zeros_like(SNP2SFS)
@@ -453,7 +451,6 @@ class SlugReads:
             sex_chroms=sex_chroms,
         )
 
-
         logging.debug("done creating data")
         return data, sfs
 
@@ -462,7 +459,7 @@ class SlugReads:
 class SlugController:
     """class for options for the admixslug em"""
 
-    gt_mode:bool = False
+    gt_mode: bool = False
     do_ll: bool = True
     update_eb: bool = True
     update_ftau: bool = True
@@ -478,3 +475,4 @@ class SlugController:
     squarem_max: float = 1.0
     squarem_mstep: float = 2.0
     n_resamples: int = 10
+    random_read: bool = False  # random read sample in gt mode

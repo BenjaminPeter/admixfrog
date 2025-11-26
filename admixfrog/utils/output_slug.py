@@ -105,12 +105,12 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
 
     n_reads, n_endo = defaultdict(int), defaultdict(float)
 
-    for (sfs_, rg) in zip(data.READ2SFS, data.READ2RG):
+    for sfs_, rg in zip(data.READ2SFS, data.READ2RG):
         n_reads[sfs_] += 1
         n_endo[sfs_] += 1 * (1 - pars.cont[rg])
 
     n_anc, n_der = defaultdict(int), defaultdict(int)
-    for (sfs_, read_, flipped) in zip(
+    for sfs_, read_, flipped in zip(
         data.READ2SFS, data.READS, data.FLIPPED[data.READ2SNP]
     ):
         if flipped:
@@ -152,15 +152,40 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
 
     return sfs_df
 
-def write_sfs2_gt(sfs, pars, data, se_tau=None, se_F=None, outname=None):
+
+def write_sfs2_gt(
+    sfs, pars, data, se_tau=None, se_F=None, outname=None, random_read=False
+):
 
     n_snps = Counter(data.READ2SFS)
     n_snps = pd.Series((n_snps[i] for i in sfs.index), dtype=int, name="n_reads")
 
+    n_anc, n_der = defaultdict(int), defaultdict(int)
+    for sfs_, read_, flipped in zip(
+        data.READ2SFS, data.READS, data.FLIPPED[data.READ2SNP]
+    ):
+        if random_read:
+            if flipped:
+                n_anc[sfs_] += int(read_ != 0)
+                n_der[sfs_] += int(read_ == 0)
+            else:
+                n_anc[sfs_] += int(read_ == 0)
+                n_der[sfs_] += int(read_ != 0)
+        else:
+            if flipped:
+                n_anc[sfs_] += int(read_)
+                n_der[sfs_] += int(2 - read_)
+            else:
+                n_anc[sfs_] += int(2 - read_)
+                n_der[sfs_] += int(read_)
+
+    n_anc = pd.Series((n_anc[i] for i in sfs.index), dtype=float, name="n_anc")
+    n_der = pd.Series((n_der[i] for i in sfs.index), dtype=float, name="n_der")
     F = pd.DataFrame(pars.F, columns=["F"])
     tau = pd.DataFrame(pars.tau, columns=["tau"])
 
-    sfs_df = pd.concat((sfs, F, tau, n_snps), axis=1)
+    sfs_df = pd.concat((sfs, F, tau, n_snps, n_anc, n_der), axis=1)
+    sfs_df["read_ratio"] = n_der / (n_anc + n_der + 1e-400)
 
     if se_tau is not None:
         tau = pars.tau

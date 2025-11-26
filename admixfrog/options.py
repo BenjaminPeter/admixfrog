@@ -77,6 +77,7 @@ ALGORITHM_OPTIONS_SLUG = [
     "len_bin_size",
     "bin_reads",
     "gt_mode"
+    "rrgt"
 ]
 
 # geno format options
@@ -777,6 +778,14 @@ def add_base_options_slug(P):
         "--gt-mode",
         "--gt",
         help="""Assume genotypes are known.
+        """,
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--rrgt",
+        "--random-read-gt",
+        help="""Assume target has known genotypes and random read samples
         """,
         action="store_true",
         default=False,

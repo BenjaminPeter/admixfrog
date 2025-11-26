@@ -90,19 +90,19 @@ def bwd_p_o_given_x(R, F, e, b):
     res[(R == 0) & F, 1] = 1 - e  # ref=der, obs=ref, X=anc
     res[(R == 1) & F, 1] = e  # ref=der, obs=ref, X=anc, error away from ref
 
-
-    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
-    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
-    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
-    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
-    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
-    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
-    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
-    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R == 0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R == 1, ~F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R == 0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R == 1, ~F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R == 0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R == 1, F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R == 0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R == 1, F)))
 
     return res
 
-#@njit(cache=True)
+
+@njit(cache=True)
 def bwd_p_o_given_g_gt(R, F, e, b):
     """Caluclate Pr(O | G, e, b) for genotype data
 
@@ -123,44 +123,81 @@ def bwd_p_o_given_g_gt(R, F, e, b):
 
     res = np.empty((R.shape[0], 3))
     res[(R == 0) & ~F, 0] = 1 - 2 * e  # ref=anc, obs=ref=anc, G=anc
-    res[(R == 1) & ~F, 0] = e          # ref=anc, obs=het=het, G=anc, error away from ref
-    res[(R == 2) & ~F, 0] = e          # ref=anc, obs=alt=der, G=anc, error away from ref
-    res[(R == 0) & ~F, 1] = b          # ref=anc, obs=ref=anc, G=het, error towards ref
-    res[(R == 1) & ~F, 1] = 1 - b - e  # ref=anc, obs=het=het, G=het, 
-    res[(R == 2) & ~F, 1] = e          # ref=anc, obs=alt=der, G=het #error away from ref
-    res[(R == 0) & ~F, 2] = b          # ref=anc, obs=ref=anc, G=der #error towards ref
-    res[(R == 1) & ~F, 2] = b          # ref=anc, obs=het=het, G=der #error towars ref
+    res[(R == 1) & ~F, 0] = e  # ref=anc, obs=het=het, G=anc, error away from ref
+    res[(R == 2) & ~F, 0] = e  # ref=anc, obs=alt=der, G=anc, error away from ref
+    res[(R == 0) & ~F, 1] = b  # ref=anc, obs=ref=anc, G=het, error towards ref
+    res[(R == 1) & ~F, 1] = 1 - b - e  # ref=anc, obs=het=het, G=het,
+    res[(R == 2) & ~F, 1] = e  # ref=anc, obs=alt=der, G=het #error away from ref
+    res[(R == 0) & ~F, 2] = b  # ref=anc, obs=ref=anc, G=der #error towards ref
+    res[(R == 1) & ~F, 2] = b  # ref=anc, obs=het=het, G=der #error towars ref
     res[(R == 2) & ~F, 2] = 1 - 2 * b  # ref=anc, obs=alt=der, G=der
 
-    res[(R == 0) & F, 0] = b          # ref=der, obs=ref=der, G=anc, error towards ref
-    res[(R == 1) & F, 0] = b          # ref=der, obs=het=het, G=anc, error towards ref
+    res[(R == 0) & F, 0] = b  # ref=der, obs=ref=der, G=anc, error towards ref
+    res[(R == 1) & F, 0] = b  # ref=der, obs=het=het, G=anc, error towards ref
     res[(R == 2) & F, 0] = 1 - 2 * b  # ref=der, obs=alt=anc, G=anc, no error
-    res[(R == 0) & F, 1] = b          # ref=der, obs=ref=der, G=het, error towards ref
-    res[(R == 1) & F, 1] = 1 - b - e  # ref=der, obs=het=het, G=het, 
-    res[(R == 2) & F, 1] = e          # ref=der, obs=alt=anc, G=het #error away from ref
+    res[(R == 0) & F, 1] = b  # ref=der, obs=ref=der, G=het, error towards ref
+    res[(R == 1) & F, 1] = 1 - b - e  # ref=der, obs=het=het, G=het,
+    res[(R == 2) & F, 1] = e  # ref=der, obs=alt=anc, G=het #error away from ref
     res[(R == 0) & F, 2] = 1 - 2 * e  # ref=der, obs=ref=der, G=der # correct
-    res[(R == 1) & F, 2] = e          # ref=der, obs=het=het, G=der #error away from ref
-    res[(R == 2) & F, 2] = e          # ref=der, obs=alt=anc, G=der #error away from ref
+    res[(R == 1) & F, 2] = e  # ref=der, obs=het=het, G=der #error away from ref
+    res[(R == 2) & F, 2] = e  # ref=der, obs=alt=anc, G=der #error away from ref
 
-    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
-    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
-    assert np.all(np.equal((R == 2) & F, np.logical_and(R==2, F)))
-    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
-    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
-    assert np.all(np.equal((R == 2) & F, np.logical_and(R==2, F)))
-    assert np.all(np.equal((R == 0) & F, np.logical_and(R==0, F)))
-    assert np.all(np.equal((R == 1) & F, np.logical_and(R==1, F)))
-    assert np.all(np.equal((R == 2) & F, np.logical_and(R==2, F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R == 0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R == 1, F)))
+    assert np.all(np.equal((R == 2) & F, np.logical_and(R == 2, F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R == 0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R == 1, F)))
+    assert np.all(np.equal((R == 2) & F, np.logical_and(R == 2, F)))
+    assert np.all(np.equal((R == 0) & F, np.logical_and(R == 0, F)))
+    assert np.all(np.equal((R == 1) & F, np.logical_and(R == 1, F)))
+    assert np.all(np.equal((R == 2) & F, np.logical_and(R == 2, F)))
 
-    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
-    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
-    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R==2, ~F)))
-    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
-    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
-    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R==2, ~F)))
-    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R==0, ~F)))
-    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R==1, ~F)))
-    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R==2, ~F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R == 0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R == 1, ~F)))
+    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R == 2, ~F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R == 0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R == 1, ~F)))
+    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R == 2, ~F)))
+    assert np.all(np.equal((R == 0) & ~F, np.logical_and(R == 0, ~F)))
+    assert np.all(np.equal((R == 1) & ~F, np.logical_and(R == 1, ~F)))
+    assert np.all(np.equal((R == 2) & ~F, np.logical_and(R == 2, ~F)))
+
+    return res
+
+
+@njit(cache=True)
+def bwd_p_o_given_g_gt_rr(R, F, e, b):
+    """Caluclate Pr(O | G, e, b) for random read sampled genotype data
+
+    Parameters
+    ----------
+    R : READS; np.ndarray[R x 1] int really the genotypes
+    F : Flipped, np.ndarray[R x 1] bool: whether read is flipped
+    e : float
+        error rate from reference to alt allele
+    b : float
+        error rate from alt to reference allele
+
+    Returns
+    -------
+    res : np.ndarray [R x 3]
+        Pr(O_i | G_i = j), i.e. the prob of the observation given genotype
+    """
+
+    res = np.empty((R.shape[0], 3))
+    res[(R == 0) & ~F, 0] = 1 - e  # ref=anc, obs=ref=anc, G=anc
+    res[(R != 0) & ~F, 0] = e  # ref=anc, obs=alt=der, G=anc, error away from ref
+    res[(R == 0) & ~F, 1] = 0.5  # ref=anc, obs=ref=anc, G=het,
+    res[(R != 0) & ~F, 1] = 0.5  # ref=anc, obs=alt=der, G=het,
+    res[(R == 0) & ~F, 2] = b  # ref=anc, obs=ref=anc, G=der #error towards ref
+    res[(R != 0) & ~F, 2] = 1 - b  # ref=anc, obs=alt=der, G=der #correct
+
+    res[(R == 0) & F, 0] = b  # ref=der, obs=ref=der, G=anc, error towards ref
+    res[(R != 0) & F, 0] = 1 - b  # ref=der, obs=alt=anc, G=anc, no error
+    res[(R == 0) & F, 1] = 0.5  # ref=der, obs=ref=der, G=het,
+    res[(R != 0) & F, 1] = 0.5  # ref=der, obs=alt=anc, G=het
+    res[(R == 0) & F, 2] = 1 - e  # ref=der, obs=ref=der, G=der # correct
+    res[(R != 0) & F, 2] = e  # ref=der, obs=alt=anc, G=der #error away from ref
 
     return res
 
@@ -306,9 +343,15 @@ def full_posterior_genotypes(data, pars):
 
     return bwd_g, posterior_g(bwd_g, fwd_g)
 
-def full_posterior_genotypes_gt(data, pars):
+
+def full_posterior_genotypes_gt(data, pars, random_read=False):
     fwd_g = fwd_p_g(data, pars)
-    bwd_g = bwd_p_o_given_g_gt(data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b)
+    if random_read:
+        bwd_g = bwd_p_o_given_g_gt_rr(
+            data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b
+        )
+    else:
+        bwd_g = bwd_p_o_given_g_gt(data.READS, data.FLIPPED_READS, e=pars.e, b=pars.b)
 
     return bwd_g, posterior_g(bwd_g, fwd_g)
 

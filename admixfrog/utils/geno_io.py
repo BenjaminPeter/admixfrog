@@ -1,6 +1,7 @@
 """
 read Reich geno format
 """
+
 import numpy as np
 from math import ceil
 import itertools

@@ -81,10 +81,12 @@ def data2probs(
         P = Probs(
             O=np.array(df.talt.values, np.uint8),
             N=np.array(df.tref.values + df.talt.values, np.uint8),
-            P_cont=0.0
-            if cont_id is None
-            else np.array(
-                (df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)
+            P_cont=(
+                0.0
+                if cont_id is None
+                else np.array(
+                    (df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)
+                )
             ),
             alpha=[],
             beta=[],
@@ -167,9 +169,11 @@ def data2probs(
     P = Probs(
         O=np.array(df.talt.values, np.uint8),
         N=np.array(df.tref.values + df.talt.values, np.uint8),
-        P_cont=0.0
-        if cont_id is None
-        else np.array((df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb)),
+        P_cont=(
+            0.0
+            if cont_id is None
+            else np.array((df[cont_ref] + ca) / (df[cont_ref] + df[cont_alt] + ca + cb))
+        ),
         alpha=alt_prior[IX.diploid_snps],
         beta=ref_prior[IX.diploid_snps],
         alpha_hap=alt_prior[IX.haploid_snps],
@@ -386,7 +390,7 @@ def obs2sfs(snp, flipped, states, max_states=None, sex_chroms=["Z", "W", "X", "Y
     snp.reset_index(drop=True, inplace=True)
     sfs = pd.DataFrame()
     if sex_chroms is not None:
-        sfs['sex_chrom'] = np.where(snp['chrom'].isin(sex_chroms), 'sex', 'autosome')
+        sfs["sex_chrom"] = np.where(snp["chrom"].isin(sex_chroms), "sex", "autosome")
 
     """polarize all input data"""
     for s in states:

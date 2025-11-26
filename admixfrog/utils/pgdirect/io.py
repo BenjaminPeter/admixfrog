@@ -111,7 +111,7 @@ class ComplexFile(File, ABC):
                     site = next(sites)
                 except StopIteration:  # no sites in bam
                     site = None
-                except TypeError: #no iterator
+                except TypeError:  # no iterator
                     site = None
 
             # case 0: no data for chromosome
@@ -289,7 +289,7 @@ class BamFile(ComplexFile):
         """opens file for iterating in pileup mode
         returns none if chromosome is not allowed
         """
-        if self.chroms is not None and chrom not in self.chroms: 
+        if self.chroms is not None and chrom not in self.chroms:
             return None
         self._handle = pysam.AlignmentFile(self.fname.format(CHROM=chrom))
         pileup = self._handle.pileup(reference=chrom, multiple_iterators=False)
