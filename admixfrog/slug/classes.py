@@ -293,14 +293,6 @@ class SlugReads:
         return len(self.READS)
 
     @property
-    def n_reads_auto(self):
-        return len(self.READS)
-
-    @property
-    def n_reads_sex(self):
-        return len(self.READS)
-
-    @property
     def READ2SFS(self):
         return self.SNP2SFS[self.READ2SNP]
 
@@ -416,6 +408,7 @@ class SlugReads:
 
         df2 = df.reset_index()[["snp_id", "tref", "talt", "rg"]]
         rgs = pd.unique(df2.rg)
+        assert len(rgs) == 1, "Error: more than one readgroup in gt mode"
         rg_dict = dict((l, i) for i, l in enumerate(rgs))
         df2["rg"] = [rg_dict[rg] for rg in df2.rg]
         n_reads = df.talt.shape[0]
@@ -429,6 +422,7 @@ class SlugReads:
             .reset_index()
             .drop_duplicates()
         )
+        assert snp.shape[0] == df.shape[0], "Error: some snps have multiple entries"
 
         if flip and ancestral is not None:
             flipped = make_flipped(snp, anc_ref, anc_alt)

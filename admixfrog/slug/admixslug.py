@@ -119,6 +119,8 @@ def run_admixslug(
             sex_chroms=sex_chroms,
         )
 
+        breakpoint()
+
         #each SNP has only at most one gt
         assert Counter(data.READ2SNP).most_common(1)[0][1] == 1
         # each SNP has a GT
