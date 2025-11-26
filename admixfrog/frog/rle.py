@@ -39,7 +39,8 @@ def get_runs(targetid, penalty=0.5):
     #        frag_score = 0
     # if frag_score > 0 and i != end_pos:
     #    frags.append((i, end_pos, frag_score))
-    return pd.DataFrame(frags, columns=["start", "end", "score"])
+    frags = pd.DataFrame(frags, columns=["start", "end", "score"])
+    return frags
 
 
 def get_rle(data, states, penalty=0.5):
@@ -74,25 +75,26 @@ def get_rle(data, states, penalty=0.5):
         logging.info("rle for %s", target)
 
         data["target"] = np.sum(data[target], 1)
-        runs = (
-            data[["chrom", "target", "id"]]
-            .set_index("chrom")
-            .groupby("chrom", observed=False)
-            .apply(get_runs, penalty=penalty)
-            .reset_index()
-        )
-        del data["target"]
-        if "level_1" in runs:
-            del runs["level_1"]
-        runs["target"] = name
-        runs["type"] = type_
 
-        res.append(runs)
+        chroms = pd.unique(data.chrom)
+        runs = []
+        for chrom in chroms:
+            runs_by_chrom = get_runs(data.loc[data.chrom==chrom])
+            runs_by_chrom['chrom'] = chrom
+            if len(runs_by_chrom) > 0:
+                runs.append(runs_by_chrom)
 
-    with warnings.catch_warnings():
-        # TODO: pandas 2.1.0 has a FutureWarning for concatenating DataFrames with Null entries
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        res = pd.concat(res)
+        if len(runs) > 0:
+            runs = pd.concat(runs)
+        
+            del data["target"]
+            runs["target"] = name
+            runs["type"] = type_
+
+            res.append(runs)
+
+
+    res = pd.concat(res)
     res.score = res.score.astype(float)
     res.start = res.start.astype(int)
     res.end = res.end.astype(int)

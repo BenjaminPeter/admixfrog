@@ -84,7 +84,7 @@ def write_vcf_chroms(chroms):
 
 def write_vcf(df, data, posterior_gt, genotype_ll, sample_name="test", outname=None):
     D = (
-        df.groupby(["chrom", "pos", "map", "ref", "alt"])
+        df.groupby(["chrom", "pos", "map", "ref", "alt"], observed=False)
         .agg({"tref": "sum", "talt": "sum"})
         .reset_index()
     )
@@ -134,6 +134,33 @@ def write_sfs2(sfs, pars, data, se_tau=None, se_F=None, outname=None):
     sfs_df["psi"] = sfs_df["tau"] + (sfs_df["read_ratio"] - sfs_df["tau"]) / (
         sfs_df["cont_est"] + 1e-400
     )
+
+    if se_tau is not None:
+        tau = pars.tau
+        sfs_df["se_tau"] = se_tau
+        sfs_df["l_tau"] = np.clip(tau - 1.96 * se_tau, 0, 1)
+        sfs_df["h_tau"] = np.clip(tau + 1.96 * se_tau, 0, 1)
+
+    if se_F is not None:
+        F = pars.F
+        sfs_df["se_F"] = se_F
+        sfs_df["l_F"] = np.clip(F - 1.96 * se_F, 0, 1)
+        sfs_df["h_F"] = np.clip(F + 1.96 * se_F, 0, 1)
+
+    if outname is not None:
+        sfs_df.to_csv(outname, float_format="%5f", index=False)
+
+    return sfs_df
+
+def write_sfs2_gt(sfs, pars, data, se_tau=None, se_F=None, outname=None):
+
+    n_snps = Counter(data.READ2SFS)
+    n_snps = pd.Series((n_snps[i] for i in sfs.index), dtype=int, name="n_reads")
+
+    F = pd.DataFrame(pars.F, columns=["F"])
+    tau = pd.DataFrame(pars.tau, columns=["tau"])
+
+    sfs_df = pd.concat((sfs, F, tau, n_snps), axis=1)
 
     if se_tau is not None:
         tau = pars.tau
