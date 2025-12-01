@@ -85,6 +85,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
     logging.debug(pprint(pops))
     assert isinstance(pops, Mapping)
 
+
     if target_ind is not None:
         sex = Y.xs(target_ind, level="id", axis=1).columns.get_level_values("sex")[0]
         Y["TARGET", sex, target_ind] = Y.xs(target_ind, level="id", axis=1)

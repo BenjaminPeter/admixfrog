@@ -12,6 +12,7 @@ from .utils.vcf import (
     load_random_read_samples,
     vcf_to_sample,
 )
+from .utils.geno_io import read_geno
 from .options import add_target_file_options
 from .options import add_pop_options
 from .options import add_ref_options
@@ -94,6 +95,11 @@ def bam():
             to underflow errors in admixfrog
         """,
     )
+
+    parser.add_argument(
+        "--geno",
+        help="""geno format input file"""
+    )
     add_target_file_options(parser)
     args = vars(parser.parse_args())
 
@@ -113,11 +119,72 @@ def bam():
             random_read=args["random_read_sample"],
             sample_id=args["target"],
         )
+    elif "geno" in args and args["geno"] is not None:
+        geno_to_sample(
+            outfile=args["outfile"],
+            geno=args["geno"],
+            ref_file=args["ref"],
+            chroms=args["chroms"],
+            random_read=args["random_read_sample"],
+            sample_id=args["target"],
+        )
     else:
         del args["vcfgt"]
         del args["target"]
         #del args["chroms"]
         process_bam(**args)
+
+def geno_to_sample(
+        outfile, geno, ref_file, random_read, sample_id):
+    raise NotImplemented("Not finished")
+    df = read_geno(geno, target_ind = sample_id)
+
+
+    ref = pd.read_csv(ref_file)
+    ref.chrom = ref.chrom.astype(str)
+
+    with lzma.open(outfile, "wt") as infile:
+        infile.write(f"chrom,pos,tref,talt\n")
+
+        for chrom in chroms:
+
+            ref_local = ref[ref.chrom == chrom]
+            logging.info("sites on chrom %s: %s", chrom, len(ref_local))
+            with VariantFile(vcf_file.format(CHROM=chrom)) as vcf:
+                vcf.subset_samples([sample_id])
+                for i, row in enumerate(vcf.fetch(chrom)):
+                    ALT_INDEX = 1
+                    if i % 1000 == 0 and i > 0:
+                        logging.info(f"{i} i sites processed")
+                    if row.pos in ref_local.pos.values:
+                        if len(row.alleles) == 1:
+                            ALT_INDEX = -1
+                        elif len(row.alleles) != 2:
+                            ref_row = ref_local[ref_local.pos == row.pos]
+                            ref_alt = ref_row.alt.values
+                            ALT_INDEX = np.where(ref_alt == row.alleles)[0].item()
+                    else:
+                        continue
+
+                    snp_str = f"{row.chrom},{row.pos}"
+
+                    sample_data = row.samples
+                    for s in sample_data:
+                        if random_read:
+                            allele = sample_data[s]["GT"][0]
+                            if allele == 0:
+                                allele_str = "1,0"
+                            elif allele == ALT_INDEX:
+                                allele_str = "0,1"
+                            else:
+                                allele_str = "0,0"
+                        else:
+                            alleles = Counter(sample_data[s]["GT"])
+                            allele_str = f"{alleles[0]},{alleles[ALT_INDEX]}"
+
+                    if allele_str != "0,0":
+                        infile.write(f"{snp_str},{allele_str}\n")
+            logging.info(f"done processing {chrom}")
 
 
 def bam2():
