@@ -213,8 +213,7 @@ def vcf_to_sample(
 
     logging.info("chroms found: %s", chroms)
 
-    ref = pd.read_csv(ref_file)
-    ref.chrom = ref.chrom.astype(str)
+    ref = pd.read_csv(ref_file, dtype={'chrom' : 'str'})
 
     with lzma.open(outfile, "wt") as infile:
         infile.write(f"chrom,pos,tref,talt\n")
