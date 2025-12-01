@@ -62,7 +62,7 @@ def test_binning(script_runner):
     assert ret.success
 
 def test_gtmode(script_runner):
-    cmd = "admixslug --infile res/yri2_from_vcf.in.xz --ref data/ref_A1240k.csv.xz "
+    cmd = "admixslug --infile data/chag_gt.csv.xz --ref data/ref_A1240k.csv.xz "
     cmd += " --out res/test_sfsgt --seed 13 --force-infile --states CHA  --gt-mode "
     args = cmd.split()
     print(args)
@@ -70,7 +70,7 @@ def test_gtmode(script_runner):
     print(ret.stdout)
 
 def test_gtmode_jk(script_runner):
-    cmd = "admixslug --infile res/yri2_from_vcf.in.xz --ref data/ref_A1240k.csv.xz "
+    cmd = "admixslug --infile data/chag_gt.csv.xz --ref data/ref_A1240k.csv.xz "
     cmd += " --out res/test_sfsgtjk --seed 13 --force-infile --states CHA --gt-mode --jk 10 --output-f "
     args = cmd.split()
     print(args)
