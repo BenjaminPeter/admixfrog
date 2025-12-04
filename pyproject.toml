@@ -29,7 +29,7 @@ script = 'build.py'
 
 [tool.poetry.dependencies]
 python = ">=3.10"
-pandas = ">=2.0"
+pandas = ">=2.2"
 numba = ">=0.53"
 numpy = ">=1.23"
 scipy = ">=1.1"
