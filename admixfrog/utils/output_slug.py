@@ -158,7 +158,7 @@ def write_sfs2_gt(
 ):
 
     n_snps = Counter(data.READ2SFS)
-    n_snps = pd.Series((n_snps[i] for i in sfs.index), dtype=int, name="n_reads")
+    n_snps = pd.Series((n_snps[i] for i in sfs.index), dtype=int, name="n_snps")
 
     n_anc, n_der = defaultdict(int), defaultdict(int)
     for sfs_, read_, flipped in zip(
@@ -185,6 +185,7 @@ def write_sfs2_gt(
     tau = pd.DataFrame(pars.tau, columns=["tau"])
 
     sfs_df = pd.concat((sfs, F, tau, n_snps, n_anc, n_der), axis=1)
+    sfs_df["n_reads"] = n_snps
     sfs_df["read_ratio"] = n_der / (n_anc + n_der + 1e-400)
 
     if se_tau is not None:
