@@ -22,6 +22,18 @@ def test_jk(script_runner):
     print(ret.stderr)
     assert ret.success
 
+def test_jk_tau_only(script_runner):
+    """test case 1"""
+    cmd = "admixslug --infile data/oase_chr9_sfs.in.xz --ref data/ref_A1240k.csv.xz "
+    cmd += " --out res/test_sfs_jktau --seed 13 --force-infile --jk-resamples 3 --states AFR NEA  "
+    cmd += " --dont-est-F --F0 0 "
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(args, cwd="tests")
+    print(ret.stdout)
+    print(ret.stderr)
+    assert ret.success
+
 
 def test_slug_input(script_runner):
     """case where we generate input file"""
@@ -68,6 +80,16 @@ def test_gtmode(script_runner):
     print(args)
     ret = script_runner.run(args, cwd="tests")
     print(ret.stdout)
+
+def test_gtmode_tau_only(script_runner):
+    cmd = "admixslug --infile data/chag_gt.csv.xz --ref data/ref_A1240k.csv.xz "
+    cmd += " --out res/test_sfsgttau --seed 13 --force-infile --states CHA "
+    cmd += "--F0 0 --dont-est-F --gt-mode"
+    args = cmd.split()
+    print(args)
+    ret = script_runner.run(args, cwd="tests")
+    print(ret.stdout)
+
 
 def test_gtmode_jk(script_runner):
     cmd = "admixslug --infile data/chag_gt.csv.xz --ref data/ref_A1240k.csv.xz "

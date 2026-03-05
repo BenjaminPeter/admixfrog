@@ -604,15 +604,15 @@ def add_estimation_options_slug(P):
         action="store_false",
         dest="est_F",
         default=True,
-        help="""Estimate F (distance from ref, default False)""",
+        help="""Estimate F (prob of coalescence in SFS category)""",
     )
     parser.add_argument(
-        "--est-tau",
+        "--dont-est-tau",
         "-tau",
         action="store_false",
         dest="est_tau",
         default=True,
-        help="""Estimate tau (population structure in references)""",
+        help="""Don't estimate tau (prop derived alleles in cSFS)""",
     )
     parser.add_argument(
         "--F0",

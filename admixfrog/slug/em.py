@@ -78,36 +78,30 @@ def update_ftau_numeric(old_F, old_tau, data, post_g, update_F=True):
     return F, tau
 
 
-def update_ftau(old_F, old_tau, data, post_g, update_F=True):
+def update_tau_only(old_tau, data, post_g):
     """updates the SFS parameters
 
     tau represents the conditional SFS entry, i.e. what proportion of sites are
     derived in any particular SFS category
 
-    F is the inbreeding coefficient, i.e. what proportion of sites coalesce
-    before the SFS entry
-
     Parameters
     ----------
-    old_F : array[S x 1]
-        old F
     old_tau : array[S x 1]
         old tau
     data : SlugData
         data object, used for various indices
     post_g : array[L x 3]
-        Pr(G | O)
-    update_F : bool, optional
-        should F be updated
 
     Returns
     -------
-    new_F : array[S x 1]
     new_tau : array[Sx 1]
     """
 
-    tau, F = np.zeros(data.n_sfs), np.zeros(data.n_sfs)
-    tau[:], F[:] = old_tau, old_F
+    tau = np.zeros(data.n_sfs)
+    tau[:] = old_tau
+
+
+    log_.debug(f"updating tau only ")
 
     for k in range(data.n_sfs):
         G0, G1, G2 = np.sum(post_g[data.SNP2SFS == k], 0)
@@ -118,22 +112,7 @@ def update_ftau(old_F, old_tau, data, post_g, update_F=True):
         else:
             tau[k] = 0.0
 
-        # for F, exclude X-chromosome stuff
-        if update_F:
-            if data.haploid_snps is None:
-                pass
-            else:
-                ix1 = data.SNP2SFS == k
-                ix1[data.haploid_snps] = False
-                if np.all(~ix1):
-                    pass
-                else:
-                    G0, G1, G2 = np.sum(post_g[ix1], 0)
-
-            F[k] = 2 * G0 / (2 * G0 + G1 + 1e-300) - G1 / (2 * G2 + G1 + 1e-300)
-        np.clip(F, 0, 1, out=F)  # round to [0, 1]
-
-    return F, tau
+    return tau
 
 
 def update_c(post_c, READ2RG, n_rgs):
@@ -245,11 +224,17 @@ def update_pars(pars, data, controller):
     fwd_x_nocont = fwd_p_x_nocont(fwd_g, data.READ2SNP)  # size [L x 1]
     fwd_x = fwd_p_x(fwd_x_cont, fwd_x_nocont, fwd_c, data.READ2RG)
 
-    if O.update_ftau:
+    if O.update_ftau and O.update_F:
         post_g = posterior_g(bwd_g, fwd_g)
         pars.prev_F[:], pars.prev_tau[:] = pars.F, pars.tau
         pars.F, pars.tau = update_ftau_numeric(
             pars.F, pars.tau, data, post_g, update_F=controller.update_F
+        )
+    elif O.update_ftau and not O.update_F:
+        post_g = posterior_g(bwd_g, fwd_g)
+        pars.prev_tau[:] = pars.tau
+        pars.tau = update_tau_only(
+            pars.tau, data, post_g
         )
 
     if O.update_cont:
@@ -297,10 +282,17 @@ def update_pars_gt(pars, data, controller):
     if O.update_ftau or O.update_eb:
         post_g = posterior_g(bwd_g, fwd_g)
 
-    if O.update_ftau:
+    if O.update_ftau and O.update_F:
+        post_g = posterior_g(bwd_g, fwd_g)
         pars.prev_F[:], pars.prev_tau[:] = pars.F, pars.tau
         pars.F, pars.tau = update_ftau_numeric(
             pars.F, pars.tau, data, post_g, update_F=controller.update_F
+        )
+    elif O.update_ftau and not O.update_F:
+        post_g = posterior_g(bwd_g, fwd_g)
+        pars.prev_tau[:] = pars.tau
+        pars.tau = update_tau_only(
+            pars.tau, data, post_g
         )
 
     if O.update_eb:
@@ -312,7 +304,7 @@ def update_pars_gt(pars, data, controller):
     if O.do_ll:
         pars.ll, pars.prev_ll = calc_ll(fwd_g, bwd_g), pars.ll
 
-    print(pars.tau, pars.e, pars.b)
+    print(pars.tau, pars.F, pars.e, pars.b)
     return pars
 
 
