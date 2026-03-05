@@ -12,44 +12,42 @@
 \newcommand{\BFZ}{\mathbf{Z}}
 \newcommand{\BFG}{\mathbf{G}}
 \newcommand{\BFO}{\mathbf{O}}
+\newcommand{\BFC}{\mathbf{C}}
+\newcommand{\BFX}{\mathbf{X}}
 
-\title{Supplement 1: Admixslug Model Details}
+\title{Supplement 1.3: Model Details}
 \begin{document}
 	\maketitle
 \section*{Model Overview}
-Here, we present a graphical model for the joint estimation of contamination and a conditional site-frequency spectrum, implemented in a program called \texttt{admixslug}.
+In this section, we give the full mathematical details of the admixslug model and its implementation.
 	
-The model aims to combine information from both sequences and relatedness to other populations.
-	
-We assume we have NGS-data from $L$ SNPs, and a set of one or more reference populations $Z_i$ with reference genotypes at these loci, we also assume we have an ancestral allele . 
-	
-Finally, we assume that for each SNP we have zero or more reads sampled from $R$ disjoint read groups. The total number of reads from a particular read group at a particular SNP $G_{sl}$ is $n_{rsl}$, and the random variable denoting the number of non-reference alleles is $O_{rsl}$. Each read group will have its own contamination rate $c_r$ that is estimated directly from the data. In addition, there is an error and bias parameter that is shared between all libraries.
-
-
-	
-	We are primarily interested in estimating the latent states $\BFZ$ and $\BFG$, but we also estimate the transition matrix $A$ between states (which, in turn, is informative about admixture proportion and times), the contamination and error rate for each read group, the substructure in each source $\tau_k$, and the average drift since admixture from each source $F_k$. 
-\section*{Notation overview}
-	To summarize, the notation is as follows: 
+\subsection*{Notation overview}
+	Throughout, the notation is as follows: 
 	\begin{itemize}
-		\item $R, L$ denote the number of read groups and loci, respectively
-		\item $K$ is the number of SFS-bins 
-		\item $n_{rl}$ the number of reads of readgroup $r$ at SNP $l$.
-		\item $\BFO = (O_{rli})$ the $i$-th read from read group $r$ at SNP $l$
-		\item $\BFG = (G_{l})$ the genotype at SNP $l$
-		\item $\BFZ = (Z_{l})$ the SFS of SNP $l$
-		\item $F_k$ a parameter estimating coalescence sinc gene flow for SNP in SFS-entry $k$.
+		\item $R$ is the number of read groups
+		\item $L$ is the number of biallelic SNP loci
+		\item $K$ is the number of SFS-bins, which are entries in the reference SFS. 
+		\item $n_{rl}$ the number of reads of read group $r$ at SNP $l$.
+		\item $O_{rli}$ is the $i$-th read from read group $r$ at SNP $l$
+		\item $G_{l}$ is the genotype at SNP $l$, codified by the number of derived alleles
+		\item $\psi_l$ is the derived allele frequency in a contaminant panel at locus $l$
+		\item $Z_{l}$ is the set of all SFS entries, and the SFS-entry corresponding to SNP $l$
+		\item $X_{rli}$ is an indicator that is one if the true allele corresponding to $O_{rli}$ is derived, zero if it is ancestral
+		\item $C_{rli}$ an indicator that is 1 if the read corresponding to $X_{rli}$ is of contaminant origin, and 0 if it is endogenous
+		\item $F_k$ a parameter estimating coalescence since gene flow for SNP in SFS-entry $k$.
 		\item $\tau_k$ the proportion of derived alleles in SFS-entry $k$.		
 		\item $c_r$ proportion of contaminant reads in read group $r$
 		\item $e,b$  error rate, and reference bias
+		\item $W_l$ 
 		\item $\mathbf{\theta} = (c_r, e, b, \tau_k, F_k)$, the set of all parameters to be estimated
 	\end{itemize}
-
+In all cases, we use a bold capital letter to denote the set of all parameters, i.e. $\BFG = (G_l)$ is the set of all genotypes.
 
 \section*{Model details}
 \subsection*{Error model}
-We consider sequencing error,and reference bias
+The error model relates the (unobserved) true state of the sequenced molecule $X_{lri}$ to the observed sequencing data $O_{lri}$, which denotes the $i$-th read of read group $r$ at locus $l$. We consider sequencing error,and reference bias.
 
-The random variable $X_{lri}$ reflects the base on the $i$-th sequence from read group $r$ at SNP locus $l$, and  $O_{rli}$ is the base on the resulting sequencing read. $X$ is based on ancestral/derived alleles, whereas $O$ is codified by reference/alternative alleles. We further have a variable $W_l$ that is 1 if the reference allele is flipped, i.e.
+$X$ is based on ancestral/derived alleles, whereas $O$ is codified by reference/alternative alleles. We further have a variable $W_l$ that is 1 if the reference allele is flipped, i.e.
 
 \begin{align*}
 W_l = \begin{cases}
@@ -65,7 +63,7 @@ The eight possible cases are then:
 
 \begin{tabular}{r r r l | r}
 Observed base & base on seq & flipped & alleles & probability\\
-$O_{li}$ & $X_{li}$ & $W_l$ &\\
+$O_{rli}$ & $X_{rli}$ & $W_l$ &\\
 \hline
 0 (ref) & 0 (anc)& 0 &ref = anc, alt = der & 1 - e\\
 1 (alt) & 0 (anc)& 0 &ref = anc, alt = der& e\\
@@ -82,13 +80,13 @@ $O_{li}$ & $X_{li}$ & $W_l$ &\\
 
 We can think of $e$ as the sequencing error, and $b$ as the reference bias + sequencing error.
 
-This is implemented in \texttt{bwd\_p\_o\_given\_x}, which calculates a matrix of size R x 2 containing the entries
-$P(O_i | X_i = j)$
+This is implemented in \texttt{bwd\_p\_o\_given\_x}, which calculates a matrix of size $R \times 2$ containing the entries
+$P(O_i | X_i = j)$, flattened over $r$ and $l$
 
 \subsection*{Sequence model}
 
 There are two possible origins for each sequence $X_{lri}$, it is either a contaminant, or endogenous. 
-Let $C_{lri} =1 $ mean that $X_{lri}$ is contaminant, and $C_{lri} =0 $ mean it is not. Furthermore, let $\psi_l$ be the alt allele frequency in a reference contamination panel, which we assume to be known. Let $G_l$ be the genotype of the target individual at SNP $l$ (which is either 0, 1 or 2 in diploid individuals).
+Let $C_{lri} =1 $ mean that $X_{lri}$ is contaminant, and $C_{lri} =0 $ mean it is not. Furthermore, let $\psi_l$ be the \textbf{derived} allele frequency in a reference contamination panel, which we assume to be known. Let $G_l$ be the genotype of the target individual at SNP $l$, counted as the number of derived alleles (which is either 0, 1 or 2 in diploid individuals).
 
 
 \begin{align}
@@ -117,23 +115,8 @@ P(C_{lri} = 1 | c_r) &= c_r
 \end{align}
 independent of the locus.
 
-\subsection*{Genotype likelihoods}
-The genotype likelihood for locus $l$ can be written as $P(O_l | G_l) = \prod_{rj} P(O_{lrj} | G_l)$, where the product is over all reads aligning to this locus (double indexing because we multiply over all read-groups (indexed by $r$) and all reads per read-group (indicated by $j$).
-
-
-The backwards probabilities 
-\begin{equation}
-P(O_{lrj} | G_l) = P(O | C_{lrj}=1)c_{lrj} + P(O | G_l, C_{lrj}=0)(1 - c_{lrj})
-\end{equation}
-where 
-\begin{equation*}
- P(O | C_{lrj}=1) = \begin{cases}
-\psi_l &\text{ if } O=1\\ (1-\psi_l) &\text{ if } O=0
- \end{cases}
-\end{equation*}
-
 \subsection*{Genotype model}
-We estimate the genotype given the conditional-SFS entry $Z_l=k$, $F_k$ is the probability that both alleles are IBD, and $\tau_k$ is the probability that the individual has a derived allele at position $k$
+We estimate the genotype of a locus given the conditional-SFS entry $Z_l=k$, $F_k$ is the probability that both alleles are IBD, and $\tau_k$ is the probability that the individual has a derived allele at position $k$
 Thus
 \begin{align}
 P(G_l = 0| Z_l=k, \tau_k, F_k) &= F_k (1-\tau_k) + (1-F_k) (1-\tau_k)^2\nonumber\\
@@ -143,7 +126,7 @@ P(G_l = 2| Z_l=k, \tau_k, F_k) &= F_k \tau_k + (1-F_k) \tau_k^2\label{eq:prg}
 
 Estimating all the $\tau_k$ is one of the main goals of \texttt{admixslug}, as they can be used to calculate $F$-statistics and other quantities of interest.
 
-For example, if we compare with the Altai Neandertal and Denisova 3 genomes, we would have the following Z states:
+For example, if we compare with the Altai Neandertal and Denisova 3 genomes, we would have the following $Z$ states:
 \begin{table}[!ht]
 	\begin{center}
 		
@@ -162,75 +145,108 @@ For example, if we compare with the Altai Neandertal and Denisova 3 genomes, we 
 	\end{center}
 \end{table}
 
-This is implemented in \texttt{p\_gt\_diploid} and tested in \texttt{tests/test\_slug.py:test\_slug\_p\_gt\_diploid}
+This is implemented in \texttt{p\_gt\_diploid} and tested in \texttt{tests/test\_slug.py:test\_slug\_p\_gt\_diploid}.
+
+For comparison with genotype-based methods, we also implement a \texttt{--gtmode} flag that allows the user to disable  the genotype likelihood and contamination models and directly supply the genotypes, in which case this is the only part of the model that is retained.
 
 
-\subsection*{Likelihood}
-We observe the data $\mathbf{O}$, and we know the parameters $\theta = (\tau_k, F_k, c_r, e,b)$, the 
-contamination panel $\psi$ and the conditional SFS $\mathbf{Z}$. The variables
-$C_r, X_{lri}$ and $G_l$ are latent variables we need to sum over.
-\begin{align}
-P(\mathbf{O} | \theta, \psi, \mathbf{Z}) &= 
-\prod_{l, r, i}\sum_{X_{lri}=0}^1\sum_{C_{lri}=0}^1\sum_{G_{l}=0}^2 P(O_{lri} |X_{lri}) P(X_{lri} | C_{lri}, \psi_l, G_l) P(C_{lri} | c_r) P(G_l | Z_l, \tau_k, F_k)
-\end{align}
 
-\subsection*{Forward Probabilities}
-\paragraph{Read probabilities}
+\subsection*{Likelihood and parameter estimation}
+
+\subsubsection*{Complete Data Likelihood}
+As in most graphical models, optimizing the exact likelihood is intractable because we would need to jointly optimize all parameters. 
+
+We therefore use an EM-algorithm to estimate parameters. We proceed by calculating the complete-data likelihood (where we assume the latent variables) are known, and then derived the $Q$-function for estimating parameters. 
+
+The complete data likelihood can be written as 
 \begin{align*}
- P(X_{lrj} | G_l, C_r, \psi_l) &=  P(X_{lrj} | C=0) Pr( C=0) +  \sum P(X_{lrj} | C=1) Pr(C=1) \\
- P(X_{lrj} | C=0) &= \sum_{g=0}^2 P(X_{lrj} | G_{lrj}=g)P(G_l=g | Z_l) \frac{ P(O_l | G_l=g)} {P(O_{lrj} | G_l=g) } 
-\end{align*}
-the ratio in the last equation is the probability of all other observations given the genotype
-
-\subsection*{Backward Probabilities}
-Calculate the probability of all observations given a genotype (interpreted as function of the genotype $G_l = 0,1,2$
-\begin{align*}
-P(O_{l} | G_l) &= \prod_{rj} P(O_{lrj} | G_l)\\
-P(O_{lrj} | G_l) &= \sum_a P(O_{lrj}|X_{lrj}=a)  P(X_{lrj}=a | G_l, C_r, \psi_l)\\
-P(X_{lrj} | G_l, C_r, \psi_l) &= P(X_{lrj} | C_{lrj}=0)P(C_{lrj}=0)  + P(X_{lrj} | \psi_l, C_{lrj}=1)P(C_{lrj}=1)]
-\end{align*}
-
-\subsection*{Posterior}
-\paragraph{Posterior Genotypes}
-The probability that genotype $G_l$ is 0, 1, 2
-$$P(G_l | O) \propto P(G_l | Z_l) \times \prod{rj} P(O_{lrj} | G_l)$$
-
-\paragraph{Posterior Reads}
-The probability that read $X_{lrj}$ carries a derived allele
-$$P(X_{lrj} | O) \propto P(X_{lrj} | C, G, Z, \psi) P(O_{lrj} | X_{lrj})$$
-\paragraph{Posterior Contamination}
-Calculate the posterior probability that read $rij$ is contamination
-$$P(C_{rij})  = \frac{\sum_a P(X=a|C_r=1) P(O|X=a) P(C_r=1)}{\sum_i \big[ P(X=a|C=1) P(O|X=a)P(C_r=1) +  P(X=a|C=0) P(O|X=ia)P(C_r=0)\big]}$$
-where $a=0,1$
-
-\subsection*{Parameter estimation}
-We estimate parameters using the complete-data log-likelihood using an EM-algorithm.
-\begin{align*}
-\log P(\mathbf{O}, \mathbf{X}, \mathbf{C}, \mathbf{G} | \theta, \psi, \mathbf{Z}) &= 
-\sum_{lri} \log P(O_{lri} | X_{lri}, e, b)\\
-&+ \sum_{lri}\log P(C_{lri} | c_r)\\
-&+ \sum_{lri}\log P(X_{lri} | C_{lri}, \psi_l, G_l)\\
-&+ \sum_{l} \log P( G_l | Z_l, \tau_k, F_k)
+	\log P(\mathbf{O}, \mathbf{X}, \mathbf{C}, \mathbf{G} | \theta, \psi, \mathbf{Z}) &= 
+	\sum_{lri} \log P(O_{lri} | X_{lri}, e, b)\\
+	&+ \sum_{lri}\log P(C_{lri} | c_r)\\
+	&+ \sum_{lri}\log P(X_{lri} | C_{lri}, \psi_l, G_l)\\
+	&+ \sum_{l} \log P( G_l | Z_l, \tau_k, F_k)
 \end{align*}
 
 The corresponding Q-function is \begin{align*}
-Q(\theta | \theta') &= \mathbb{E}\big[\log P(\mathbf{O}, \mathbf{X}, \mathbf{C}, \mathbf{G} | \theta, \psi, \mathbf{Z}) | P(\mathbf{O, X, C, G}) | \theta', \mathbf{Z} \big]\\ &= 
-\sum_{lri} \log P(O_{lri} | X_{lri}, e, b) P(\mathbf{X} | \theta')\\
-&+ \sum_{lri}\log P(C_{lri} | c_r) P(\mathbf{C} | \theta')\\
-&+ \sum_{lri}\log P(X_{lri} | C_{lri}, \psi_l, G_l)P(\mathbf{C,G} | \theta')\\
-&+ \sum_{l} \log P( G_l | Z_l, \tau_k, F_k) P(\mathbf{G} | \theta')
+	Q(\theta | \theta') &= \mathbb{E}\big[\log P(\mathbf{O}, \mathbf{X}, \mathbf{C}, \mathbf{G} | \theta, \psi, \mathbf{Z}) | P(\mathbf{O, X, C, G}) | \theta', \mathbf{Z} \big]\\ &= 
+	\sum_{lri} \log P(O_{lri} | X_{lri}, e, b) P(\mathbf{X} | \theta')\\
+	&+ \sum_{lri}\log P(C_{lri} | c_r) P(\mathbf{C} | \theta')\\
+	&+ \sum_{lri}\log P(X_{lri} | C_{lri}, \psi_l, G_l)P(\mathbf{C,G} | \theta')\\
+	&+ \sum_{l} \log P( G_l | Z_l, \tau_k, F_k) P(\mathbf{G} | \theta')
+\end{align*}
+
+The probability terms are given in the previous section. What is missing is the expectation of the latent variables after each iteration. We calculate these recursively, using ``forward''-probabilities to calculate the probabilities of states given the parameters, and the ``backwards''-probabilities to calculate the probability of the observation given the latent states.
+
+
+
+\subsection*{Forward Probabilities}
+$P(G_l |Z_l )$ and $P(C_{rli} | c_r)$ can be calculated without knowing previous states.
+
+\paragraph{Read probabilities}
+For the read probabilities, we condition on $C$ and $G$:
+\begin{align*}
+	Pr(X_{lrj} | C_{lrj}=0) =& \sum_g Pr(X_{lrj} | C_{lrj}=0, G_l=g)Pr(G_l=g | Z_l) \\
+    P(X_{lrj} | Z_l, \psi_l) =& Pr(X_{lrj} | C_{lrj}=0) Pr( C_{lrj}=0 | c_r) Pr(G_l|Z_l)\\ &+  P(X_{lrj} | C_{lrj}=1) Pr(C_{lrj}=1 | c_r) \\
+\end{align*}
+
+\subsection*{Backward Probabilities}
+The elementary probabilities $Pr(\BFO|\BFX)$ can be calculated directly.
+
+Given those, we can calculate the further probabilties for the other latent variables $\BFC$ and $\BFG$:
+
+\begin{align*}
+P(O_{l} | C_l) &= \prod_{rj} P(O_{lrj} | C_l)\\
+&= \prod_{rj} P(O_{lrj} | X_{lrj}) P(X_{lrj} | C_l)\\
+\end{align*}
+
+\begin{align*}
+	P(O_{lrj} | G_l) &=  P(O_{lrj} , C_{lrj}=0) + P(O_{lrj} , C_{lrj}=1, G_l)\\
+	&= P(O_{lrj}| C_{rj}=0)Pr(C_{rj}=0) + \sum_x P(O_{lrj}| X_{lrj}=x) Pr(X_{lrj}=x | G_l, C_{rj}=1)\\\\
 \end{align*}
 
 
+
+\subsection*{Posteriors}
+Using the forward and backward probabilities, we can calculate the posterior expectations for the latent variable in each E-step.
+
+
+\paragraph{Posterior Genotypes}
+
+
+The probability that genotype $G_l$ is 0, 1, 2 is 
+
+\begin{align}
+P(G_l=g|\BFO) &= \frac{P(\BFO|G_l=g)P(G_l=g|Z_l)}{P(G_l=g|Z_l)} \\	
+&\propto  P(G_l | Z_l) \times \prod_{rj} P(O_{lrj} | G_l)
+\end{align}
+
+We ignore the denominator by calculating the probabilities for all three states and normalizing them to one, and all observation not associated with locus $l$ are the same for all genotypes, i.e. cancel out.
+
+
+\paragraph{Posterior Reads}
+The probability that read $X_{lrj}$ carries a derived allele
+$$P(X_{lrj} | \BFO) \propto P(X_{lrj} | \BFC, \BFG) P(O_{lrj} | X_{lrj})$$
+
+\paragraph{Posterior Contamination}
+Calculate the posterior probability that read $rlj$ is contamination
+$$P(C_{rlj}| \BFO)  \propto P(O_{rlj}|C_{rli}) c_r $$
+
+
+
+\subsection{M-step}
+Given the posterior expectations calculated in the E-step, we update the parameters for the next iteration in the $M$-step:
 \subsubsection*{Estimating $e$ and $b$}
-Let $n_{a,b,c}$ be the number of reads where $O_{lri}=0, X_{lri}=b, W_l=c$
+To simplify notation, let $n_{a,b,c}=\sum P(X_{lrj}=b|O_{lrj}=a, W_l=c)$.
 \begin{align*}
 \hat{e} & = \frac{n_{1,0,0} + n_{1,1,1}}{n_{1,0,0} + n_{1,1,1} + n_{0,0,0} +n_{0, 1, 1}}\\
 \hat{b} & = \frac{n_{0,1,0} + n_{0, 0,1}}{n_{0, 1, 0} + n_{0, 0, 1} + n_{1, 1, 0} +n_{1, 0, 1}}
 \end{align*}
+
+For example, $n_{1,1,1} = Pr(X_{lrj}=1|O_{lrj}=1, W_l=1)$, i.e. a case where the read has a derived allele ($X_{lrj}=1)$, we observe an alternative allele ($O_{lrj}=1)$) and the locus is defined os that the alternative allele is the ancestral allele ($W_l=1$). This configuration happens if there is an error away from the reference, which is why this term appears in the estimation of the new $e$.
+
 \subsubsection*{Estimating $c_k$}
 \begin{align*}
-c_r =  \sum_{li} P(C| O, c')
+c_r =  \sum_{li} P(C_{lri}| O_{lrj})
 \end{align*},
 i.e. we average over the posterior contamination estimates from all reads in the read group
 \subsubsection*{Estimating $\tau_k$ and $F_k$}
@@ -260,21 +276,33 @@ Assume we have $L$ loci, and population $a_{il}, d_{il}$ are the ancestral/deriv
 using the conditonal SFS from \texttt{admixslug}, we can write equivalently
 \begin{equation}
 \pi_{ij} = \begin{cases}
-\sum_k c_k \frac{a_{ik}d_{jk} + d_{ik}a_{jk}} {n_{ik}n_{jk}} ,& \text{if } i \neq j\\
-\sum_k c_k \frac{a_{ik}d_{ik}}{n_{ik}(n_{ik} -1)},              & \text{if }i =j
+\sum_k s_k \frac{a_{ik}d_{jk} + d_{ik}a_{jk}} {n_{ik}n_{jk}} ,& \text{if } i \neq j\\
+\sum_k s_k \frac{a_{ik}d_{ik}}{n_{ik}(n_{ik} -1)},              & \text{if }i =j
 \end{cases},
 \end{equation}
-where $a_{ik}, d_{ik}, n_{ik}$ are now the counts of ancestral/derived/total alleles in population $i$ and SFS-category $k$, and $c_k$ is the (estimated) proportion of SNPs of this category.
+where $a_{ik}, d_{ik}, n_{ik}$ are now the counts of ancestral/derived/total alleles in population $i$ and SFS-category $k$, and $s_k$ is the (estimated) proportion of SNPs of this category.
 
 These equations can directly be used to calculate $\pi$ within and between pairs of reference populations. To calculate $\pi$ between a reference population and the target individual, we use the estimator
 
 \begin{equation}
-\pi_{is} = \sum_k \frac{c_k}{n_i} \left[\tau_k a_i+ (1-\tau_k) d_i\right],
+\pi_{is} = \sum_k \frac{s_k}{n_{ik}} \left[\tau_k a_{ik}+ (1-\tau_k) d_{ik}\right],
 \end{equation}
 since $\tau_k$ is the expected proportion of SNPs carrying a derived allele in SFS-category $k$.
 
 
 One caveat is that we cannot calculate $\pi{ss}$, the heterozygosity in the target individual. Also, for references without heterozygosity (e.g. the chimp-outgroup, or pseudo-haploid reference individuals), $\pi_{ii}$ cannot be calculated. By convention, we set these to zero. Thus, $F$-statistics involving these heterozygosities ($F_2$-statistics, and $F_3$-statistics using these individuals as samples) will be overestimated by a constant.
+
+
+\section{Calculating F(A|B) statistics}
+The $F(A|B)$ statistics where $B$ is a single diploid genome are the proportion of derived alleles at sites where $B$ is heterozygous. This corresponds exactly to the $\tau_k$ for categories where $k$ is heterozygous.
+
+Thus,
+
+\begin{equation}
+	F(A|B) = \frac{\sum_k s_k \tau_k}{\sum_k s_k},
+\end{equation}
+
+where the sum is only over entries where $B$ is heterozygous.
 
 \bibliography{main}
 \bibliographystyle{plainnat}
