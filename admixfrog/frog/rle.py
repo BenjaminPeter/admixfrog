@@ -5,7 +5,7 @@ import warnings
 from itertools import accumulate
 
 
-def get_runs(targetid, penalty=0.5):
+def get_runs(targetid, penalty=0.2):
     target, id_ = targetid.target, np.array(targetid.id)
     p0 = np.array(np.log(target + penalty))
     frag_score = 0
@@ -43,7 +43,7 @@ def get_runs(targetid, penalty=0.5):
     return frags
 
 
-def get_rle(data, states, penalty=0.5):
+def get_rle(data, states, penalty=0.2):
     coords = data[["chrom", "map", "pos", "id"]]
 
     het_targets = [[s] for s in states.het_names]  # only heterozygous state
@@ -79,7 +79,7 @@ def get_rle(data, states, penalty=0.5):
         chroms = pd.unique(data.chrom)
         runs = []
         for chrom in chroms:
-            runs_by_chrom = get_runs(data.loc[data.chrom==chrom])
+            runs_by_chrom = get_runs(data.loc[data.chrom==chrom],penalty)
             runs_by_chrom['chrom'] = chrom
             if len(runs_by_chrom) > 0:
                 runs.append(runs_by_chrom)
