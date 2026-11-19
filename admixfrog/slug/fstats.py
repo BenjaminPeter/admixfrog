@@ -61,9 +61,9 @@ def calc_fstats(sfs, pop_list=None, name="XXX"):
     )
     pairs.loc[pairs.pop1 == "within", "pop1"] = pairs.pop2[pairs.pop1 == "within"]
     pairs["is_between"] = pairs.pop1 != pairs.pop2
-    pis_data.set_index(pairs.pop1, inplace=True)
-    pis_data.set_index(pairs.pop2, inplace=True, append=True)
-    pis_data.set_index(pairs.is_between, inplace=True, append=True)
+    pis_data = pis_data.set_index(pairs.pop1)
+    pis_data = pis_data.set_index(pairs.pop2, append=True)
+    pis_data = pis_data.set_index(pairs.is_between, append=True)
     pis = pis_data.melt(ignore_index=False, value_name="pi").reset_index()
 
     # add all the permutations
@@ -188,7 +188,7 @@ def single_f4_permuted(*args):
     f4_full = pd.DataFrame(
         np.vstack([*rots0, *rots1]), columns=f4.reset_index().columns
     )
-    f4_full.set_index(f4.index.names, inplace=True)
+    f4_full = f4_full.set_index(f4.index.names)
     return f4_full
 
 

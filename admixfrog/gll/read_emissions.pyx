@@ -20,12 +20,12 @@ from ..utils.log import log_
 cdef double get_po_given_c(
     double c, 
     double e,
-    char [:] O,
-    char [:] N,
-    double [:] P_cont,
-    double [:, :, :] PG,
-    long [:] rg2obs,
-    long [:] obs2snp
+    const unsigned char [:] O,
+    const unsigned char [:] N,
+    const double [:] P_cont,
+    const double [:, :, :] PG,
+    const long [:] rg2obs,
+    const long [:] obs2snp
     ) :
     cdef int i, s, g,
     cdef long n_obs, n_states, 

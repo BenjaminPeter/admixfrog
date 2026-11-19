@@ -294,7 +294,7 @@ def load_admixslug_data_native(
     if gt_mode:
         data = load_gt_data(target_file)
         data["rg"] = "GT"
-        data.set_index("rg", append=True, inplace=True)
+        data = data.set_index("rg", append=True)
         ix = None
     else:
         data, ix = load_read_data(
@@ -319,9 +319,9 @@ def load_admixslug_data_native(
     ref = filter_ref(ref, states, ancestral=ancestral, cont=cont_id, **filter)
 
     if pos_mode:
-        ref.reset_index("map", inplace=True)
+        ref = ref.reset_index("map")
         ref.map = ref.index.get_level_values("pos")
-        ref.set_index("map", append=True, inplace=True)
+        ref = ref.set_index("map", append=True)
 
     n_sites = ref.shape[0]
 
@@ -347,17 +347,17 @@ def load_admixslug_data_native(
 
 def make_snp_ids(df):
     """integer id for each SNP with available data"""
-    df.reset_index("rg", inplace=True)
+    df = df.reset_index("rg")
     snp_ids = (
         df[~df.index.duplicated()].groupby(df.index.names, observed=False).ngroup()
     )
     snp_ids = snp_ids.rename("snp_id")
     snp_ids = pd.DataFrame(snp_ids)
-    snp_ids.set_index("snp_id", append=True, inplace=True)
+    snp_ids = snp_ids.set_index("snp_id", append=True)
     df = snp_ids.join(df)
-    df.set_index("rg", inplace=True, append=True)
+    df = df.set_index("rg", append=True)
 
-    df.sort_index(inplace=True)
+    df = df.sort_index()
 
     return df
 

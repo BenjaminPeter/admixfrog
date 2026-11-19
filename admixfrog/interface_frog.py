@@ -39,8 +39,9 @@ def do_rle():
     logging.info(pformat(args))
     import pandas as pd
 
-    dtype_ = dict(chrom="category")
+    dtype_ = dict(chrom=str)
     data = pd.read_csv(args.target_file, dtype=dtype_, low_memory=False)
+    data["chrom"] = data["chrom"].astype("category")
     states = list(data.columns)[7:]
     homo = [s for s in states if sum(s in ss for ss in states) > 1]
     homo = States(homo)
