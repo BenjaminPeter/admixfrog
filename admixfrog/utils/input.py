@@ -10,6 +10,16 @@ import itertools
 from .utils import posterior_table, posterior_table_slug, parse_chroms
 
 
+def chrom_as_category(chrom):
+    """chromosome column as categorical, with categories in order of first appearance
+
+    read as str first: pandas 3 infers integer categories for numeric-only chromosomes,
+    and a plain astype('category') sorts them as strings (1, 10, 11, ..., 2), which
+    reorders SNPs after sort_index() and changes output order and resampling blocks.
+    """
+    return pd.Categorical(chrom, categories=pd.unique(chrom))
+
+
 def load_ref(
     ref_files,
     states,
@@ -80,7 +90,7 @@ def load_ref(
             ix_cols = basic_cols
 
         ref0 = pd.read_csv(ref_file, dtype=dtype_, usecols=cols0)
-        ref0["chrom"] = ref0["chrom"].astype("category")
+        ref0["chrom"] = chrom_as_category(ref0["chrom"])
         ref0 = ref0.set_index(ix_cols)
         ref0.index = ref0.index.set_names("map", level=map_col)
 
@@ -255,7 +265,7 @@ def load_gt_data(infile):
         chrom=str, pos=np.uint32, talt=np.uint8, tref=np.uint8
     )
     data = pd.read_csv(infile, dtype=dtype_mandatory)
-    data["chrom"] = data["chrom"].astype("category")
+    data["chrom"] = chrom_as_category(data["chrom"])
     data = data.set_index(["chrom", "pos"])
     return data
 
@@ -305,7 +315,7 @@ def load_read_data(
     data = pd.read_csv(
         infile, dtype=dtype_mandatory, usecols=dtype_mandatory.keys()
     ).dropna()
-    data["chrom"] = data["chrom"].astype("category")
+    data["chrom"] = chrom_as_category(data["chrom"])
     data = data.set_index(["chrom", "pos"])
 
     if "rg" not in data:

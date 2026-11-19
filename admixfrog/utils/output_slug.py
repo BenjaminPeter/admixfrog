@@ -84,7 +84,7 @@ def write_vcf_chroms(chroms):
 
 def write_vcf(df, data, posterior_gt, genotype_ll, sample_name="test", outname=None):
     D = (
-        df.groupby(["chrom", "pos", "map", "ref", "alt"], observed=False)
+        df.groupby(["chrom", "pos", "map", "ref", "alt"], observed=True)
         .agg({"tref": "sum", "talt": "sum"})
         .reset_index()
     )
