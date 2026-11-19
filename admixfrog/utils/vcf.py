@@ -233,8 +233,10 @@ def vcf_to_sample(
                             ALT_INDEX = -1
                         elif len(row.alleles) != 2:
                             ref_row = ref_local[ref_local.pos == row.pos]
-                            ref_alt = ref_row.alt.values
-                            ALT_INDEX = np.where(ref_alt == row.alleles)[0].item()
+                            ref_alt = ref_row.alt.to_numpy(dtype=object)
+                            ALT_INDEX = np.where(
+                                ref_alt == np.array(row.alleles, dtype=object)
+                            )[0].item()
                     else:
                         continue
 

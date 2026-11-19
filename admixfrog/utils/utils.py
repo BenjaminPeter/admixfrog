@@ -387,7 +387,7 @@ def obs2sfs(snp, flipped, states, max_states=None, sex_chroms=["Z", "W", "X", "Y
 
     """
 
-    snp.reset_index(drop=True, inplace=True)
+    snp = snp.reset_index(drop=True)
     sfs = pd.DataFrame()
     if sex_chroms is not None:
         sfs["sex_chrom"] = np.where(snp["chrom"].isin(sex_chroms), "sex", "autosome")

@@ -45,7 +45,7 @@ def load_ref(
     alt_cols = [f"{s}_alt" for s in label_states]
     data_cols = ref_cols + alt_cols
 
-    dtype_ = dict(chrom="category")
+    dtype_ = dict(chrom=str)
     for col in data_cols:
         dtype_[col] = np.uint16 if large_ref else np.uint8
 
@@ -80,8 +80,9 @@ def load_ref(
             ix_cols = basic_cols
 
         ref0 = pd.read_csv(ref_file, dtype=dtype_, usecols=cols0)
-        ref0.set_index(ix_cols, inplace=True)
-        ref0.index.rename("map", level=map_col, inplace=True)
+        ref0["chrom"] = ref0["chrom"].astype("category")
+        ref0 = ref0.set_index(ix_cols)
+        ref0.index = ref0.index.set_names("map", level=map_col)
 
         ref0 = ref0.loc[~ref0.index.duplicated()]
         ref0 = ref0[~np.isnan(ref0.reset_index("map")["map"].values)]
@@ -91,7 +92,7 @@ def load_ref(
         else:
             ref = ref.join(ref0)
 
-    ref.fillna(value=0, inplace=True)
+    ref = ref.fillna(value=0)
 
     # aggregate different labels
     ref = ref.rename(D, axis=1).T.groupby(level=0).sum().T
@@ -205,8 +206,13 @@ def qbin(x, bin_size=1000, neg_is_nan=True, short_threshold=100_000):
 
 
 def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
-    """Bin reads into bins with approximately the same number of reads"""
-    data.reset_index(inplace=True)
+    """Bin reads into bins with approximately the same number of reads
+
+    Note: adds columns n, deam, len, deam_bin, len_bin and rg to `data`
+    (modified in place; callers rely on the `rg` column).
+    """
+    data_in = data
+    data = data.reset_index()
     data["n"] = data["tref"] + data["talt"]
 
     if 'deam' not in data.columns:
@@ -225,7 +231,9 @@ def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
     data["rg"] = [
         f"{lib}_{d}_{l}" for lib, d, l in zip(data.lib, data.deam_bin, data.len_bin)
     ]
-    data.set_index(["chrom", "pos"], inplace=True)
+    data = data.set_index(["chrom", "pos"])
+    for col in ["n", "deam", "len", "deam_bin", "len_bin", "rg"]:
+        data_in[col] = data[col].to_numpy()
 
     ix = (
         data[["rg", "lib", "deam_bin", "deam", "len_bin", "len"]]
@@ -237,17 +245,18 @@ def bin_reads(data, deam_bin_size=10000, len_bin_size=1000, short_threshold=2):
     # n_bin = data[['rg','n']].groupby('rg').sum()
     n_exact = data[["rg", "deam", "len", "n"]].groupby(["rg", "deam", "len"]).sum()
     ix = ix.set_index(["rg", "deam", "len"]).join(n_exact, how="left").reset_index()
-    ix.rename(columns={"n": "n_exact"}, inplace=True)
+    ix = ix.rename(columns={"n": "n_exact"})
 
     return ix
 
 
 def load_gt_data(infile):
     dtype_mandatory = dict(
-        chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8
+        chrom=str, pos=np.uint32, talt=np.uint8, tref=np.uint8
     )
     data = pd.read_csv(infile, dtype=dtype_mandatory)
-    data.set_index(["chrom", "pos"], inplace=True)
+    data["chrom"] = data["chrom"].astype("category")
+    data = data.set_index(["chrom", "pos"])
     return data
 
 
@@ -281,7 +290,7 @@ def load_read_data(
         - n_bin/n_exact (number of reads in each bin) or each category
     """
     dtype_mandatory = dict(
-        chrom="category", pos=np.uint32, talt=np.uint8, tref=np.uint8
+        chrom=str, pos=np.uint32, talt=np.uint8, tref=np.uint8
     )
 
     dtype_optional = dict(
@@ -296,7 +305,8 @@ def load_read_data(
     data = pd.read_csv(
         infile, dtype=dtype_mandatory, usecols=dtype_mandatory.keys()
     ).dropna()
-    data.set_index(["chrom", "pos"], inplace=True)
+    data["chrom"] = data["chrom"].astype("category")
+    data = data.set_index(["chrom", "pos"])
 
     if "rg" not in data:
         if "lib" in data:
@@ -305,7 +315,7 @@ def load_read_data(
             data["rg"] = "lib0"
             data["lib"] = data["rg"]
     elif not split_lib:
-        data = data.groupby(data.index.names).agg(sum)
+        data = data.groupby(data.index.names, observed=True).sum()
 
     if downsample < 1:
         data.tref = binom.rvs(data.tref, downsample, size=len(data.tref))

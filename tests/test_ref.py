@@ -55,6 +55,10 @@ class TestRefVCF2(TestRefVCF):
         print(ret.stderr)
         assert ret.success
 
+    # re-declare so pytest runs it after this class's test_reffile_from_vcf
+    # (inherited tests are otherwise collected first, before the ref exists)
+    test_runwithref = TestRefVCF.test_runwithref
+
 
 ## RANDOM READ SAMPLE TEST
 class TestRefVCFPseudoHAP(TestRefVCF):
@@ -79,3 +83,7 @@ class TestRefVCFPseudoHAP(TestRefVCF):
         print(ret.stdout)
         print(ret.stderr)
         assert ret.success
+
+    # re-declare so pytest runs it after this class's test_reffile_from_vcf
+    # (inherited tests are otherwise collected first, before the ref exists)
+    test_runwithref = TestRefVCF.test_runwithref

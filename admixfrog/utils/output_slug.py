@@ -24,7 +24,7 @@ def write_cont_table_slug(ix, rgs, cont, tot_n_snps, se=None, outname=None):
 
     df["cont"] = cont
     df = df.set_index("rg").join(ix[["rg", "n_exact"]].groupby("rg").sum())
-    df.rename({"n_exact": "n"}, inplace=True)
+    df = df.rename({"n_exact": "n"})
     df["n_sites"] = tot_n_snps
 
     if se is not None:

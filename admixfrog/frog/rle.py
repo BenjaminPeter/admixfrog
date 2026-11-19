@@ -84,17 +84,28 @@ def get_rle(data, states, penalty=0.2):
             if len(runs_by_chrom) > 0:
                 runs.append(runs_by_chrom)
 
+        del data["target"]
         if len(runs) > 0:
             runs = pd.concat(runs)
-        
-            del data["target"]
             runs["target"] = name
             runs["type"] = type_
 
             res.append(runs)
 
 
-    res = pd.concat(res)
+    if len(res) == 0:
+        res = pd.DataFrame(
+            {
+                "start": pd.Series(dtype=int),
+                "end": pd.Series(dtype=int),
+                "score": pd.Series(dtype=float),
+                "chrom": pd.Series(dtype=coords["chrom"].dtype),
+                "target": pd.Series(dtype=str),
+                "type": pd.Series(dtype=str),
+            }
+        )
+    else:
+        res = pd.concat(res)
     res.score = res.score.astype(float)
     res.start = res.start.astype(int)
     res.end = res.end.astype(int)

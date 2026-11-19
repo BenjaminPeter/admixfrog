@@ -79,7 +79,7 @@ def write_snp_table(data, G, Z, IX, gt_mode=False, outname=None):
         snp_df = pd.concat((D, T, pd.DataFrame(IX.SNP2BIN, columns=["bin"])), axis=1)
         snp_df["random_read"] = snp_df["random_read"].astype(int)
 
-    snp_df.sort_values(["chrom", "pos"], inplace=True)
+    snp_df = snp_df.sort_values(["chrom", "pos"])
     if outname is not None:
         snp_df.to_csv(outname, float_format="%.6f", index=False)
 

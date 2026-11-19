@@ -93,7 +93,7 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
         Y = Y[target_has_data]
         pops["TARGET"] = "TARGET"
 
-    Y.rename(pops, axis=1, inplace=True)
+    Y = Y.rename(pops, axis=1)
 
     if pops is not None:
         Y = Y[list(set(pops.values()))]
@@ -105,6 +105,19 @@ def read_geno(fname, pops=None, target_ind=None, guess_ploidy=True):
         Y = Y.T.set_index(pd.Index([2] * Y.shape[1], name="ploidy"), append=True).T
 
     return Y
+
+
+def _sum_by_pop(Y):
+    """sum columns of Y within each `pop` (replaces Y.groupby("pop", axis=1).sum(),
+    which was removed in pandas 3). NaN are skipped; columns sorted like groupby."""
+    pops = Y.columns.get_level_values("pop")
+    res = {
+        p: Y.iloc[:, np.flatnonzero(pops == p)].sum(axis=1)
+        for p in sorted(pd.unique(pops))
+    }
+    res = pd.DataFrame(res, index=Y.index)
+    res.columns.name = "pop"
+    return res
 
 
 def ref_alt(Y, copy=False):
@@ -127,11 +140,8 @@ def ref_alt(Y, copy=False):
         Y.loc["mt"] = Y.loc["mt"].transform(lambda x: np.where(x > 1, 3, x)).values
 
     Y[Y > 2] = np.nan
-    with warnings.catch_warnings():
-        # TODO: pandas axis=1 is deprecated, but alternative is very, very slow
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        ref = Y.groupby("pop", axis=1).sum()
-    ref.rename(columns=lambda x: f"{x}_ref", inplace=True)
+    ref = _sum_by_pop(Y)
+    ref = ref.rename(columns=lambda x: f"{x}_ref")
 
     CHROMS = pd.unique(Y.index.get_level_values("chrom"))
     AUTOSOMES = [c for c in CHROMS if c not in ["mt", "Y", "X"]]
@@ -152,14 +162,11 @@ def ref_alt(Y, copy=False):
     if "mt" in Y.index:  # always haploid
         Y.loc["mt"] = Y.loc["mt"].transform(lambda x: 1 - x).values
 
-    with warnings.catch_warnings():
-        # TODO: pandas axis=1 is deprecated, but alternative is very, very slow
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        alt = Y.groupby("pop", axis=1).sum()
-    alt.rename(columns=lambda x: f"{x}_alt", inplace=True)
+    alt = _sum_by_pop(Y)
+    alt = alt.rename(columns=lambda x: f"{x}_alt")
 
     df = ref.merge(alt, on=["chrom", "pos", "map", "ref", "alt"])
-    df.rename(columns={"TARGET_ref": "tref", "TARGET_alt": "talt"}, inplace=True)
+    df = df.rename(columns={"TARGET_ref": "tref", "TARGET_alt": "talt"})
 
     return df
 

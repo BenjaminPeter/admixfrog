@@ -263,9 +263,9 @@ def load_admixfrog_data_geno(
     df = filter_ref(df, states, ancestral=ancestral, **filter)
     df["rg"] = "rg0"
     if pos_mode:
-        df.reset_index("map", inplace=True)
+        df = df.reset_index("map")
         df["map"] = df.index.get_level_values("pos")
-        df.set_index("map", append=True, inplace=True)
+        df = df.set_index("map", append=True)
 
     cats = pd.unique(df.index.get_level_values("chrom"))
     chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
@@ -374,9 +374,9 @@ def load_admixfrog_data(
         tot_n_snps = ref.shape[0]
 
         if pos_mode:
-            ref.reset_index("map", inplace=True)
+            ref = ref.reset_index("map")
             ref["map"] = ref.index.get_level_values("pos")
-            ref.set_index("map", append=True, inplace=True)
+            ref = ref.set_index("map", append=True)
         ref = ref.loc[~ref.index.duplicated()]
 
         df = ref.join(data, how="inner")
@@ -392,16 +392,16 @@ def load_admixfrog_data(
     chrom_dtype = pd.CategoricalDtype(cats, ordered=True)
 
     df.index = df.index.set_levels(df.index.levels[0].astype(chrom_dtype), level=0)
-    df.reset_index(inplace=True)
-    df.sort_values(["chrom", "pos"], inplace=True)
-    df.set_index(["chrom", "pos", "ref", "alt", "map"], inplace=True)
+    df = df.reset_index()
+    df = df.sort_values(["chrom", "pos"])
+    df = df.set_index(["chrom", "pos", "ref", "alt", "map"])
 
     # get ids of unique snps
     snp_ids = df[~df.index.duplicated()].groupby(df.index.names, observed=True).ngroup()
-    snp_ids.rename("snp_id", inplace=True)
+    snp_ids = snp_ids.rename("snp_id")
 
     snp_ids = pd.DataFrame(snp_ids)
-    snp_ids.set_index("snp_id", append=True, inplace=True)
+    snp_ids = snp_ids.set_index("snp_id", append=True)
     df = snp_ids.join(df)
 
     if fake_contamination and cont_id:
